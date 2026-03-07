@@ -1,0 +1,2866 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5-Euro-Business Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue-dark:#1F3864;--blue-mid:#2E75B6;--blue-light:#D6E4F7;--blue-xlt:#F2F6FC;
+  --green:#375623;--green-lt:#E2EFDA;--red:#C00000;--red-lt:#FCE4D6;
+  --orange:#C55A11;--orange-lt:#FFF2CC;--purple:#5B2C8D;--purple-lt:#EDE0F7;
+  --gold:#F9A825;--gold-lt:#FFF8E1;
+  --gray-dark:#2D2D2D;--gray-mid:#666;--gray-lt:#F5F7FA;
+  --border:#E0E7F0;--white:#FFFFFF;
+  --shadow:0 2px 12px rgba(31,56,100,.10);--shadow-md:0 4px 24px rgba(31,56,100,.15);
+  --radius:10px;--radius-lg:16px;
+}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--blue-xlt);color:var(--gray-dark);min-height:100vh;}
+a{color:var(--blue-mid);text-decoration:none;}
+
+
+/* REGISTRATION */
+#regTeamList .reg-team-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #E0E7F0;font-size:13px;}
+#regTeamList .reg-team-row:last-child{border-bottom:none;}
+#regTeamList .reg-team-row.selected{background:#D6E4F7;}
+#btnNewTeam.active,#btnJoinTeam.active{border-color:var(--blue-mid)!important;background:var(--blue-xlt);}
+.reg-input{width:100%;padding:10px 14px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;margin-bottom:8px;outline:none;box-sizing:border-box;}
+.reg-input:focus{border-color:var(--blue-mid);}
+
+/* LOGIN */
+#loginScreen{min-height:100vh;background:linear-gradient(135deg,var(--blue-dark) 0%,#2a5298 50%,var(--blue-mid) 100%);display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-card{background:white;border-radius:20px;padding:40px 36px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.login-logo{width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,var(--blue-dark),var(--blue-mid));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:white;margin:0 auto 16px;}
+.login-title{text-align:center;font-size:24px;font-weight:800;color:var(--blue-dark);margin-bottom:4px;}
+.login-sub{text-align:center;font-size:13px;color:var(--gray-mid);margin-bottom:28px;}
+.login-input-wrap{position:relative;margin-bottom:14px;}
+.login-input-wrap input{width:100%;padding:13px 16px;border:2px solid var(--border);border-radius:10px;font-size:15px;font-family:'Courier New',monospace;letter-spacing:2px;text-transform:uppercase;outline:none;transition:border .15s;}
+.login-input-wrap input:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(46,117,182,.12);}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--blue-dark),var(--blue-mid));color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px;}
+.login-btn:hover{opacity:.9;}
+.login-error{color:var(--red);font-size:13px;text-align:center;margin-bottom:10px;display:none;}
+.login-hint{background:var(--blue-xlt);border:1px solid var(--blue-light);border-radius:8px;padding:12px 14px;margin-top:14px;}
+.login-hint h4{font-size:11px;font-weight:700;color:var(--blue-dark);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;}
+.login-hint .code-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.login-hint .code-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.login-hint .code-val{font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;color:var(--blue-mid);}
+.login-hint .code-val:hover{text-decoration:underline;}
+
+/* APP SHELL */
+#appShell{display:none;}
+.topbar{background:var(--blue-dark);color:white;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.topbar-brand{display:flex;align-items:center;gap:10px;}
+.topbar-brand .logo{width:34px;height:34px;border-radius:8px;background:var(--blue-mid);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:white;}
+.topbar-brand h1{font-size:15px;font-weight:700;line-height:1.2;}
+.topbar-brand span{font-size:10px;opacity:.65;display:block;}
+.topbar-nav{display:flex;gap:1px;}
+.topbar-nav button{background:transparent;border:none;color:rgba(255,255,255,.75);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:4px;}
+.topbar-nav button:hover,.topbar-nav button.active{background:rgba(255,255,255,.15);color:white;}
+.topbar-nav button.admin-nav{color:#FFD700;}
+.topbar-nav button.admin-nav:hover,.topbar-nav button.admin-nav.active{background:rgba(255,215,0,.15);color:#FFD700;}
+.topbar-nav button.superadmin-nav{color:#FF9FF3;}
+.topbar-nav button.superadmin-nav:hover,.topbar-nav button.superadmin-nav.active{background:rgba(255,159,243,.15);color:#FF9FF3;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.role-badge{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.role-badge.team-badge{background:rgba(46,117,182,.3);color:#90CAF9;}
+.role-badge.admin-badge{background:rgba(255,215,0,.2);color:#FFD700;}
+.role-badge.super-badge{background:rgba(255,159,243,.2);color:#FF9FF3;}
+.role-badge.member-badge{background:rgba(55,86,35,.3);color:#A5D6A7;}
+.topbar-logout{background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.8);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;}
+.topbar-logout:hover{background:rgba(255,255,255,.22);color:white;}
+
+/* TICKER */
+.ticker{background:var(--blue-mid);color:white;padding:5px 0;font-size:12px;overflow:hidden;display:flex;align-items:center;}
+.ticker-label{background:var(--orange);padding:5px 12px;font-weight:700;white-space:nowrap;margin-right:14px;font-size:11px;}
+.ticker-track{display:flex;gap:48px;animation:scroll 35s linear infinite;white-space:nowrap;}
+.ticker-track span::before{content:"● ";opacity:.6;}
+@keyframes scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+
+/* LAYOUT */
+.container{max-width:1280px;margin:0 auto;padding:24px 18px;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* BUTTONS */
+.btn{padding:7px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--blue-mid);color:white;}.btn-primary:hover{background:#246099;}
+.btn-success{background:#2d7a3e;color:white;}.btn-success:hover{background:#1f5a2d;}
+.btn-danger{background:var(--red);color:white;}.btn-danger:hover{background:#900;}
+.btn-orange{background:var(--orange);color:white;}.btn-orange:hover{background:#a04509;}
+.btn-purple{background:var(--purple);color:white;}.btn-purple:hover{background:#421f6a;}
+.btn-gold{background:var(--gold);color:white;}.btn-gold:hover{background:#e69500;}
+.btn-ghost{background:rgba(255,255,255,.15);color:white;}.btn-ghost:hover{background:rgba(255,255,255,.25);}
+.btn-outline{background:transparent;border:1.5px solid var(--blue-mid);color:var(--blue-mid);}.btn-outline:hover{background:var(--blue-light);}
+.btn-secondary{background:var(--gray-lt);color:var(--gray-dark);border:1px solid var(--border);}.btn-secondary:hover{background:var(--border);}
+.btn-sm{padding:5px 10px;font-size:12px;}.btn-xs{padding:3px 8px;font-size:11px;}
+.btn-warning{background:#d4ac00;color:white;}.btn-warning:hover{background:#b09100;}
+
+/* CARDS */
+.card{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-header h3{font-size:15px;font-weight:700;color:var(--blue-dark);}
+.card-body{padding:18px;}
+
+/* SECTION HEADERS */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:18px;font-weight:700;color:var(--blue-dark);display:flex;align-items:center;gap:9px;}
+.section-title::before{content:"";display:block;width:4px;height:20px;background:var(--blue-mid);border-radius:2px;}
+.section-title.admin-title::before{background:#FFD700;}
+.section-title.super-title::before{background:var(--purple);}
+.section-title.reflect-title::before{background:var(--green);}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
+.stat-card{background:white;border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow);border-top:4px solid var(--blue-mid);}
+.stat-card.green{border-top-color:var(--green);}.stat-card.orange{border-top-color:var(--orange);}
+.stat-card.red{border-top-color:var(--red);}.stat-card.purple{border-top-color:var(--purple);}
+.stat-card.gold{border-top-color:var(--gold);}
+.stat-label{font-size:11px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.stat-value{font-size:28px;font-weight:800;color:var(--blue-dark);line-height:1;margin-bottom:3px;}
+.stat-sub{font-size:12px;color:var(--gray-mid);}
+
+/* LEADERBOARD */
+.leaderboard{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;margin-bottom:22px;}
+.lb-row{display:grid;grid-template-columns:44px 1fr 85px 85px 80px 60px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;transition:background .1s;}
+.lb-row:hover{background:var(--blue-xlt);}
+.lb-row.header{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-mid);background:var(--gray-lt);cursor:default;}
+.lb-row.my-team{background:#EEF6FF;border-left:3px solid var(--blue-mid);}
+.lb-rank{font-size:15px;font-weight:900;color:var(--border);text-align:center;}
+.lb-rank.r1{color:#F9A825;}.lb-rank.r2{color:#90A4AE;}.lb-rank.r3{color:#A1887F;}
+.lb-team{display:flex;align-items:center;gap:8px;}
+.lb-dot{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;color:white;font-weight:700;flex-shrink:0;overflow:hidden;}
+.lb-dot img{width:100%;height:100%;object-fit:cover;}
+.lb-name{font-weight:600;color:var(--blue-dark);font-size:12px;}
+.lb-biz{font-size:10px;color:var(--gray-mid);}
+.lb-num{font-weight:700;font-size:12px;}
+.lb-num.pos{color:var(--green);}.lb-num.neg{color:var(--red);}
+
+/* TWO-COL */
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:18px;margin-bottom:22px;}
+@media(max-width:1024px){.two-col{grid-template-columns:1fr;}}
+
+/* ACTIVITY */
+.activity-feed{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;}
+.activity-item{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);align-items:flex-start;}
+.act-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.act-text{font-size:12px;line-height:1.4;flex:1;}
+.act-time{font-size:10px;color:var(--gray-mid);margin-top:2px;}
+
+/* TX TABLE */
+.tx-table{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;}
+.tx-filters{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.tx-filters select,.tx-filters input{padding:5px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;color:var(--gray-dark);background:white;outline:none;}
+.tx-row{display:grid;grid-template-columns:82px 110px 1fr 80px 75px 60px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;}
+.tx-row.header{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-mid);background:var(--gray-lt);}
+.tx-amt{font-weight:700;text-align:right;}
+.tx-amt.pos{color:var(--green);}.tx-amt.neg{color:var(--red);}
+.tx-team-dot{width:18px;height:18px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700;margin-right:4px;}
+
+/* BLOG */
+.blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;}
+.blog-card{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;transition:transform .2s,box-shadow .2s;}
+.blog-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.blog-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+.blog-week{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--blue-mid);margin-bottom:3px;}
+.blog-title{font-size:14px;font-weight:700;color:var(--blue-dark);margin-bottom:4px;}
+.blog-meta{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--gray-mid);}
+.blog-body{padding:10px 16px;font-size:12px;line-height:1.6;color:var(--gray-mid);}
+.blog-footer{padding:9px 16px;background:var(--gray-lt);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.blog-tag{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:var(--blue-light);color:var(--blue-dark);}
+.blog-status{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.status-approved{background:var(--green-lt);color:var(--green);}
+.status-pending{background:var(--orange-lt);color:var(--orange);}
+.status-rejected{background:var(--red-lt);color:var(--red);}
+.status-draft{background:var(--gray-lt);color:var(--gray-mid);border:1px solid var(--border);}
+
+/* TEAM CARDS */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px;}
+.team-card{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;transition:transform .2s,box-shadow .2s;cursor:pointer;}
+.team-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.team-card.my-card{border:2px solid var(--blue-mid);}
+.team-card-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.team-avatar{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:white;flex-shrink:0;overflow:hidden;}
+.team-avatar img{width:100%;height:100%;object-fit:cover;}
+.team-name{font-size:14px;font-weight:700;color:var(--blue-dark);}
+.team-slogan{font-size:11px;color:var(--gray-mid);font-style:italic;margin-top:1px;}
+.team-rank{margin-left:auto;font-size:20px;font-weight:900;color:var(--border);}
+.team-rank.top1{color:#F9A825;}.team-rank.top2{color:#90A4AE;}.team-rank.top3{color:#A1887F;}
+.team-card-body{padding:12px 16px;}
+.team-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:10px;}
+.metric{text-align:center;}
+.metric-val{font-size:14px;font-weight:800;color:var(--blue-dark);}
+.metric-val.positive{color:var(--green);}.metric-val.negative{color:var(--red);}
+.metric-lbl{font-size:10px;color:var(--gray-mid);margin-top:1px;}
+.progress-wrap{margin-bottom:9px;}
+.progress-label{display:flex;justify-content:space-between;font-size:10px;color:var(--gray-mid);margin-bottom:3px;}
+.progress-bar{height:5px;background:var(--blue-xlt);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue-mid),var(--blue-dark));}
+.progress-fill.green{background:linear-gradient(90deg,#56c47a,var(--green));}
+.team-card-footer{padding:9px 16px;background:var(--gray-lt);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--gray-mid);}
+.tag{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+.tag-blue{background:var(--blue-light);color:var(--blue-dark);}
+.tag-green{background:var(--green-lt);color:var(--green);}
+.tag-orange{background:var(--orange-lt);color:var(--orange);}
+.tag-purple{background:var(--purple-lt);color:var(--purple);}
+.tag-gold{background:var(--gold-lt);color:#E65100;}
+
+/* FORMS */
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--gray-dark);margin-bottom:4px;}
+.form-label .req{color:var(--red);}
+.form-control{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--gray-dark);outline:none;transition:border .15s;background:white;}
+.form-control:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(46,117,182,.10);}
+textarea.form-control{resize:vertical;min-height:70px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-hint{font-size:11px;color:var(--gray-mid);margin-top:3px;}
+.form-section-title{font-size:13px;font-weight:700;color:var(--blue-dark);margin:18px 0 10px;padding-bottom:5px;border-bottom:2px solid var(--blue-light);}
+.char-counter{font-size:10px;color:var(--gray-mid);text-align:right;margin-top:2px;}
+.char-counter.warn{color:var(--orange);}.char-counter.over{color:var(--red);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:300;padding:18px;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-md);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal-lg{max-width:720px;}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:white;z-index:1;}
+.modal-header h3{font-size:16px;font-weight:700;color:var(--blue-dark);}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-mid);line-height:1;}
+.modal-body{padding:20px;}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+
+/* ADMIN */
+.admin-hero{background:linear-gradient(135deg,#2c1654,var(--purple),#8B44C8);border-radius:var(--radius-lg);padding:24px 28px;color:white;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;}
+.admin-hero h2{font-size:20px;font-weight:800;margin-bottom:3px;}
+.admin-hero p{opacity:.8;font-size:12px;}
+.admin-tab-bar{display:flex;gap:3px;margin-bottom:18px;background:white;padding:5px;border-radius:9px;box-shadow:var(--shadow);width:fit-content;flex-wrap:wrap;}
+.admin-tab{padding:6px 14px;border-radius:6px;border:none;background:transparent;font-size:12px;font-weight:600;color:var(--gray-mid);cursor:pointer;transition:all .15s;}
+.admin-tab.active{background:var(--blue-dark);color:white;}
+.admin-panel{display:none;}
+.admin-panel.active{display:block;}
+.approval-row{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;}
+.approval-header{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);cursor:pointer;}
+.approval-header:hover{background:var(--blue-xlt);}
+.approval-content{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;line-height:1.7;background:#FAFBFC;display:none;}
+.approval-actions{padding:10px 16px;display:flex;gap:7px;align-items:center;}
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{background:var(--gray-lt);padding:9px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-mid);border-bottom:1px solid var(--border);}
+.data-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;}
+.data-table tr:hover td{background:var(--blue-xlt);}
+.data-table-wrap{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;}
+.notif-dot{display:inline-block;width:15px;height:15px;background:var(--red);color:white;border-radius:50%;font-size:8px;font-weight:800;text-align:center;line-height:15px;margin-left:4px;vertical-align:middle;}
+
+/* SUPERADMIN */
+.superadmin-hero{background:linear-gradient(135deg,#0d0d2b,#1a0a3c,var(--purple));border-radius:var(--radius-lg);padding:24px 28px;color:white;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;}
+.superadmin-hero h2{font-size:20px;font-weight:800;margin-bottom:3px;}
+.superadmin-hero p{opacity:.75;font-size:12px;}
+.admin-list-row{display:grid;grid-template-columns:1fr 160px 110px 90px 90px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;}
+.admin-list-row.header{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-mid);background:var(--gray-lt);}
+.uni-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;background:var(--blue-light);color:var(--blue-dark);}
+
+/* GAME CARDS */
+.game-card{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;transition:transform .15s;}
+.game-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.game-card-header{padding:16px;background:linear-gradient(135deg,var(--blue-dark),var(--blue-mid));color:white;}
+.game-card-header h3{font-size:14px;font-weight:700;margin-bottom:3px;}
+.game-card-header .game-meta{font-size:11px;opacity:.75;}
+.game-card-body{padding:14px 16px;}
+.game-stat-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.game-stat{text-align:center;background:var(--blue-xlt);border-radius:7px;padding:6px 12px;}
+.game-stat-val{font-size:16px;font-weight:800;color:var(--blue-dark);}
+.game-stat-lbl{font-size:10px;color:var(--gray-mid);}
+.game-badge{padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;}
+.game-badge.active{background:var(--green-lt);color:var(--green);}
+.game-badge.ended{background:var(--gray-lt);color:var(--gray-mid);border:1px solid var(--border);}
+.game-badge.setup{background:var(--orange-lt);color:var(--orange);}
+.game-badge.multi{background:var(--purple-lt);color:var(--purple);}
+.game-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.game-card-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:7px;}
+
+/* WEEK INDICATOR */
+.week-banner{border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;font-size:13px;font-weight:600;}
+.week-banner.open{background:var(--blue-xlt);border:1.5px solid var(--blue-mid);color:var(--blue-dark);}
+.week-banner.submitted{background:var(--orange-lt);border:1.5px solid var(--orange);color:var(--orange);}
+.week-banner.approved{background:var(--green-lt);border:1.5px solid var(--green);color:var(--green);}
+.week-steps{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.week-step{flex:1;min-width:100px;padding:10px 12px;border-radius:8px;border:2px solid var(--border);background:white;text-align:center;}
+.week-step.active{border-color:var(--blue-mid);background:var(--blue-xlt);}
+.week-step.done{border-color:var(--green);background:var(--green-lt);}
+.week-step.pending{border-color:var(--orange);background:var(--orange-lt);}
+.week-step-num{font-size:18px;font-weight:900;color:var(--border);}
+.week-step.active .week-step-num{color:var(--blue-mid);}
+.week-step.done .week-step-num{color:var(--green);}
+.week-step.pending .week-step-num{color:var(--orange);}
+.week-step-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-mid);margin-top:2px;}
+.week-step-status{font-size:11px;margin-top:2px;font-weight:600;}
+
+/* MEMBER CARDS */
+.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:20px;}
+.member-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent;}
+.member-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.member-card.is-me{border-color:var(--blue-mid);}
+.member-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:white;flex-shrink:0;overflow:hidden;border:2px solid var(--blue-light);}
+.member-avatar img{width:100%;height:100%;object-fit:cover;}
+.member-info-name{font-size:13px;font-weight:700;color:var(--blue-dark);}
+.member-role-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--blue-light);color:var(--blue-dark);margin:2px 0 4px;}
+.member-bio{font-size:11px;color:var(--gray-mid);line-height:1.4;}
+
+/* MVP */
+.mvp-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:linear-gradient(135deg,#F9A825,#FF6F00);color:white;font-size:10px;font-weight:700;}
+.mvp-card{background:linear-gradient(135deg,#FFF8E1,#FFF3E0);border:2px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
+.mvp-card-title{font-size:11px;font-weight:700;color:#E65100;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+
+/* REFLECTION */
+.reflection-card{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;}
+.reflection-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.reflection-body{padding:14px 16px;}
+.reflection-section{margin-bottom:10px;}
+.reflection-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-mid);margin-bottom:3px;}
+.reflection-text{font-size:13px;line-height:1.6;color:var(--gray-dark);}
+.mood-stars{display:flex;gap:4px;font-size:18px;}
+.mood-select{display:flex;gap:6px;margin-top:6px;}
+.mood-btn{background:none;border:2px solid var(--border);border-radius:8px;padding:5px 10px;font-size:18px;cursor:pointer;transition:all .15s;}
+.mood-btn:hover,.mood-btn.selected{border-color:var(--gold);background:var(--gold-lt);}
+
+/* FEEDBACK PAGE */
+.feedback-hero{background:linear-gradient(135deg,var(--blue-dark),var(--blue-mid));border-radius:var(--radius-lg);padding:24px 28px;color:white;margin-bottom:20px;}
+.feedback-hero h2{font-size:20px;font-weight:800;margin-bottom:4px;}
+.feedback-hero p{opacity:.8;font-size:13px;}
+.feedback-type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px;}
+.feedback-type-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;text-align:center;cursor:pointer;transition:all .15s;border:2px solid transparent;}
+.feedback-type-card:hover,.feedback-type-card.selected{border-color:var(--blue-mid);background:var(--blue-xlt);}
+.feedback-type-icon{font-size:32px;margin-bottom:8px;}
+.feedback-type-label{font-size:14px;font-weight:700;color:var(--blue-dark);}
+.feedback-type-desc{font-size:12px;color:var(--gray-mid);margin-top:3px;}
+.faq-item{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:8px;overflow:hidden;}
+.faq-question{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:13px;font-weight:600;color:var(--blue-dark);}
+.faq-question:hover{background:var(--blue-xlt);}
+.faq-answer{padding:0 16px 12px;font-size:13px;line-height:1.6;color:var(--gray-mid);display:none;}
+
+/* PROFILE PAGE */
+.profile-hero{border-radius:var(--radius-lg);padding:24px 28px;color:white;margin-bottom:20px;display:flex;align-items:center;gap:20px;}
+.profile-avatar-big{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:white;flex-shrink:0;overflow:hidden;border:3px solid rgba(255,255,255,.4);cursor:pointer;position:relative;}
+.profile-avatar-big img{width:100%;height:100%;object-fit:cover;}
+.profile-avatar-overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:.15s;font-size:18px;border-radius:50%;}
+.profile-avatar-big:hover .profile-avatar-overlay{opacity:1;}
+.profile-tabs{display:flex;gap:3px;margin-bottom:18px;background:white;padding:5px;border-radius:9px;box-shadow:var(--shadow);width:fit-content;}
+.profile-tab{padding:6px 14px;border-radius:6px;border:none;background:transparent;font-size:12px;font-weight:600;color:var(--gray-mid);cursor:pointer;transition:all .15s;}
+.profile-tab.active{background:var(--blue-dark);color:white;}
+.profile-panel{display:none;}
+.profile-panel.active{display:block;}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);border-radius:9px;padding:22px;text-align:center;cursor:pointer;transition:all .15s;background:var(--blue-xlt);}
+.upload-zone:hover{border-color:var(--blue-mid);background:#E8F2FC;}
+.upload-zone .upload-icon{font-size:28px;}
+.upload-zone p{font-size:12px;color:var(--gray-mid);margin-top:6px;}
+
+/* INFO BOXES */
+.info-box{border-radius:9px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;font-size:12px;}
+.info-box.blue{background:var(--blue-light);color:var(--blue-dark);}
+.info-box.green{background:var(--green-lt);color:var(--green);}
+.info-box.orange{background:var(--orange-lt);color:var(--orange);}
+.info-box.purple{background:var(--purple-lt);color:var(--purple);}
+.info-box.gold{background:var(--gold-lt);color:#E65100;}
+.info-box-icon{font-size:16px;flex-shrink:0;}
+
+/* CONCEPT PAGE */
+.concept-section{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:24px;margin-bottom:20px;}
+.concept-section h2{font-size:17px;font-weight:700;color:var(--blue-dark);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--blue-light);}
+.concept-section p{font-size:13px;line-height:1.7;color:var(--gray-dark);margin-bottom:8px;}
+.code-block{background:#1e1e2e;color:#cdd6f4;font-family:'Courier New',monospace;font-size:12px;padding:14px 18px;border-radius:9px;margin:7px 0;overflow-x:auto;line-height:1.6;}
+.flow-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0;}
+.flow-box{background:var(--blue-xlt);border:1px solid var(--blue-light);border-radius:7px;padding:6px 12px;font-size:11px;font-weight:600;color:var(--blue-dark);}
+.flow-arrow{font-size:16px;color:var(--blue-mid);}
+
+/* CHART */
+.chart-wrap{position:relative;height:200px;}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:40px 20px;}
+.empty-state .empty-icon{font-size:40px;margin-bottom:10px;}
+.empty-state h3{font-size:15px;font-weight:700;color:var(--blue-dark);margin-bottom:5px;}
+.empty-state p{font-size:12px;color:var(--gray-mid);}
+
+/* MY TEAM KPIS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+@media(max-width:760px){.kpi-grid{grid-template-columns:1fr 1fr;}}
+.kpi-card{background:white;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);}
+.kpi-label{font-size:10px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.kpi-value{font-size:24px;font-weight:800;color:var(--blue-dark);}
+.kpi-value.pos{color:var(--green);}.kpi-value.neg{color:var(--red);}
+.kpi-trend{font-size:11px;color:var(--gray-mid);margin-top:2px;}
+
+@media(max-width:768px){
+  .topbar-nav{display:none;}
+  .lb-row{grid-template-columns:36px 1fr 65px 65px;}
+  .lb-row>*:nth-child(5),.lb-row>*:nth-child(6){display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+ <div class="login-card" id="loginCard">
+
+  <!-- ── LOGIN MODE ──────────────────────────────────── -->
+  <div id="loginMode">
+   <div class="login-logo">5&#8364;</div>
+   <h2 class="login-title">5-Euro-Business</h2>
+   <p class="login-sub">Tracker &#183; Management &#183; Reflexion</p>
+   <div class="login-input-wrap">
+    <input type="text" id="loginCode" placeholder="ZUGANGSCODE EINGEBEN" maxlength="16"
+     oninput="this.value=this.value.toUpperCase()" onkeypress="if(event.key==='Enter')doLogin()">
+   </div>
+   <div class="login-error" id="loginError">&#10060; Ung&#252;ltiger Code – bitte erneut versuchen</div>
+   <button class="login-btn" onclick="doLogin()">&#128273; Einloggen</button>
+   <div style="text-align:center;margin-top:14px;">
+    <span style="font-size:13px;color:#aaa;">Noch kein Code?</span>
+    <button onclick="showRegister()" style="background:none;border:none;color:var(--blue-mid);font-size:13px;font-weight:700;cursor:pointer;margin-left:6px;">&#128100; Jetzt registrieren &rarr;</button>
+   </div>
+  </div>
+
+  <!-- ── REGISTRATION MODE ────────────────────────────── -->
+  <div id="registerMode" style="display:none;">
+   <div class="login-logo" style="font-size:20px;">&#128100;</div>
+   <h2 class="login-title">Registrierung</h2>
+   <p class="login-sub" id="regSubtitle">Tritt einem aktiven Spiel bei</p>
+
+   <!-- Step 1: Name + Spiel -->
+   <div id="regStep1">
+    <div style="margin-bottom:10px;">
+     <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">DEIN NAME *</label>
+     <input type="text" class="login-input-wrap" id="regName" placeholder="Vorname Nachname"
+      style="width:100%;padding:11px 14px;border:2px solid #E0E7F0;border-radius:10px;font-size:14px;outline:none;">
+    </div>
+    <div style="margin-bottom:14px;">
+     <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:4px;">SEMESTER / SPIEL *</label>
+     <select id="regGame" style="width:100%;padding:11px 14px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;outline:none;background:white;" onchange="updateRegTeamList()">
+      <option value="">-- bitte wählen --</option>
+     </select>
+     <div id="regNoGames" style="display:none;font-size:12px;color:#C00000;margin-top:5px;">&#9888; Kein aktives Spiel gefunden – wende dich an deinen Dozenten.</div>
+    </div>
+    <!-- Team-Auswahl -->
+    <div id="regTeamSection" style="display:none;">
+     <label style="font-size:12px;font-weight:700;color:#666;display:block;margin-bottom:8px;">ICH MÖCHTE …</label>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div id="btnNewTeam" onclick="setRegType('new')"
+       style="border:2px solid #E0E7F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.15s;">
+       <div style="font-size:22px;">&#127775;</div>
+       <div style="font-size:12px;font-weight:700;margin-top:4px;">Neues Team<br>gründen</div>
+      </div>
+      <div id="btnJoinTeam" onclick="setRegType('join')"
+       style="border:2px solid #E0E7F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.15s;">
+       <div style="font-size:22px;">&#129309;</div>
+       <div style="font-size:12px;font-weight:700;margin-top:4px;">Bestehendem<br>Team beitreten</div>
+      </div>
+     </div>
+
+     <!-- Neues Team gründen -->
+     <div id="regNewTeamFields" style="display:none;">
+      <input type="text" id="regTeamName" placeholder="Team-Name *"
+       style="width:100%;padding:10px 14px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;margin-bottom:8px;outline:none;">
+      <input type="text" id="regBiz" placeholder="Unternehmensidee (z.B. Fahrrad-Reparatur)"
+       style="width:100%;padding:10px 14px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;margin-bottom:8px;outline:none;">
+      <select id="regRoleNew" style="width:100%;padding:10px 14px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;outline:none;background:white;margin-bottom:8px;">
+       <option value="CEO">CEO – Geschäftsführer/in (du leitest das Team)</option>
+       <option value="CFO">CFO – Finanzen</option><option value="CMO">CMO – Marketing</option>
+       <option value="COO">COO – Betrieb</option><option value="CTO">CTO – Technik</option>
+      </select>
+     </div>
+
+     <!-- Bestehendem Team beitreten -->
+     <div id="regJoinTeamFields" style="display:none;">
+      <div id="regTeamList" style="max-height:160px;overflow-y:auto;border:1px solid #E0E7F0;border-radius:10px;margin-bottom:8px;"></div>
+      <select id="regRoleJoin" style="width:100%;padding:10px 14px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;outline:none;background:white;">
+       <option value="Mitglied">Mitglied</option><option value="CEO">CEO</option>
+       <option value="CFO">CFO</option><option value="CMO">CMO</option>
+       <option value="COO">COO</option><option value="CTO">CTO</option>
+      </select>
+     </div>
+    </div>
+    <div id="regError" style="color:#C00000;font-size:12px;margin-bottom:8px;display:none;"></div>
+    <button onclick="registerUser()" class="login-btn" style="margin-bottom:10px;">&#10003; Registrieren</button>
+    <div style="text-align:center;">
+     <button onclick="showLogin()" style="background:none;border:none;color:#999;font-size:12px;cursor:pointer;">&larr; Zurück zum Login</button>
+    </div>
+   </div>
+
+   <!-- Step 2: Success -->
+   <div id="regStep2" style="display:none;text-align:center;">
+    <div style="font-size:48px;margin-bottom:8px;">&#127881;</div>
+    <h3 style="color:#375623;font-size:17px;font-weight:800;margin-bottom:6px;">Registrierung erfolgreich!</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:16px;">Dein persönlicher Zugangscode:</p>
+    <div id="regResultCode"
+     style="font-family:'Courier New',monospace;font-size:22px;font-weight:900;letter-spacing:3px;
+            background:linear-gradient(135deg,#1F3864,#2E75B6);color:white;
+            border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;"
+     onclick="copyRegCode()">—</div>
+    <p style="font-size:11px;color:#C55A11;font-weight:700;margin-bottom:6px;">
+     &#9888; Bitte speichere diesen Code! Er ist dein einziger Zugang.</p>
+    <p style="font-size:11px;color:#666;margin-bottom:16px;">Klicke auf den Code um ihn zu kopieren.</p>
+    <div id="regResultInfo" style="font-size:12px;color:#444;background:#F2F6FC;border-radius:8px;padding:10px;margin-bottom:14px;text-align:left;"></div>
+    <button class="login-btn" onclick="loginWithNewCode()">&#128273; Jetzt einloggen</button>
+   </div>
+  </div>
+
+ </div>
+</div>
+
+<!-- APP -->
+<div id="appShell">
+ <div class="topbar">
+  <div class="topbar-brand">
+   <div class="logo">5&#8364;</div>
+   <div><h1>5-Euro-Business</h1><span id="topbarGameName">SoSe 2026</span></div>
+  </div>
+  <nav class="topbar-nav" id="topNav"></nav>
+  <div class="topbar-right">
+   <div class="role-badge" id="roleBadge"></div>
+   <button class="topbar-logout" onclick="doLogout()">&#9167; Logout</button>
+  </div>
+ </div>
+ <div class="ticker" id="tickerBar">
+  <div class="ticker-label">&#128308; LIVE</div>
+  <div class="ticker-track" id="tickerTrack"></div>
+ </div>
+
+ <div id="pages">
+
+  <!-- PAGE: Dashboard -->
+  <div class="page" id="page-dashboard">
+   <div class="container">
+    <div class="stat-grid" id="dashStats"></div>
+    <div class="two-col">
+     <div>
+      <div class="section-header"><div class="section-title">&#127942; Aktuelles Ranking</div><small id="rankingGameLabel" style="color:var(--gray-mid);font-size:11px;"></small></div>
+      <div class="leaderboard" id="leaderboard"></div>
+     </div>
+     <div>
+      <div class="section-header"><div class="section-title">&#9889; Aktivit&#228;ten</div></div>
+      <div class="activity-feed" id="activityFeed"></div>
+     </div>
+    </div>
+    <div class="section-header"><div class="section-title">&#128200; Umsatzentwicklung</div></div>
+    <div class="card" style="padding:18px;margin-bottom:20px;"><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></div>
+   </div>
+  </div>
+
+  <!-- PAGE: Mein Team -->
+  <div class="page" id="page-myteam">
+   <div class="container">
+    <div id="myTeamHero" style="border-radius:var(--radius-lg);padding:24px 28px;color:white;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;"></div>
+    <div class="week-steps" id="weekSteps"></div>
+    <div class="week-banner" id="weekBanner"></div>
+    <div class="profile-tabs">
+     <button class="profile-tab active" onclick="switchMyTeamTab('overview')">&#128200; &#220;bersicht</button>
+     <button class="profile-tab" onclick="switchMyTeamTab('profil')">&#9999;&#65039; Team-Profil</button>
+     <button class="profile-tab" onclick="switchMyTeamTab('members')">&#128101; Mitglieder</button>
+     <button class="profile-tab" onclick="switchMyTeamTab('transactions')">&#128179; Buchungen</button>
+     <button class="profile-tab" onclick="switchMyTeamTab('blogs')">&#128221; Berichte</button>
+    </div>
+    <div class="profile-panel active" id="myteamPanel-overview">
+     <div class="kpi-grid" id="myTeamKpis"></div>
+     <div class="two-col">
+      <div id="myTeamMvpSection"></div>
+      <div id="myTeamBlogStatus"></div>
+     </div>
+    </div>
+    <div class="profile-panel" id="myteamPanel-profil">
+     <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;">
+      <div class="card"><div class="card-body" id="teamProfileForm"></div></div>
+      <div>
+       <div class="card" style="margin-bottom:16px;"><div class="card-body" id="logoUploadSection"></div></div>
+      </div>
+     </div>
+    </div>
+    <div class="profile-panel" id="myteamPanel-members">
+     <div id="membersSection"></div>
+    </div>
+    <div class="profile-panel" id="myteamPanel-transactions">
+     <div class="section-header">
+      <div class="section-title">&#128179; Buchungen</div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalBooking')">+ Buchung</button>
+     </div>
+     <div class="tx-table" id="myTxTable"></div>
+    </div>
+    <div class="profile-panel" id="myteamPanel-blogs">
+     <div class="section-header">
+      <div class="section-title">&#128221; Wochenberichte</div>
+      <button class="btn btn-outline btn-sm" id="btnSubmitBlog" onclick="openModal('modalBlog')">+ Bericht einreichen</button>
+     </div>
+     <div id="myBlogList"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- PAGE: Mein Profil (member) -->
+  <div class="page" id="page-profile">
+   <div class="container">
+    <div class="profile-hero" id="profileHero"></div>
+    <div class="profile-tabs">
+     <button class="profile-tab active" onclick="switchProfileTab('edit')">&#9999;&#65039; Profil bearbeiten</button>
+     <button class="profile-tab" onclick="switchProfileTab('myreflections')">&#128172; Meine Reflexionen</button>
+    </div>
+    <div class="profile-panel active" id="profilePanel-edit">
+     <div style="display:grid;grid-template-columns:1fr 300px;gap:18px;">
+      <div class="card"><div class="card-body" id="profileEditForm"></div></div>
+      <div class="card"><div class="card-body" id="profileAvatarSection"></div></div>
+     </div>
+    </div>
+    <div class="profile-panel" id="profilePanel-myreflections">
+     <div id="myReflectionsList"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- PAGE: Wochliche Reflexion -->
+  <div class="page" id="page-reflection">
+   <div class="container">
+    <div class="section-header">
+     <div class="section-title reflect-title">&#128172; Pers&#246;nliche Wochenreflexion</div>
+     <button class="btn btn-success btn-sm" onclick="openModal('modalReflection')">+ Neue Reflexion</button>
+    </div>
+    <div class="info-box blue">
+     <span class="info-box-icon">&#128274;</span>
+     <div>Deine Reflexionen sind <strong>nur f&#252;r dich</strong> und den Dozenten/Admin sichtbar. Sei ehrlich mit dir selbst &#8211; das ist der Sinn dieser &#220;bung.</div>
+    </div>
+    <div id="reflectionList"></div>
+   </div>
+  </div>
+
+  <!-- PAGE: Alle Teams -->
+  <div class="page" id="page-teams">
+   <div class="container">
+    <div class="section-header">
+     <div class="section-title">&#128101; Alle Teams</div>
+     <select class="form-control" style="width:auto;font-size:12px;" id="teamsGameFilter" onchange="renderTeamsPage()"><option value="all">Alle Spiele</option></select>
+    </div>
+    <div class="team-grid" id="teamsGrid"></div>
+   </div>
+  </div>
+
+  <!-- PAGE: Blog -->
+  <div class="page" id="page-blog">
+   <div class="container">
+    <div class="section-header">
+     <div class="section-title">&#128214; Wochenberichte</div>
+     <div style="display:flex;gap:7px;align-items:center;">
+      <select class="form-control" style="width:auto;font-size:12px;" id="blogTeamFilter" onchange="renderBlogPage()"><option value="all">Alle Teams</option></select>
+      <select class="form-control" style="width:auto;font-size:12px;" id="blogWeekFilter" onchange="renderBlogPage()"><option value="all">Alle Wochen</option><option value="1">Woche 1</option><option value="2">Woche 2</option><option value="3">Woche 3</option></select>
+     </div>
+    </div>
+    <div class="blog-grid" id="blogGrid"></div>
+   </div>
+  </div>
+
+  <!-- PAGE: Transaktionen -->
+  <div class="page" id="page-tx">
+   <div class="container">
+    <div class="section-header">
+     <div class="section-title">&#128179; Transaktionen</div>
+     <button class="btn btn-primary btn-sm" id="btnAddTx" onclick="openModal('modalBooking')" style="display:none;">+ Buchung</button>
+    </div>
+    <div class="tx-table">
+     <div class="tx-filters">
+      <select id="txTeamFilter" class="form-control" style="width:auto;" onchange="renderTxPage()"><option value="all">Alle Teams</option></select>
+      <select id="txTypeFilter" class="form-control" style="width:auto;" onchange="renderTxPage()"><option value="all">Alle Typen</option><option value="income">Einnahme</option><option value="expense">Ausgabe</option></select>
+      <button class="btn btn-secondary btn-sm" onclick="clearTxFilters()">&#10005; Filter</button>
+     </div>
+     <div id="txTableRows"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- PAGE: Feedback -->
+  <div class="page" id="page-feedback">
+   <div class="container" id="feedbackContent"></div>
+  </div>
+
+  <!-- PAGE: Admin -->
+  <div class="page" id="page-admin">
+   <div class="container">
+    <div class="admin-hero">
+     <div><h2>&#9881;&#65039; Admin-Panel</h2><p id="adminHeroSub">Verwaltung &#183; Moderation &#183; &#220;bersicht</p></div>
+     <div style="font-size:40px;opacity:.5;">&#127925;</div>
+    </div>
+    <div class="admin-tab-bar">
+     <button class="admin-tab active" onclick="switchAdminTab('approval')">&#128203; Blog-Freigabe <span class="notif-dot" id="approvalCount">0</span></button>
+     <button class="admin-tab" onclick="switchAdminTab('weeks')">&#128197; Wochen-Status</button>
+     <button class="admin-tab" onclick="switchAdminTab('reflections-admin')">&#128172; Reflexionen <span class="notif-dot" id="reflectionCount" style="background:var(--green);">0</span></button>
+     <button class="admin-tab" onclick="switchAdminTab('teams-admin')">&#128101; Teams</button>
+     <button class="admin-tab" onclick="switchAdminTab('transactions-admin')">&#128179; Buchungen</button>
+     <button class="admin-tab" onclick="switchAdminTab('codes')">&#128273; Codes</button>
+    </div>
+    <div class="admin-panel active" id="adminPanel-approval">
+     <div class="section-header"><div class="section-title admin-title">Blog-Berichte zur Freigabe</div><button class="btn btn-success btn-sm" onclick="approveAll()">&#9989; Alle freigeben</button></div>
+     <div id="approvalQueue"></div>
+    </div>
+    <div class="admin-panel" id="adminPanel-weeks">
+     <div class="section-header"><div class="section-title admin-title">Wochen-Status pro Team</div></div>
+     <div class="info-box blue"><span class="info-box-icon">&#128161;</span>Jedes Team durchl&#228;uft die Wochen unabh&#228;ngig voneinander. Nach Freigabe des Wochenberichts wird das Team automatisch in die n&#228;chste Woche versetzt.</div>
+     <div class="data-table-wrap"><div id="weeksAdminTable"></div></div>
+    </div>
+    <div class="admin-panel" id="adminPanel-reflections-admin">
+     <div class="section-header"><div class="section-title admin-title">Pers&#246;nliche Reflexionen (Admin-Sicht)</div></div>
+     <div class="info-box gold"><span class="info-box-icon">&#128274;</span>Diese Reflexionen sind <strong>privat</strong> und nur f&#252;r den jeweiligen Nutzer und Admins sichtbar. Bitte vertraulich behandeln.</div>
+     <div id="reflectionsAdminPanel"></div>
+    </div>
+    <div class="admin-panel" id="adminPanel-teams-admin">
+     <div class="section-header"><div class="section-title admin-title">Team-Verwaltung</div><button class="btn btn-primary btn-sm" onclick="openModal('modalNewTeam')">+ Team anlegen</button></div>
+     <div class="data-table-wrap"><div id="adminTeamsTable"></div></div>
+    </div>
+    <div class="admin-panel" id="adminPanel-transactions-admin">
+     <div class="section-header"><div class="section-title admin-title">Alle Buchungen</div></div>
+     <div class="tx-table" id="adminTxTable"></div>
+    </div>
+    <div class="admin-panel" id="adminPanel-codes">
+     <div class="section-header"><div class="section-title admin-title">Zugangscodes</div></div>
+     <div id="codesPanel"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- PAGE: Superadmin -->
+  <div class="page" id="page-superadmin">
+   <div class="container">
+    <div class="superadmin-hero">
+     <div><h2>&#128081; Superadmin-Panel</h2><p>Plattform-Verwaltung &#183; Alle Spiele &#183; Alle Hochschulen</p></div>
+     <div style="font-size:40px;opacity:.4;">&#127760;</div>
+    </div>
+    <div class="admin-tab-bar">
+     <button class="admin-tab active" onclick="switchSuperTab('overview')">&#128202; &#220;bersicht</button>
+     <button class="admin-tab" onclick="switchSuperTab('games')">&#127918; Spiele</button>
+     <button class="admin-tab" onclick="switchSuperTab('admins')">&#128737;&#65039; Admins</button>
+     <button class="admin-tab" onclick="switchSuperTab('universities')">&#127979; Hochschulen</button>
+     <button class="admin-tab" onclick="switchSuperTab('reflections-super')">&#128172; Alle Reflexionen</button>
+    </div>
+    <div class="admin-panel active" id="superPanel-overview">
+     <div class="info-box blue" style="margin-bottom:16px;" id="storageStatus">
+       <span class="info-box-icon">💾</span>
+       <span id="storageStatusText">Daten werden geladen...</span>
+       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+         <button class="btn btn-secondary btn-sm" onclick="resetToDemo()">↩️ Demo-Daten wiederherstellen</button>
+         <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ Operative Daten löschen</button>
+       </div>
+     </div>
+     <div class="stat-grid" id="superStats"></div>
+     <div class="two-col">
+      <div><div class="section-header"><div class="section-title super-title">&#127942; Global-Ranking</div></div><div class="leaderboard" id="superLeaderboard"></div></div>
+      <div><div class="section-header"><div class="section-title super-title">&#128202; Aktivit&#228;t</div></div><div class="card"><div class="card-body"><div class="chart-wrap"><canvas id="superGameChart"></canvas></div></div></div></div>
+     </div>
+    </div>
+    <div class="admin-panel" id="superPanel-games">
+     <div class="section-header"><div class="section-title super-title">&#127918; Spiele</div><button class="btn btn-purple btn-sm" onclick="openModal('modalNewGame')">+ Neues Spiel</button></div>
+     <div class="team-grid" id="superGamesGrid"></div>
+    </div>
+    <div class="admin-panel" id="superPanel-admins">
+     <div class="section-header"><div class="section-title super-title">&#128737;&#65039; Admins</div><button class="btn btn-purple btn-sm" onclick="openModal('modalNewAdmin')">+ Admin ernennen</button></div>
+     <div class="data-table-wrap">
+      <div class="admin-list-row header"><div>Name / E-Mail</div><div>Hochschule</div><div>Spiel</div><div>Status</div><div>Aktionen</div></div>
+      <div id="adminListRows"></div>
+     </div>
+    </div>
+    <div class="admin-panel" id="superPanel-universities">
+     <div class="section-header"><div class="section-title super-title">&#127979; Hochschulen</div><button class="btn btn-purple btn-sm" onclick="openModal('modalNewUni')">+ Hinzuf&#252;gen</button></div>
+     <div id="uniList"></div>
+    </div>
+    <div class="admin-panel" id="superPanel-reflections-super">
+     <div class="section-header"><div class="section-title super-title">&#128172; Alle Reflexionen (Plattform)</div></div>
+     <div class="info-box gold"><span class="info-box-icon">&#128274;</span>&#220;bersicht aller pers&#246;nlichen Reflexionen. Vertraulich behandeln.</div>
+     <div id="superReflectionsPanel"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- PAGE: Konzept -->
+  <div class="page" id="page-konzept">
+   <div class="container" id="konzeptContent"></div>
+  </div>
+
+ </div><!-- /pages -->
+</div><!-- /appShell -->
+
+<!-- MODAL: Buchung -->
+<div class="modal-overlay" id="modalBooking">
+ <div class="modal">
+  <div class="modal-header"><h3>&#128176; Buchung erfassen</h3><button class="modal-close" onclick="closeModal('modalBooking')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Typ <span class="req">*</span></label>
+     <select class="form-control" id="bType"><option value="income">&#128200; Einnahme</option><option value="expense">&#128201; Ausgabe</option></select></div>
+    <div class="form-group"><label class="form-label">Betrag (&#8364;) <span class="req">*</span></label>
+     <input type="number" class="form-control" id="bAmount" step="0.01" min="0.01" placeholder="0.00"></div>
+   </div>
+   <div class="form-group"><label class="form-label">Beschreibung <span class="req">*</span></label>
+    <input type="text" class="form-control" id="bDesc" placeholder="z.B. Einnahme Marktstand Samstag"></div>
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Kategorie</label>
+     <select class="form-control" id="bCat"><option>Umsatz</option><option>Dienstleistung</option><option>Material</option><option>Marketing</option><option>Sonstiges</option></select></div>
+    <div class="form-group"><label class="form-label">Datum <span class="req">*</span></label>
+     <input type="date" class="form-control" id="bDate"></div>
+   </div>
+   <div class="form-group"><label class="form-label">Beleg (optional)</label>
+    <div class="upload-zone" onclick="document.getElementById('bFile').click()">
+     <div class="upload-icon">&#128206;</div><p>Klicken zum Hochladen &#183; JPG, PNG, PDF bis 5 MB</p>
+     <input type="file" id="bFile" style="display:none;" accept=".jpg,.jpeg,.png,.pdf">
+    </div>
+   </div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalBooking')">Abbrechen</button>
+   <button class="btn btn-primary" onclick="submitBooking()">&#128190; Speichern</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Wochenbericht -->
+<div class="modal-overlay" id="modalBlog">
+ <div class="modal modal-lg">
+  <div class="modal-header"><h3>&#128221; Wochenbericht einreichen</h3><button class="modal-close" onclick="closeModal('modalBlog')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="info-box orange"><span class="info-box-icon">&#9201;&#65039;</span>Mit dem Einreichen wird die aktuelle Woche abgeschlossen. Nach Admin-Freigabe startet automatisch die n&#228;chste Woche f&#252;r euer Team.</div>
+   <div class="info-box blue" style="margin-bottom:10px;"><span class="info-box-icon">&#128274;</span><strong>Nur der CEO</strong> kann den Bericht einreichen. Alle Mitglieder k&#246;nnen ihn bearbeiten. Deadline: <strong>Sonntag 23:59 Uhr</strong>. Voraussetzung: alle Reflexionen bis <strong>Samstag 23:59 Uhr</strong> eingereicht.</div>
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Woche <span class="req">*</span></label>
+     <select class="form-control" id="blogWeek"><option>Woche 1</option><option>Woche 2</option><option>Woche 3</option><option>Woche 4</option><option>Woche 5</option><option>Woche 6</option></select></div>
+    <div class="form-group" style="align-self:flex-end;"><div class="info-box green" style="font-size:12px;padding:8px 12px;margin:0;"><span class="info-box-icon">&#128202;</span>Team-Stimmung wird automatisch aus den Reflexionen berechnet.</div></div>
+   </div>
+   <div class="form-group"><label class="form-label">Titel <span class="req">*</span></label>
+    <input type="text" class="form-control" id="blogTitle" placeholder="z.B. Unser erster Marktstand &#8211; eine Achterbahn"></div>
+   <div class="form-group"><label class="form-label">Was haben wir diese Woche gemacht? <span class="req">*</span></label>
+    <textarea class="form-control" id="blogActivities" rows="3" placeholder="Kurze Zusammenfassung..."></textarea></div>
+   <div class="form-group"><label class="form-label">&#127942; Highlight der Woche</label>
+    <input type="text" class="form-control" id="blogHighlight" placeholder="z.B. 38 &#8364; Umsatz in 2 Stunden!"></div>
+   <div class="form-group"><label class="form-label">Herausforderungen</label>
+    <textarea class="form-control" id="blogChallenges" rows="2" placeholder="Was lief nicht so gut?"></textarea></div>
+   <div class="form-group"><label class="form-label">N&#228;chste Schritte</label>
+    <textarea class="form-control" id="blogNextSteps" rows="2" placeholder="Was planen wir f&#252;r n&#228;chste Woche?"></textarea></div>
+   <div class="form-group"><label class="form-label">Tags (kommagetrennt)</label>
+    <input type="text" class="form-control" id="blogTags" placeholder="z.B. Marketing, Produktion, Marktstand"></div>
+   <div class="form-section-title">&#127942; Mitglied der Woche &amp; Reflexionsstatus</div>
+   <div id="blogReflectionStatus" style="margin-bottom:10px;"></div>
+   <div id="blogMvpOverrideRow" style="display:none;">
+    <div class="info-box blue" style="margin-bottom:8px;"><span class="info-box-icon">&#128081;</span>Abstimmungsergebnis aus den Reflexionen. Als CEO kannst du das Ergebnis &#252;berstimmen.</div>
+    <div class="form-row">
+     <div class="form-group"><label class="form-label">&#128081; CEO-Override: Mitglied der Woche</label>
+      <select class="form-control" id="blogMvpOverride"><option value="">-- Voting-Ergebnis &#252;bernehmen --</option></select></div>
+     <div class="form-group"><label class="form-label">Begr&#252;ndung (optional)</label>
+      <input type="text" class="form-control" id="blogMvpReason" placeholder="z.B. Hat unseren gr&#246;&#223;ten Auftrag an Land gezogen!"></div>
+    </div>
+   </div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalBlog')">Abbrechen</button>
+   <button class="btn btn-warning btn-sm" onclick="saveBlogDraft()">&#128196; Entwurf</button>
+   <button class="btn btn-primary" id="blogSubmitBtn" onclick="submitBlog()">&#128228; Zur Freigabe einreichen</button>
+  </div>
+  <div style="padding:6px 18px 10px;font-size:11px;color:var(--gray-mid);text-align:center;" id="blogSubmitHint"></div>
+ </div>
+</div>
+
+<!-- MODAL: Reflexion -->
+<div class="modal-overlay" id="modalReflection">
+ <div class="modal modal-lg">
+  <div class="modal-header"><h3>&#128172; Pers&#246;nliche Wochenreflexion</h3><button class="modal-close" onclick="closeModal('modalReflection')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="info-box green"><span class="info-box-icon">&#128274;</span>Deine Reflexion ist <strong>nur f&#252;r dich und den Dozenten</strong> sichtbar. Sei ehrlich &#8211; es geht um dein pers&#246;nliches Wachstum.</div>
+   <div class="form-group"><label class="form-label">Woche</label>
+    <select class="form-control" id="refWeek"><option>Woche 1</option><option>Woche 2</option><option>Woche 3</option><option>Woche 4</option><option>Woche 5</option><option>Woche 6</option></select></div>
+   <div class="form-group">
+    <label class="form-label">Deine pers&#246;nliche Stimmung diese Woche</label>
+    <div class="mood-select" id="moodSelect">
+     <button class="mood-btn" data-val="1" onclick="selectMood(1)">&#128553; 1</button>
+     <button class="mood-btn" data-val="2" onclick="selectMood(2)">&#128543; 2</button>
+     <button class="mood-btn" data-val="3" onclick="selectMood(3)">&#128528; 3</button>
+     <button class="mood-btn" data-val="4" onclick="selectMood(4)">&#128522; 4</button>
+     <button class="mood-btn" data-val="5" onclick="selectMood(5)">&#128640; 5</button>
+    </div>
+    <input type="hidden" id="refMood" value="3">
+   </div>
+   <div class="form-group"><label class="form-label">Meine Erfahrungen diese Woche <span class="req">*</span></label>
+    <textarea class="form-control" id="refExperience" rows="3" placeholder="Was habe ich erlebt? Was habe ich gelernt?" oninput="countChars(this,'refExpCount',500)"></textarea>
+    <div class="char-counter" id="refExpCount">0 / 500</div></div>
+   <div class="form-group"><label class="form-label">Was fand ich besonders gut? <span class="req">*</span></label>
+    <textarea class="form-control" id="refLiked" rows="2" placeholder="Was hat gut funktioniert? Was hat mir Spa&#223; gemacht?" oninput="countChars(this,'refLikedCount',300)"></textarea>
+    <div class="char-counter" id="refLikedCount">0 / 300</div></div>
+   <div class="form-group"><label class="form-label">Was h&#228;tte ich pers&#246;nlich anders gemacht? <span class="req">*</span></label>
+    <textarea class="form-control" id="refImproved" rows="2" placeholder="Meine pers&#246;nlichen Lernfelder..." oninput="countChars(this,'refImpCount',300)"></textarea>
+    <div class="char-counter" id="refImpCount">0 / 300</div></div>
+   <div class="form-group"><label class="form-label">Meine Rolle im Team diese Woche</label>
+    <textarea class="form-control" id="refRole" rows="2" placeholder="Wie habe ich zum Team beigetragen? Wo k&#246;nnte ich mehr einbringen?"></textarea></div>
+   <div class="form-section-title">&#127942; Abstimmung: Mitglied der Woche</div>
+   <div class="info-box gold"><span class="info-box-icon">&#127942;</span>Wen nominierst du als Mitglied der Woche? Dein CEO kann das Ergebnis &#252;berstimmen; bei Stimmengleichheit z&#228;hlt die Stimme des CEO doppelt.</div>
+   <div class="form-group"><label class="form-label">&#127942; Mein MVP-Vote</label>
+    <select class="form-control" id="refMvpVote"><option value="">-- niemanden nominieren --</option></select></div>
+   <div class="info-box orange" style="margin-top:4px;"><span class="info-box-icon">&#9201;&#65039;</span><strong>Deadline: Samstag 23:59 Uhr.</strong> Erst wenn alle Reflexionen eingegangen sind, kann der CEO den Wochenbericht (Deadline: Sonntag 23:59) einreichen.</div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalReflection')">Abbrechen</button>
+   <button class="btn btn-success" onclick="submitReflection()">&#128190; Reflexion speichern</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Neues Spiel -->
+<div class="modal-overlay" id="modalNewGame">
+ <div class="modal modal-lg">
+  <div class="modal-header"><h3>&#127918; Neues Spiel anlegen</h3><button class="modal-close" onclick="closeModal('modalNewGame')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="form-group"><label class="form-label">Spielname <span class="req">*</span></label><input type="text" class="form-control" id="ngName" placeholder="z.B. 5-Euro-Business SoSe 2026"></div>
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Hochschule</label>
+     <select class="form-control" id="ngUni"><option>DHBW Stuttgart</option><option>DHBW Karlsruhe</option><option>HS Pforzheim</option></select></div>
+    <div class="form-group"><label class="form-label">Admin</label>
+     <select class="form-control" id="ngAdmin"><option>Prof. Neusser</option><option>Dr. Schmidt</option></select></div>
+   </div>
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Startdatum</label><input type="date" class="form-control" id="ngStart" value="2026-03-19"></div>
+    <div class="form-group"><label class="form-label">Enddatum</label><input type="date" class="form-control" id="ngEnd" value="2026-04-24"></div>
+   </div>
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Startkapital (&#8364;)</label><input type="number" class="form-control" id="ngCapital" value="5.00" step="0.01"></div>
+    <div class="form-group"><label class="form-label">Max. Teamgr&#246;&#223;e</label><input type="number" class="form-control" id="ngTeamSize" value="4"></div>
+   </div>
+   <div class="form-group"><label class="form-label">Modus</label>
+    <select class="form-control" id="ngMode"><option value="internal">Einzelne Hochschule</option><option value="multi">Multi-Hochschul</option></select></div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalNewGame')">Abbrechen</button>
+   <button class="btn btn-purple" onclick="createGame()">&#127918; Erstellen</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Neuer Admin -->
+<div class="modal-overlay" id="modalNewAdmin">
+ <div class="modal">
+  <div class="modal-header"><h3>&#128737;&#65039; Admin ernennen</h3><button class="modal-close" onclick="closeModal('modalNewAdmin')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Name <span class="req">*</span></label><input type="text" class="form-control" id="naName" placeholder="Prof. Dr. Mustermann"></div>
+    <div class="form-group"><label class="form-label">E-Mail <span class="req">*</span></label><input type="email" class="form-control" id="naEmail" placeholder="m@dhbw.de"></div>
+   </div>
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Hochschule</label><select class="form-control" id="naUni"><option>DHBW Stuttgart</option><option>DHBW Karlsruhe</option></select></div>
+    <div class="form-group"><label class="form-label">Spiel</label><select class="form-control" id="naGame"><option>SoSe 2026 Stuttgart</option><option>SoSe 2026 Karlsruhe</option></select></div>
+   </div>
+   <div class="form-group"><label class="form-label">Generierter Code</label>
+    <div style="display:flex;gap:7px;">
+     <input type="text" class="form-control" id="naCode" value="ADMIN-?????" readonly style="font-family:monospace;font-weight:700;letter-spacing:2px;">
+     <button class="btn btn-outline btn-sm" onclick="genAdminCode()" style="white-space:nowrap;">&#128260; Generieren</button>
+    </div>
+   </div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalNewAdmin')">Abbrechen</button>
+   <button class="btn btn-purple" onclick="createAdmin()">&#128737;&#65039; Ernennen</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Neues Team -->
+<div class="modal-overlay" id="modalNewTeam">
+ <div class="modal">
+  <div class="modal-header"><h3>&#128101; Neues Team anlegen</h3><button class="modal-close" onclick="closeModal('modalNewTeam')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Team-Name <span class="req">*</span></label><input type="text" class="form-control" id="ntName" placeholder="z.B. GreenWheels"></div>
+    <div class="form-group"><label class="form-label">Slogan</label><input type="text" class="form-control" id="ntSlogan" placeholder="z.B. Zwei R&#228;der, ein Team"></div>
+   </div>
+   <div class="form-group"><label class="form-label">Unternehmensidee</label><input type="text" class="form-control" id="ntBiz" placeholder="z.B. Fahrrad-Reparatur am Campus"></div>
+   <div class="form-group" id="ntGameInfoBox" style="display:none;"><label class="form-label">Spiel</label><div class="info-box blue" style="margin:0;"><span class="info-box-icon">🎮</span><span id="ntGameInfo"></span></div></div>
+   <div class="form-group"><label class="form-label">Mitglieder (Namen, kommagetrennt)</label><input type="text" class="form-control" id="ntMembers" placeholder="Max Muster, Anna Bauer, Tim Klein, Sara Wolf"></div>
+   <div class="form-group"><label class="form-label">Generierter Team-Code</label>
+    <div style="display:flex;gap:7px;">
+     <input type="text" class="form-control" id="ntCode" value="TEAM-?????" readonly style="font-family:monospace;font-weight:700;letter-spacing:2px;">
+     <button class="btn btn-outline btn-sm" onclick="genTeamCode()" style="white-space:nowrap;">&#128260;</button>
+    </div>
+   </div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalNewTeam')">Abbrechen</button>
+   <button class="btn btn-primary" onclick="createTeam()">&#128101; Anlegen</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Neue Hochschule -->
+<div class="modal-overlay" id="modalNewUni">
+ <div class="modal">
+  <div class="modal-header"><h3>&#127979; Hochschule hinzuf&#252;gen</h3><button class="modal-close" onclick="closeModal('modalNewUni')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="form-group"><label class="form-label">Name <span class="req">*</span></label><input type="text" class="form-control" id="nuName" placeholder="Hochschule Pforzheim"></div>
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">K&#252;rzel</label><input type="text" class="form-control" id="nuSlug" placeholder="PF" maxlength="4"></div>
+    <div class="form-group"><label class="form-label">Stadt</label><input type="text" class="form-control" id="nuCity" placeholder="Pforzheim"></div>
+   </div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalNewUni')">Abbrechen</button>
+   <button class="btn btn-purple" onclick="createUni()">&#127979; Anlegen</button>
+  </div>
+ </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+//  CONFIG  ←  hier deine URLs eintragen nach dem Setup
+// ════════════════════════════════════════════════════════════════════
+const CONFIG = {
+  // Nach dem Google Apps Script Deployment hier die Web-App-URL eintragen:
+  FEEDBACK_ENDPOINT: 'https://script.google.com/macros/s/AKfycbzadhZzKeQaxs0zFr90QbKpYhkG1zVfU_TORB_zuOt4ct0fjg_pB374G9RKj-EuhGZM/exec',  // z.B. 'https://script.google.com/macros/s/AKfycbzadhZzKeQaxs0zFr90QbKpYhkG1zVfU_TORB_zuOt4ct0fjg_pB374G9RKj-EuhGZM/exec'
+  ADMIN_EMAIL: 'christian.neusser@googlemail.com',
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  DATA MODEL
+// ════════════════════════════════════════════════════════════════════
+
+let UNIVERSITIES = [];
+
+let GAMES = [];
+
+let ADMINS = [];
+
+let TEAMS = [];
+
+let MEMBERS = [];
+
+let TRANSACTIONS = [];
+
+let BLOGS = [];
+
+let REFLECTIONS = [];
+
+// FEEDBACK submissions
+let FEEDBACKS = [];
+
+// ════════════════════════════════════════════════════════════════════
+//  AUTH / CODES
+// ════════════════════════════════════════════════════════════════════
+
+let CODES = {};
+function rebuildCodes(){
+  CODES = {};
+  CODES['SUPER-NEUSS'] = {role:'superadmin', name:'Prof. Neusser', label:'Superadmin'};
+  ADMINS.forEach(a => {
+    if(a.code) CODES[a.code] = {role:'admin', adminId:a.id, gameId:a.gameId, name:a.name, uni:a.uni||'', label:'Admin '+(a.uni||'')};
+  });
+  TEAMS.forEach(t => {
+    if(t.code) CODES[t.code] = {role:'team', teamId:t.id, gameId:t.gameId, name:t.name};
+  });
+  MEMBERS.forEach(m => {
+    const team = TEAMS.find(t => t.id === m.teamId);
+    if(m.code) CODES[m.code] = {role:'member', memberId:m.id, teamId:m.teamId, name:m.name, gameId:team?.gameId||'g1'};
+  });
+}
+rebuildCodes();
+// ════════════════════════════════════════════════════════════════════
+//  PERSISTENZ (localStorage)
+// ════════════════════════════════════════════════════════════════════
+const STORAGE_KEY = '5euro_tracker_v5';
+function saveData(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS
+    }));
+  }catch(e){console.warn('saveData error',e);}
+}
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    const replace=(arr,data)=>{arr.length=0;(data||[]).forEach(x=>arr.push(x));};
+    replace(UNIVERSITIES,d.UNIVERSITIES); replace(GAMES,d.GAMES);
+    replace(TEAMS,d.TEAMS); replace(MEMBERS,d.MEMBERS);
+    replace(BLOGS,d.BLOGS); replace(TRANSACTIONS,d.TRANSACTIONS);
+    replace(REFLECTIONS,d.REFLECTIONS); replace(ADMINS,d.ADMINS);
+    replace(FEEDBACKS,d.FEEDBACKS);
+    rebuildCodes();
+    return true;
+  }catch(e){console.warn('loadData error',e);return false;}
+}
+function resetToDemo(){
+  if(!confirm('Demo-Daten wiederherstellen? Alle eigenen Daten gehen verloren.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+function clearAllData(){
+  if(!confirm('ALLE Daten löschen und Tracker leeren? Nicht rückgängig zu machen!')) return;
+  // Leere Semester-Konfiguration behalten, nur operative Daten löschen
+  BLOGS.length=0; TRANSACTIONS.length=0; REFLECTIONS.length=0; FEEDBACKS.length=0;
+  TEAMS.forEach(t=>{t.revenue=0;t.expenses=0;t.transactions=0;t.currentWeek=1;t.weekStatus='open';t.mvps=[];t.mvpOverride={};});
+  saveData(); location.reload();
+}
+// Beim Start: gespeicherte Daten laden
+const dataLoaded = loadData();
+
+// ════════════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════════════
+let state = {
+  currentUser: null,
+  currentPage: 'dashboard',
+  currentMyTeamTab: 'overview',
+  currentAdminTab: 'approval',
+  currentSuperTab: 'overview',
+  currentProfileTab: 'edit',
+  selectedMood: 3,
+  feedbackType: 'general',
+  revenueChart: null,
+  superChart: null,
+};
+
+
+// ════════════════════════════════════════════════════════════════════
+//  REGISTRATION
+// ════════════════════════════════════════════════════════════════════
+let regState = { type: null, selectedTeamId: null, newCode: null };
+
+function showLogin(){
+  document.getElementById('loginMode').style.display='block';
+  document.getElementById('registerMode').style.display='none';
+}
+function showRegister(){
+  document.getElementById('loginMode').style.display='none';
+  document.getElementById('registerMode').style.display='block';
+  document.getElementById('regStep1').style.display='block';
+  document.getElementById('regStep2').style.display='none';
+  // Populate game dropdown
+  const sel = document.getElementById('regGame');
+  const active = GAMES.filter(g=>g.status==='active');
+  sel.innerHTML = '<option value="">-- Semester/Spiel wählen --</option>'
+    + active.map(g=>`<option value="${g.id}">${g.name} · ${g.uni}</option>`).join('');
+  if(active.length===0){
+    document.getElementById('regNoGames').style.display='block';
+  } else {
+    document.getElementById('regNoGames').style.display='none';
+    if(active.length===1){ sel.value=active[0].id; updateRegTeamList(); }
+  }
+  regState = { type: null, selectedTeamId: null, newCode: null };
+}
+function updateRegTeamList(){
+  const gameId = document.getElementById('regGame').value;
+  if(!gameId){ document.getElementById('regTeamSection').style.display='none'; return; }
+  document.getElementById('regTeamSection').style.display='block';
+  // Reset type selection
+  setRegType(null);
+}
+function setRegType(type){
+  regState.type = type;
+  regState.selectedTeamId = null;
+  const btnNew = document.getElementById('btnNewTeam');
+  const btnJoin = document.getElementById('btnJoinTeam');
+  btnNew.classList.toggle('active', type==='new');
+  btnJoin.classList.toggle('active', type==='join');
+  document.getElementById('regNewTeamFields').style.display = type==='new' ? 'block' : 'none';
+  document.getElementById('regJoinTeamFields').style.display = type==='join' ? 'block' : 'none';
+  if(type==='join') renderRegTeamList();
+}
+function renderRegTeamList(){
+  const gameId = document.getElementById('regGame').value;
+  const teams = TEAMS.filter(t=>t.gameId===gameId);
+  const el = document.getElementById('regTeamList');
+  if(teams.length===0){
+    el.innerHTML='<div style="padding:12px;font-size:12px;color:#999;text-align:center;">Noch keine Teams vorhanden – gründe das erste!</div>';
+    return;
+  }
+  el.innerHTML = teams.map(t=>{
+    const mCount = MEMBERS.filter(m=>m.teamId===t.id).length;
+    const game = GAMES.find(g=>g.id===t.gameId);
+    const maxSize = game?.teamSize||4;
+    const full = mCount>=maxSize;
+    return `<div class="reg-team-row ${regState.selectedTeamId===t.id?'selected':''}" onclick="${full?'':'selectRegTeam(''+t.id+'')'}">
+      <div>
+        <div style="font-weight:700;">${t.logo||'👥'} ${t.name}</div>
+        <div style="font-size:11px;color:#888;">${t.biz||''}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;${full?'color:#C00000;':'color:#375623;'}">${mCount}/${maxSize} ${full?'voll':'frei'}</div>
+        ${!full?`<button class="btn btn-primary btn-xs" onclick="event.stopPropagation();selectRegTeam('${t.id}')">Beitreten</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function selectRegTeam(teamId){
+  regState.selectedTeamId = teamId;
+  renderRegTeamList();
+}
+function registerUser(){
+  const name = document.getElementById('regName').value.trim();
+  const gameId = document.getElementById('regGame').value;
+  const errEl = document.getElementById('regError');
+  errEl.style.display='none';
+  if(!name){ errEl.textContent='Bitte deinen Namen eingeben.'; errEl.style.display='block'; return; }
+  if(!gameId){ errEl.textContent='Bitte ein Spiel auswählen.'; errEl.style.display='block'; return; }
+  if(!regState.type){ errEl.textContent='Möchtest du ein neues Team gründen oder beitreten?'; errEl.style.display='block'; return; }
+
+  const game = GAMES.find(g=>g.id===gameId);
+  let memberId, code, teamName, teamId, role, info;
+
+  if(regState.type==='new'){
+    const tname = document.getElementById('regTeamName').value.trim();
+    if(!tname){ errEl.textContent='Bitte Team-Namen eingeben.'; errEl.style.display='block'; return; }
+    // Check name not taken
+    if(TEAMS.find(t=>t.gameId===gameId&&t.name.toLowerCase()===tname.toLowerCase())){
+      errEl.textContent='Dieser Team-Name ist bereits vergeben.'; errEl.style.display='block'; return;
+    }
+    role = document.getElementById('regRoleNew').value;
+    const COLORS=['#2E75B6','#375623','#C55A11','#5B2C8D','#C00000','#1F6B75','#7B3F00','#2D6A4F'];
+    const EMOJIS=['🚀','💡','🔧','🌱','⚡','🎯','💎','🔥'];
+    const idx=TEAMS.length%COLORS.length;
+    teamId = nextId(TEAMS,'t');
+    const tcode = makeUniqueTeamCode(tname);
+    const newTeam={
+      id:teamId, name:tname,
+      biz:document.getElementById('regBiz').value.trim()||'Unternehmensidee folgt',
+      slogan:'', color:COLORS[idx], logo:EMOJIS[idx], logoDataUrl:null,
+      gameId, code:tcode, revenue:0, expenses:0, transactions:0, weekGoal:50,
+      currentWeek:1, weekStatus:'open', mvps:[], mvpOverride:{}, desc:''
+    };
+    TEAMS.push(newTeam);
+    if(game) game.teamCount=TEAMS.filter(t=>t.gameId===gameId).length;
+    memberId = nextId(MEMBERS,'mb');
+    code = makeMemberCode(newTeam, 0);
+    MEMBERS.push({id:memberId, teamId, name, role, title:role, bio:'', code, avatarDataUrl:null});
+    teamName = tname;
+    info = `<b>Team:</b> ${tname}<br><b>Rolle:</b> ${role}<br><b>Spiel:</b> ${game?.name}<br><br>Als Gründer bist du automatisch der erste Ansprechpartner für dein Team.`;
+  } else {
+    if(!regState.selectedTeamId){ errEl.textContent='Bitte ein Team auswählen.'; errEl.style.display='block'; return; }
+    teamId = regState.selectedTeamId;
+    const team = TEAMS.find(t=>t.id===teamId);
+    const mCount = MEMBERS.filter(m=>m.teamId===teamId).length;
+    if(mCount>=(game?.teamSize||4)){ errEl.textContent='Dieses Team ist leider voll.'; errEl.style.display='block'; return; }
+    role = document.getElementById('regRoleJoin').value;
+    memberId = nextId(MEMBERS,'mb');
+    code = makeMemberCode(team, mCount);
+    MEMBERS.push({id:memberId, teamId, name, role, title:role, bio:'', code, avatarDataUrl:null});
+    teamName = team?.name||'';
+    info = `<b>Team:</b> ${teamName}<br><b>Rolle:</b> ${role}<br><b>Spiel:</b> ${game?.name}`;
+  }
+
+  rebuildCodes(); saveData();
+  regState.newCode = code;
+
+  // Show success
+  document.getElementById('regResultCode').textContent = code;
+  document.getElementById('regResultInfo').innerHTML = info;
+  document.getElementById('regStep1').style.display='none';
+  document.getElementById('regStep2').style.display='block';
+}
+function copyRegCode(){
+  const code = regState.newCode;
+  if(code) navigator.clipboard?.writeText(code);
+  document.getElementById('regResultCode').style.background='linear-gradient(135deg,#375623,#52873a)';
+  setTimeout(()=>{document.getElementById('regResultCode').style.background='linear-gradient(135deg,#1F3864,#2E75B6)';},800);
+}
+function loginWithNewCode(){
+  if(!regState.newCode) return;
+  showLogin();
+  document.getElementById('loginCode').value = regState.newCode;
+  doLogin();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════════════════
+function fmtEur(n){return n.toFixed(2).replace('.',',')+' €';}
+function fmtDate(d){return new Date(d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function getVisibleTeams(){
+  const u=state.currentUser;
+  if(u.role==='superadmin') return TEAMS;
+  const gid=u.gameId||(u.teamId?TEAMS.find(t=>t.id===u.teamId)?.gameId:null);
+  return gid?TEAMS.filter(t=>t.gameId===gid):TEAMS;
+}
+function getMyTeam(){
+  const u=state.currentUser;
+  if(u.teamId) return TEAMS.find(t=>t.id===u.teamId);
+  if(u.memberId){const m=MEMBERS.find(x=>x.id===u.memberId);return m?TEAMS.find(t=>t.id===m.teamId):null;}
+  return null;
+}
+function getMyMember(){
+  const u=state.currentUser;
+  return u.memberId?MEMBERS.find(m=>m.id===u.memberId):null;
+}
+function fillCode(c){document.getElementById('loginCode').value=c;document.getElementById('loginCode').focus();}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))e.target.classList.remove('open');});
+function showToast(msg,type='success'){
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:fadeIn .2s;max-width:320px;';
+  t.style.background=type==='success'?'#2d7a3e':type==='error'?'#C00000':'#2E75B6';
+  t.style.color='white';t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+}
+function countChars(el,counterId,max){
+  const len=el.value.length;const c=document.getElementById(counterId);
+  if(!c)return;c.textContent=len+' / '+max;
+  c.className='char-counter'+(len>max?'over':len>max*0.8?' warn':'');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════════════════════════
+function doLogin(){
+  const code=document.getElementById('loginCode').value.trim().toUpperCase();
+  const user=CODES[code];
+  if(!user){
+    const err=document.getElementById('loginError');err.style.display='block';
+    document.getElementById('loginCode').style.borderColor='#C00000';
+    setTimeout(()=>{err.style.display='none';document.getElementById('loginCode').style.borderColor='';},3000);
+    return;
+  }
+  state.currentUser={...user,code};
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  initApp();
+}
+function doLogout(){
+  state.currentUser=null;
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginCode').value='';
+  ['revenueChart','superChart'].forEach(k=>{if(state[k]){state[k].destroy();state[k]=null;}});
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════════
+function initApp(){
+  const u=state.currentUser;
+  buildNavigation();updateTopbar();buildTicker();
+  const def=u.role==='superadmin'?'superadmin':u.role==='admin'?'admin':'dashboard';
+  navigateTo(def);
+}
+
+function buildNavigation(){
+  const u=state.currentUser;const nav=document.getElementById('topNav');nav.innerHTML='';
+  const pages=[];
+  if(u.role==='team'){
+    pages.push({id:'dashboard',label:'🏆 Ranking'});
+    pages.push({id:'myteam',  label:'👤 Mein Team'});
+    pages.push({id:'blog',    label:'📖 Blog'});
+    pages.push({id:'teams',   label:'👥 Teams'});
+    pages.push({id:'feedback',label:'💬 Feedback'});
+  } else if(u.role==='member'){
+    pages.push({id:'dashboard',  label:'🏆 Ranking'});
+    pages.push({id:'myteam',     label:'👥 Mein Team'});
+    pages.push({id:'profile',    label:'👤 Mein Profil'});
+    pages.push({id:'reflection', label:'🔒 Reflexion'});
+    pages.push({id:'blog',       label:'📖 Blog'});
+    pages.push({id:'feedback',   label:'💬 Feedback'});
+  } else if(u.role==='admin'){
+    pages.push({id:'dashboard',label:'🏆 Ranking'});
+    pages.push({id:'teams',    label:'👥 Teams'});
+    pages.push({id:'tx',       label:'💳 Buchungen'});
+    pages.push({id:'blog',     label:'📖 Blog'});
+    pages.push({id:'admin',    label:'⚙️ Admin',cls:'admin-nav'});
+    pages.push({id:'feedback', label:'💬 Feedback'});
+  } else {
+    pages.push({id:'dashboard',  label:'🏆 Ranking'});
+    pages.push({id:'teams',      label:'👥 Teams'});
+    pages.push({id:'tx',         label:'💳 Buchungen'});
+    pages.push({id:'blog',       label:'📖 Blog'});
+    pages.push({id:'admin',      label:'⚙️ Admin',cls:'admin-nav'});
+    pages.push({id:'superadmin', label:'👑 Super',cls:'superadmin-nav'});
+    pages.push({id:'feedback',   label:'💬 Feedback'});
+    pages.push({id:'konzept',    label:'📐 Konzept'});
+  }
+  pages.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.innerHTML=p.label;btn.className=p.cls||'';btn.dataset.page=p.id;
+    btn.onclick=()=>navigateTo(p.id);nav.appendChild(btn);
+  });
+}
+
+function updateTopbar(){
+  const u=state.currentUser;
+  const badge=document.getElementById('roleBadge');
+  const team=getMyTeam();
+  const game=u.gameId?GAMES.find(g=>g.id===u.gameId):null;
+  document.getElementById('topbarGameName').textContent=game?game.name:'Plattform-Übersicht';
+  if(u.role==='superadmin'){badge.className='role-badge super-badge';badge.innerHTML='👑 '+u.name+' · Superadmin';}
+  else if(u.role==='admin'){badge.className='role-badge admin-badge';badge.innerHTML='⚙️ '+u.name+' · '+u.uni;}
+  else if(u.role==='member'){
+    const m=getMyMember();
+    badge.className='role-badge member-badge';
+    badge.innerHTML=(m?m.role:'?')+' · '+(team?team.logo+' '+team.name:'');
+  } else {
+    badge.className='role-badge team-badge';
+    badge.innerHTML=(team?team.logo+' '+team.name:u.name);
+  }
+}
+
+function buildTicker(){
+  if(TEAMS.length===0){
+    const tt=document.getElementById('tickerTrack');
+    if(tt) tt.innerHTML='<span>Willkommen beim 5-Euro-Business Tracker 🎓</span><span>Registriere dein Team um loszulegen 🚀</span>';
+    return;
+  }
+  const track=document.getElementById('tickerTrack');
+  const items=[...TRANSACTIONS].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10).map(tx=>{
+    const team=TEAMS.find(t=>t.id===tx.teamId);
+    return `<span>${team?team.logo+' '+team.name:'?'}: ${tx.type==='income'?'+':'-'}${fmtEur(tx.amount)} – ${tx.desc}</span>`;
+  }).join('');
+  track.innerHTML=items+items;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════════════════════════
+function navigateTo(pageId){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.topbar-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===pageId));
+  const page=document.getElementById('page-'+pageId);
+  if(page){page.classList.add('active');state.currentPage=pageId;renderPage(pageId);}
+  document.getElementById('tickerBar').style.display=(pageId==='konzept')?'none':'flex';
+}
+function renderPage(p){
+  ({dashboard:renderDashboard,myteam:renderMyTeam,profile:renderProfile,
+    reflection:renderReflectionPage,teams:renderTeamsPage,blog:renderBlogPage,
+    tx:renderTxPage,feedback:renderFeedback,admin:renderAdminPage,
+    superadmin:renderSuperPage,konzept:renderKonzept})[p]?.();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════════════════════════════════
+
+function renderEmptyDashboard(){
+  const u = state.currentUser;
+  let html = '';
+  if(u.role==='superadmin'){
+    html = `<div style="text-align:center;padding:60px 20px;">
+      <div style="font-size:64px;margin-bottom:16px;">🎓</div>
+      <h2 style="font-size:22px;font-weight:800;color:var(--blue-dark);margin-bottom:8px;">Willkommen, Prof. Neusser!</h2>
+      <p style="color:var(--gray-mid);max-width:400px;margin:0 auto 24px;">Der Tracker ist bereit. So startest du ein neues Semester:</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;max-width:700px;margin:0 auto 28px;text-align:left;">
+        <div style="background:white;border-radius:12px;padding:16px;box-shadow:var(--shadow);">
+          <div style="font-size:28px;margin-bottom:8px;">1️⃣</div>
+          <div style="font-weight:700;color:var(--blue-dark);margin-bottom:4px;">Hochschule anlegen</div>
+          <div style="font-size:12px;color:var(--gray-mid);">Superadmin → Hochschulen → + Hinzufügen</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:16px;box-shadow:var(--shadow);">
+          <div style="font-size:28px;margin-bottom:8px;">2️⃣</div>
+          <div style="font-weight:700;color:var(--blue-dark);margin-bottom:4px;">Neues Spiel anlegen</div>
+          <div style="font-size:12px;color:var(--gray-mid);">Superadmin → Spiele → + Neues Spiel</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:16px;box-shadow:var(--shadow);">
+          <div style="font-size:28px;margin-bottom:8px;">3️⃣</div>
+          <div style="font-weight:700;color:var(--blue-dark);margin-bottom:4px;">Admin ernennen</div>
+          <div style="font-size:12px;color:var(--gray-mid);">Superadmin → Admins → + Admin ernennen</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:16px;box-shadow:var(--shadow);">
+          <div style="font-size:28px;margin-bottom:8px;">4️⃣</div>
+          <div style="font-weight:700;color:var(--blue-dark);margin-bottom:4px;">Link teilen</div>
+          <div style="font-size:12px;color:var(--gray-mid);">Studierende registrieren sich selbst auf der Website</div>
+        </div>
+      </div>
+      <button class="btn btn-purple" onclick="navigateTo('superadmin')">&#9654; Zum Setup &rarr;</button>
+    </div>`;
+  } else if(u.role==='admin'){
+    html = `<div style="text-align:center;padding:60px 20px;">
+      <div style="font-size:64px;margin-bottom:16px;">📋</div>
+      <h2 style="font-size:20px;font-weight:800;color:var(--blue-dark);margin-bottom:8px;">Noch keine Teams</h2>
+      <p style="color:var(--gray-mid);margin-bottom:20px;">Teile den Link mit deinen Studierenden – sie registrieren sich selbst!</p>
+      <button class="btn btn-primary" onclick="navigateTo('admin')">&#128101; Teams verwalten &rarr;</button>
+    </div>`;
+  } else {
+    html = `<div style="text-align:center;padding:60px 20px;">
+      <div style="font-size:64px;margin-bottom:16px;">🏁</div>
+      <h2 style="font-size:20px;font-weight:800;color:var(--blue-dark);margin-bottom:8px;">Das Spiel startet bald!</h2>
+      <p style="color:var(--gray-mid);">Warte auf deinen Dozenten – sobald das Semester beginnt, siehst du hier alle Infos.</p>
+    </div>`;
+  }
+  document.getElementById('dashStats').innerHTML='';
+  document.getElementById('leaderboard').innerHTML=html;
+  document.getElementById('activityFeed').innerHTML='';
+}
+function renderDashboard(){
+  const teams=getVisibleTeams();
+  const allTx=TRANSACTIONS.filter(tx=>teams.some(t=>t.id===tx.teamId));
+  const totalRev=allTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const totalExp=allTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  document.getElementById('dashStats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Gesamtumsatz</div><div class="stat-value">${fmtEur(totalRev)}</div><div class="stat-sub">${teams.length} Teams</div></div>
+    <div class="stat-card green"><div class="stat-label">Gewinn gesamt</div><div class="stat-value" style="color:${totalRev-totalExp>=0?'var(--green)':'var(--red)'}">${fmtEur(totalRev-totalExp)}</div><div class="stat-sub">nach Kosten</div></div>
+    <div class="stat-card orange"><div class="stat-label">Transaktionen</div><div class="stat-value">${allTx.length}</div><div class="stat-sub">gesamt</div></div>
+    <div class="stat-card gold"><div class="stat-label">Ø ROI</div><div class="stat-value">${(((totalRev-totalExp)/Math.max(teams.length*5,1))*100).toFixed(0)}%</div><div class="stat-sub">auf 5€ Start</div></div>
+  `;
+  const u=state.currentUser;
+  const game=u.gameId?GAMES.find(g=>g.id===u.gameId):null;
+  document.getElementById('rankingGameLabel').textContent=game?game.name:'';
+  renderLeaderboard('leaderboard',teams);
+  // Activity
+  const feed=document.getElementById('activityFeed');
+  feed.innerHTML=[...TRANSACTIONS].filter(tx=>teams.some(t=>t.id===tx.teamId))
+    .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(tx=>{
+      const team=TEAMS.find(t=>t.id===tx.teamId);
+      const bg=tx.type==='income'?'var(--green-lt)':'var(--red-lt)';
+      return `<div class="activity-item"><div class="act-icon" style="background:${bg}">${tx.type==='income'?'💰':'🛍️'}</div>
+        <div class="act-body"><div class="act-text"><strong>${team?.name}</strong>: ${tx.desc} <strong style="color:${tx.type==='income'?'var(--green)':'var(--red)'}">${tx.type==='income'?'+':'-'}${fmtEur(tx.amount)}</strong></div>
+        <div class="act-time">${fmtDate(tx.date)}</div></div></div>`;
+    }).join('');
+  // Chart
+  if(state.revenueChart) state.revenueChart.destroy();
+  const ctx=document.getElementById('revenueChart').getContext('2d');
+  const weeks=['19. Mrz','23. Mrz','30. Mrz','6. Apr','10. Apr','24. Apr'];
+  state.revenueChart=new Chart(ctx,{type:'line',data:{labels:weeks,
+    datasets:teams.slice(0,5).map(team=>({label:team.name,data:weeks.map((_,i)=>+(team.revenue*0.5*(i+1)/weeks.length+Math.random()*3).toFixed(2)),
+      borderColor:team.color,backgroundColor:team.color+'22',borderWidth:2,tension:0.4,fill:false,pointRadius:3}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}},
+      scales:{y:{ticks:{callback:v=>v+'€'},grid:{color:'#E0E7F0'}},x:{grid:{display:false}}}}});
+}
+
+function renderLeaderboard(elId,teams){
+  const u=state.currentUser;
+  const sorted=[...teams].sort((a,b)=>(b.revenue-b.expenses)-(a.revenue-a.expenses));
+  const maxP=Math.max(...sorted.map(t=>t.revenue-t.expenses),1);
+  document.getElementById(elId).innerHTML=`
+    <div class="lb-row header"><div>Platz</div><div>Team</div><div>Umsatz</div><div>Gewinn</div><div>Woche</div><div>Bar</div></div>`+
+    sorted.map((team,i)=>{
+      const profit=team.revenue-team.expenses;
+      const isMe=(u.role==='team'||u.role==='member')&&team.id===getMyTeam()?.id;
+      const rankCls=i===0?'r1':i===1?'r2':i===2?'r3':'';
+      const barW=Math.max((profit/maxP)*100,0).toFixed(0);
+      const weekBadge=`<span class="tag ${team.weekStatus==='approved'?'tag-green':team.weekStatus==='submitted'?'tag-orange':'tag-blue'}">W${team.currentWeek}</span>`;
+      const logoHtml=team.logoDataUrl?`<img src="${team.logoDataUrl}" style="width:100%;height:100%;object-fit:cover;">`:(team.logo||'?');
+      return `<div class="lb-row ${isMe?'my-team':''}">
+        <div class="lb-rank ${rankCls}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+        <div class="lb-team"><div class="lb-dot" style="background:${team.color}">${logoHtml}</div>
+          <div><div class="lb-name">${team.name}${isMe?' <span style="color:var(--blue-mid);font-size:10px;">(Du)</span>':''}</div>
+          <div class="lb-biz">${team.slogan||team.biz}</div></div></div>
+        <div class="lb-num">${fmtEur(team.revenue)}</div>
+        <div class="lb-num ${profit>=0?'pos':'neg'}">${profit>=0?'+':''}${fmtEur(profit)}</div>
+        <div>${weekBadge}</div>
+        <div><div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${barW}%;background:${team.color};border-radius:3px;"></div></div></div>
+      </div>`;
+    }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  MY TEAM PAGE
+// ════════════════════════════════════════════════════════════════════
+function switchMyTeamTab(tab){
+  state.currentMyTeamTab=tab;
+  document.querySelectorAll('#page-myteam .profile-tab').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('#page-myteam .profile-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('myteamPanel-'+tab)?.classList.add('active');
+  renderMyTeamPanel(tab);
+}
+
+function renderMyTeam(){
+  const team=getMyTeam();if(!team)return;
+  // Hero
+  const logoHtml=team.logoDataUrl?`<img src="${team.logoDataUrl}" style="width:56px;height:56px;border-radius:12px;object-fit:cover;border:3px solid rgba(255,255,255,.4);">`:`<span style="font-size:40px;">${team.logo}</span>`;
+  document.getElementById('myTeamHero').style.background=`linear-gradient(135deg,${team.color}EE,${team.color}88)`;
+  const members=MEMBERS.filter(m=>m.teamId===team.id);
+  const allTeams=getVisibleTeams();
+  const sorted=[...allTeams].sort((a,b)=>(b.revenue-b.expenses)-(a.revenue-a.expenses));
+  const rank=sorted.findIndex(t=>t.id===team.id)+1;
+  document.getElementById('myTeamHero').innerHTML=`
+    <div style="display:flex;align-items:center;gap:16px;">
+      ${logoHtml}
+      <div>
+        <div style="font-size:22px;font-weight:800;margin-bottom:2px;">${team.name}</div>
+        <div style="font-size:13px;opacity:.85;font-style:italic;">${team.slogan||''}</div>
+        <div style="font-size:12px;opacity:.75;margin-top:2px;">${team.biz}</div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          ${members.map(m=>`<span style="background:rgba(255,255,255,.25);padding:2px 9px;border-radius:20px;font-size:11px;">👤 ${m.name} <span style="opacity:.7;">(${m.role})</span></span>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;background:rgba(255,255,255,.2);border-radius:12px;padding:12px 20px;flex-shrink:0;">
+      <div style="font-size:40px;font-weight:900;">#${rank}</div>
+      <div style="font-size:11px;opacity:.8;">von ${allTeams.length} Teams</div>
+      <div style="margin-top:6px;"><span class="tag ${team.weekStatus==='approved'?'tag-green':team.weekStatus==='submitted'?'tag-orange':'tag-blue'}" style="font-size:12px;">Woche ${team.currentWeek} ${team.weekStatus==='submitted'?'⏳':team.weekStatus==='approved'?'✅':'📝'}</span></div>
+    </div>`;
+  // Week steps
+  renderWeekSteps(team);
+  renderMyTeamPanel(state.currentMyTeamTab||'overview');
+}
+
+function renderWeekSteps(team){
+  const totalWeeks=6;
+  const el=document.getElementById('weekSteps');
+  el.innerHTML=Array.from({length:totalWeeks},(_,i)=>{
+    const w=i+1;
+    const isDone=w<team.currentWeek;
+    const isCurrent=w===team.currentWeek;
+    const isPending=isCurrent&&team.weekStatus==='submitted';
+    const cls=isDone?'done':isPending?'pending':isCurrent?'active':'';
+    const statusText=isDone?'✅ Abgeschlossen':isPending?'⏳ Warten auf Freigabe':isCurrent?'📝 Aktuell':'—';
+    return `<div class="week-step ${cls}"><div class="week-step-num">${w}</div><div class="week-step-lbl">Woche ${w}</div><div class="week-step-status" style="color:${isDone?'var(--green)':isPending?'var(--orange)':isCurrent?'var(--blue-mid)':'var(--gray-mid)'}">${statusText}</div></div>`;
+  }).join('');
+  const banner=document.getElementById('weekBanner');
+  if(team.weekStatus==='submitted'){
+    banner.className='week-banner submitted';banner.innerHTML='⏳ <strong>Wochenbericht eingereicht</strong> – wartet auf Freigabe durch den Admin. Danach startet Woche '+(team.currentWeek+1)+' automatisch.';
+  } else if(team.weekStatus==='approved'){
+    banner.className='week-banner approved';banner.innerHTML='✅ <strong>Freigabe erhalten!</strong> Woche '+(team.currentWeek-1)+' abgeschlossen. Ihr seid jetzt in Woche '+team.currentWeek+'.';
+  } else {
+    banner.className='week-banner open';banner.innerHTML='📝 <strong>Woche '+team.currentWeek+' läuft</strong> – Buchungen erfassen und am Ende Wochenbericht einreichen.';
+  }
+}
+
+function renderMyTeamPanel(tab){
+  const team=getMyTeam();if(!team)return;
+  if(tab==='overview') renderMyTeamOverview(team);
+  else if(tab==='profil') renderTeamProfileForm(team);
+  else if(tab==='members') renderMembersSection(team);
+  else if(tab==='transactions') renderMyTransactions(team);
+  else if(tab==='blogs') renderMyBlogs(team);
+}
+
+function renderMyTeamOverview(team){
+  const myTx=TRANSACTIONS.filter(tx=>tx.teamId===team.id);
+  const profit=team.revenue-team.expenses;
+  document.getElementById('myTeamKpis').innerHTML=`
+    <div class="kpi-card"><div class="kpi-label">Umsatz</div><div class="kpi-value">${fmtEur(team.revenue)}</div><div class="kpi-trend">${myTx.filter(t=>t.type==='income').length} Einnahmen</div></div>
+    <div class="kpi-card"><div class="kpi-label">Ausgaben</div><div class="kpi-value neg">${fmtEur(team.expenses)}</div><div class="kpi-trend">${myTx.filter(t=>t.type==='expense').length} Ausgaben</div></div>
+    <div class="kpi-card"><div class="kpi-label">Gewinn</div><div class="kpi-value ${profit>=0?'pos':'neg'}">${profit>=0?'+':''}${fmtEur(profit)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value pos">${((profit/5)*100).toFixed(0)}%</div><div class="kpi-trend">auf 5€ Start</div></div>`;
+  // MVP section
+  const mvpEl=document.getElementById('myTeamMvpSection');
+  const mvps=team.mvps||[];
+  if(mvps.length===0){mvpEl.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><h3>Noch kein MVP gewählt</h3><p>Im Wochenbericht kannst du ein Mitglied der Woche wählen.</p></div>';return;}
+  mvpEl.innerHTML=`<div class="section-header"><div class="section-title">🏆 Mitglied der Woche</div></div>`+
+    mvps.map(mv=>{const m=MEMBERS.find(x=>x.id===mv.memberId);return `<div class="mvp-card"><div class="mvp-card-title">🏆 Woche ${mv.week} – Mitglied der Woche</div><div style="display:flex;gap:12px;align-items:center;">
+      <div class="member-avatar" style="background:${team.color};width:44px;height:44px;">${m?.avatarDataUrl?`<img src="${m.avatarDataUrl}">`:(m?.name?.charAt(0)||'?')}</div>
+      <div><div style="font-weight:700;font-size:14px;">${m?.name||'—'}</div><div style="font-size:12px;color:var(--gray-mid);">${mv.reason}</div></div>
+      <span class="mvp-badge" style="margin-left:auto;">🏆 MVP W${mv.week}</span></div></div>`;}).join('');
+  // Blog status
+  document.getElementById('myTeamBlogStatus').innerHTML=`<div class="section-header"><div class="section-title">📋 Berichtsstatus</div></div>`+
+    [1,2,3,4,5,6].map(w=>{
+      const blog=BLOGS.find(b=>b.teamId===team.id&&b.week===w);
+      const s=blog?blog.status:'missing';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:white;border-radius:8px;margin-bottom:6px;box-shadow:var(--shadow);">
+        <span style="font-size:13px;font-weight:600;">Woche ${w}</span>
+        <span class="blog-status status-${s==='missing'?'draft':s}">${s==='approved'?'✅ Freigegeben':s==='pending'?'⏳ In Prüfung':s==='rejected'?'❌ Abgelehnt':s==='draft'?'📄 Entwurf':'— Noch offen'}</span>
+      </div>`;}).join('');
+}
+
+function renderTeamProfileForm(team){
+  document.getElementById('teamProfileForm').innerHTML=`
+    <div class="form-section-title">Team-Profil bearbeiten</div>
+    <div class="form-group"><label class="form-label">Team-Name <span class="req">*</span></label>
+      <input class="form-control" id="tpName" value="${team.name}"></div>
+    <div class="form-group"><label class="form-label">Slogan</label>
+      <input class="form-control" id="tpSlogan" value="${team.slogan||''}" placeholder="Euer Unternehmens-Slogan"></div>
+    <div class="form-group"><label class="form-label">Geschäftsidee / Beschreibung</label>
+      <input class="form-control" id="tpBiz" value="${team.biz}"></div>
+    <div class="form-group"><label class="form-label">Detaillierte Beschreibung</label>
+      <textarea class="form-control" id="tpDesc" rows="3" placeholder="Beschreibt euer Business ausführlicher...">${team.desc||''}</textarea></div>
+    <button class="btn btn-primary btn-sm" onclick="saveTeamProfile()">💾 Speichern</button>`;
+  document.getElementById('logoUploadSection').innerHTML=`
+    <div class="form-section-title">Team-Logo</div>
+    ${team.logoDataUrl?`<div style="margin-bottom:12px;"><img src="${team.logoDataUrl}" style="width:80px;height:80px;border-radius:12px;object-fit:cover;border:2px solid var(--blue-light);"><br><button class="btn btn-secondary btn-xs" style="margin-top:6px;" onclick="removeLogo()">🗑️ Entfernen</button></div>`:''}
+    <div class="upload-zone" onclick="document.getElementById('logoFile').click()">
+      <div class="upload-icon">🖼️</div>
+      <p>Logo hochladen<br>JPG, PNG bis 2 MB</p>
+      <input type="file" id="logoFile" style="display:none;" accept=".jpg,.jpeg,.png" onchange="handleLogoUpload(event)">
+    </div>
+    <div class="form-hint" style="margin-top:6px;">Das Logo wird auf Teamkarten und im Ranking angezeigt.</div>`;
+}
+
+function renderMembersSection(team){
+  const members=MEMBERS.filter(m=>m.teamId===team.id);
+  const u=state.currentUser;
+  const myMemberId=u.memberId||null;
+  document.getElementById('membersSection').innerHTML=`
+    <div class="section-header"><div class="section-title">👥 Teammitglieder</div></div>
+    <div class="info-box blue"><span class="info-box-icon">ℹ️</span>Jedes Mitglied kann sein eigenes Profil mit seinem persönlichen Login-Code bearbeiten (MBR-XX-N).</div>
+    <div class="member-grid">${members.map(m=>{
+      const isMe=m.id===myMemberId;
+      const avatarHtml=m.avatarDataUrl?`<img src="${m.avatarDataUrl}">`:(m.name.charAt(0));
+      return `<div class="member-card ${isMe?'is-me':''}">
+        <div class="member-avatar" style="background:${team.color};">${avatarHtml}</div>
+        <div class="member-info">
+          <div class="member-info-name">${m.name} ${isMe?'<span style="color:var(--blue-mid);font-size:10px;">(Du)</span>':''}</div>
+          <div class="member-role-badge">${m.role} · ${m.title}</div>
+          <div class="member-bio">${m.bio||'Noch keine Bio.'}</div>
+          ${isMe?`<button class="btn btn-outline btn-xs" style="margin-top:6px;" onclick="navigateTo('profile')">✏️ Bearbeiten</button>`:`<div style="font-size:10px;color:var(--gray-mid);margin-top:4px;">Code: <code>${m.code}</code></div>`}
+        </div>
+      </div>`;}).join('')}</div>`;
+}
+
+function renderMyTransactions(team){
+  const myTx=TRANSACTIONS.filter(tx=>tx.teamId===team.id).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('myTxTable').innerHTML=`
+    <div class="tx-row header"><div>Datum</div><div>Typ</div><div>Beschreibung</div><div>Kategorie</div><div>Betrag</div><div>Beleg</div></div>`+
+    myTx.map(tx=>`<div class="tx-row">
+      <div style="color:var(--gray-mid)">${fmtDate(tx.date)}</div>
+      <div><span class="tag ${tx.type==='income'?'tag-green':''}" style="${tx.type==='expense'?'background:var(--red-lt);color:var(--red);':''}">${tx.type==='income'?'📈':'📉'}</span></div>
+      <div>${tx.desc}</div><div style="color:var(--gray-mid)">${tx.cat}</div>
+      <div class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmtEur(tx.amount)}</div>
+      <div>${tx.receipt?'<span style="color:var(--green)">✅</span>':'—'}</div>
+    </div>`).join('');
+}
+
+function renderMyBlogs(team){
+  const myBlogs=BLOGS.filter(b=>b.teamId===team.id);
+  const el=document.getElementById('myBlogList');
+  // Disable submit button if week already submitted
+  const submitBtn=document.getElementById('btnSubmitBlog');
+  if(submitBtn) submitBtn.disabled=team.weekStatus==='submitted';
+  if(myBlogs.length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">📝</div><h3>Noch keine Berichte</h3><p>Reiche deinen ersten Wochenbericht ein!</p></div>';return;}
+  el.innerHTML=myBlogs.map(b=>`<div class="card" style="margin-bottom:10px;">
+    <div class="card-body" style="padding:12px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:5px;">
+        <div><div style="font-size:10px;font-weight:700;color:var(--blue-mid);text-transform:uppercase;margin-bottom:1px;">Woche ${b.week}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--blue-dark);">${b.title}</div></div>
+        <span class="blog-status status-${b.status}">${b.status==='approved'?'✅ Freigegeben':b.status==='pending'?'⏳ In Prüfung':b.status==='rejected'?'❌ Abgelehnt':'📄 Entwurf'}</span>
+      </div>
+      <p style="font-size:12px;color:var(--gray-mid);">${b.body.substring(0,90)}...</p>
+    </div>
+  </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  PROFILE PAGE (member)
+// ════════════════════════════════════════════════════════════════════
+function renderProfile(){
+  const m=getMyMember();if(!m){navigateTo('dashboard');return;}
+  const team=TEAMS.find(t=>t.id===m.teamId);
+  const avatarHtml=m.avatarDataUrl?`<img src="${m.avatarDataUrl}">`:(m.name.charAt(0));
+  document.getElementById('profileHero').style.background=`linear-gradient(135deg,${team?.color||'#2E75B6'}EE,${team?.color||'#2E75B6'}88)`;
+  document.getElementById('profileHero').innerHTML=`
+    <div class="profile-avatar-big" onclick="document.getElementById('avatarFile').click()" style="background:${team?.color||'#2E75B6'}">
+      ${avatarHtml}<div class="profile-avatar-overlay">📷</div>
+    </div>
+    <input type="file" id="avatarFile" style="display:none;" accept=".jpg,.jpeg,.png" onchange="handleAvatarUpload(event)">
+    <div>
+      <div style="font-size:22px;font-weight:800;">${m.name}</div>
+      <div style="font-size:13px;opacity:.8;margin-top:2px;">${m.title} · ${team?.name||''}</div>
+      <div style="font-size:12px;opacity:.7;margin-top:4px;font-style:italic;">${m.bio||'Noch keine Bio hinterlegt.'}</div>
+    </div>`;
+  document.getElementById('profileEditForm').innerHTML=`
+    <div class="form-section-title">Mein Profil bearbeiten</div>
+    <div class="form-group"><label class="form-label">Name</label>
+      <input class="form-control" id="mpName" value="${m.name}"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Rolle / Funktion</label>
+        <select class="form-control" id="mpRole">
+          ${['CEO','CFO','CMO','COO','CTO','Gründer','Berater','Sonstiges'].map(r=>`<option ${m.role===r?'selected':''}>${r}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Titel (z.B. Geschäftsführer)</label>
+        <input class="form-control" id="mpTitle" value="${m.title||''}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Bio (max. 200 Zeichen)</label>
+      <textarea class="form-control" id="mpBio" rows="3" maxlength="200" oninput="countChars(this,'mpBioCount',200)">${m.bio||''}</textarea>
+      <div class="char-counter" id="mpBioCount">${(m.bio||'').length} / 200</div></div>
+    <button class="btn btn-primary btn-sm" onclick="saveMemberProfile()">💾 Profil speichern</button>`;
+  document.getElementById('profileAvatarSection').innerHTML=`
+    <div class="form-section-title">Profilfoto</div>
+    ${m.avatarDataUrl?`<div style="margin-bottom:10px;text-align:center;"><img src="${m.avatarDataUrl}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--blue-light);"><br><button class="btn btn-secondary btn-xs" style="margin-top:6px;" onclick="removeAvatar()">🗑️ Entfernen</button></div>`:''}
+    <div class="upload-zone" onclick="document.getElementById('avatarFile').click()">
+      <div class="upload-icon">📷</div><p>Foto hochladen<br>JPG, PNG bis 2 MB</p>
+    </div>
+    <div class="form-hint" style="margin-top:6px;">Dein Foto ist für alle Teammitglieder sichtbar.</div>`;
+  renderMyReflections();
+}
+
+function switchProfileTab(tab){
+  state.currentProfileTab=tab;
+  document.querySelectorAll('#page-profile .profile-tab').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('#page-profile .profile-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('profilePanel-'+tab)?.classList.add('active');
+  if(tab==='myreflections') renderMyReflections();
+}
+
+function renderMyReflections(){
+  const m=getMyMember();if(!m)return;
+  const myRefs=REFLECTIONS.filter(r=>r.memberId===m.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const el=document.getElementById('myReflectionsList');
+  if(!el) return;
+  if(myRefs.length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><h3>Noch keine Reflexionen</h3><p>Klicke auf "Neue Reflexion" um zu starten.</p></div>';return;}
+  el.innerHTML=myRefs.map(r=>{
+    const moodEmoji=['','😩','😟','😐','😊','🚀'][r.mood];
+    return `<div class="reflection-card">
+      <div class="reflection-header">
+        <div><strong>Woche ${r.week}</strong> · ${fmtDate(r.date)}</div>
+        <div style="display:flex;align-items:center;gap:8px;">${moodEmoji} <span style="font-size:13px;font-weight:700;">${r.mood}/5</span></div>
+      </div>
+      <div class="reflection-body">
+        ${r.experience?`<div class="reflection-section"><div class="reflection-section-label">Erfahrungen</div><div class="reflection-text">${r.experience}</div></div>`:''}
+        ${r.liked?`<div class="reflection-section"><div class="reflection-section-label">👍 Was war gut</div><div class="reflection-text">${r.liked}</div></div>`:''}
+        ${r.improved?`<div class="reflection-section"><div class="reflection-section-label">💡 Was ich anders machen würde</div><div class="reflection-text">${r.improved}</div></div>`:''}
+        ${r.role?`<div class="reflection-section"><div class="reflection-section-label">🤝 Meine Rolle</div><div class="reflection-text">${r.role}</div></div>`:''}
+      </div>
+    </div>`;}).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  REFLECTION PAGE
+// ════════════════════════════════════════════════════════════════════
+function selectMood(v){
+  state.selectedMood=v;document.getElementById('refMood').value=v;
+  document.querySelectorAll('.mood-btn').forEach(b=>{b.classList.toggle('selected',parseInt(b.dataset.val)===v);});
+}
+function renderReflectionPage(){
+  const m=getMyMember();if(!m){navigateTo('dashboard');return;}
+  const myRefs=REFLECTIONS.filter(r=>r.memberId===m.id).sort((a,b)=>b.date.localeCompare(a.date));
+  // pre-select current mood btn
+  setTimeout(()=>document.querySelectorAll('.mood-btn').forEach(b=>{b.classList.toggle('selected',parseInt(b.dataset.val)===state.selectedMood);}),50);
+  const el=document.getElementById('reflectionList');
+  if(myRefs.length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><h3>Noch keine Reflexionen</h3><p>Klicke oben auf "Neue Reflexion".</p></div>';return;}
+  el.innerHTML=myRefs.map(r=>{
+    const moodEmoji=['','😩','😟','😐','😊','🚀'][r.mood];
+    return `<div class="reflection-card">
+      <div class="reflection-header"><div><strong>Woche ${r.week}</strong> · ${fmtDate(r.date)}</div><div>${moodEmoji} ${r.mood}/5</div></div>
+      <div class="reflection-body">
+        ${r.experience?`<div class="reflection-section"><div class="reflection-section-label">Erfahrungen</div><div class="reflection-text">${r.experience}</div></div>`:''}
+        ${r.liked?`<div class="reflection-section"><div class="reflection-section-label">👍 Was war gut</div><div class="reflection-text">${r.liked}</div></div>`:''}
+        ${r.improved?`<div class="reflection-section"><div class="reflection-section-label">💡 Was ich anders machen würde</div><div class="reflection-text">${r.improved}</div></div>`:''}
+        ${r.role?`<div class="reflection-section"><div class="reflection-section-label">🤝 Meine Rolle</div><div class="reflection-text">${r.role}</div></div>`:''}
+      </div>
+    </div>`;}).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  TEAMS / BLOG / TX PAGES
+// ════════════════════════════════════════════════════════════════════
+function renderTeamsPage(){
+  const teams=getVisibleTeams();
+  const sorted=[...teams].sort((a,b)=>(b.revenue-b.expenses)-(a.revenue-a.expenses));
+  const u=state.currentUser;const myTeam=getMyTeam();
+  document.getElementById('teamsGrid').innerHTML=sorted.map((team,i)=>{
+    const profit=team.revenue-team.expenses;
+    const roi=((profit/5)*100).toFixed(0);
+    const progress=Math.min((team.revenue/team.weekGoal)*100,100).toFixed(0);
+    const rankCls=i===0?'top1':i===1?'top2':i===2?'top3':'';
+    const isMe=myTeam&&team.id===myTeam.id;
+    const mvp=team.mvps?.slice(-1)[0];const mvpMember=mvp?MEMBERS.find(m=>m.id===mvp.memberId):null;
+    const logoHtml=team.logoDataUrl?`<img src="${team.logoDataUrl}">`:(team.logo||'?');
+    return `<div class="team-card ${isMe?'my-card':''}">
+      <div class="team-card-header">
+        <div class="team-avatar" style="background:${team.color}">${logoHtml}</div>
+        <div><div class="team-name">${team.name}${isMe?' <span style="font-size:10px;color:var(--blue-mid);">(Mein Team)</span>':''}</div>
+          <div class="team-slogan">${team.slogan||team.biz}</div></div>
+        <div class="team-rank ${rankCls}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
+      </div>
+      <div class="team-card-body">
+        <div class="team-metrics">
+          <div class="metric"><div class="metric-val">${fmtEur(team.revenue)}</div><div class="metric-lbl">Umsatz</div></div>
+          <div class="metric"><div class="metric-val ${profit>=0?'positive':'negative'}">${profit>=0?'+':''}${fmtEur(profit)}</div><div class="metric-lbl">Gewinn</div></div>
+          <div class="metric"><div class="metric-val positive">${roi}%</div><div class="metric-lbl">ROI</div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Wochenziel</span><span>${fmtEur(team.revenue)} / ${fmtEur(team.weekGoal)}</span></div>
+          <div class="progress-bar"><div class="progress-fill ${progress>=100?'green':''}" style="width:${progress}%"></div></div>
+        </div>
+        ${mvpMember?`<div style="margin-top:6px;display:flex;align-items:center;gap:7px;"><span class="mvp-badge">🏆 MVP W${mvp.week}</span><span style="font-size:12px;font-weight:600;">${mvpMember.name}</span></div>`:''}
+      </div>
+      <div class="team-card-footer">
+        <div style="display:flex;">${MEMBERS.filter(m=>m.teamId===team.id).map(m=>`<div style="width:22px;height:22px;border-radius:50%;background:${team.color};color:white;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;margin-left:-4px;overflow:hidden;">${m.avatarDataUrl?`<img src="${m.avatarDataUrl}" style="width:100%;height:100%;object-fit:cover;">`:m.name.charAt(0)}</div>`).join('')}</div>
+        <span class="tag ${team.weekStatus==='submitted'?'tag-orange':team.weekStatus==='approved'?'tag-green':'tag-blue'}">W${team.currentWeek} ${team.weekStatus==='submitted'?'⏳':''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderBlogPage(){
+  const u=state.currentUser;const teams=getVisibleTeams();
+  const tSel=document.getElementById('blogTeamFilter');
+  if(tSel.options.length<=1) teams.forEach(t=>{const o=new Option(t.logo+' '+t.name,t.id);tSel.appendChild(o);});
+  const tf=document.getElementById('blogTeamFilter').value;
+  const wf=document.getElementById('blogWeekFilter').value;
+  let blogs=BLOGS.filter(b=>{
+    const teamOk=teams.some(t=>t.id===b.teamId);
+    const fT=tf==='all'||b.teamId===tf;
+    const fW=wf==='all'||b.week==wf;
+    const statusOk=(u.role!=='team'&&u.role!=='member')||b.status==='approved';
+    return teamOk&&fT&&fW&&statusOk;
+  });
+  const grid=document.getElementById('blogGrid');
+  if(blogs.length===0){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📖</div><h3>Keine Berichte</h3><p>Noch keine freigegebenen Berichte.</p></div>';return;}
+  grid.innerHTML=blogs.map(b=>{
+    const team=TEAMS.find(t=>t.id===b.teamId);
+    const moodEmoji=['','😩','😟','😐','😊','🚀'][b.mood];
+    return `<div class="blog-card">
+      <div class="blog-header"><div class="blog-week">Woche ${b.week} · ${team?.name}</div>
+        <div class="blog-title">${b.title}</div>
+        <div class="blog-meta"><span>${b.status==='approved'?moodEmoji+' '+b.mood+'/5':'🔒 Stimmung n. Freigabe'}</span>·<span>${fmtDate(b.date)}</span>·<span class="blog-status status-${b.status}">${b.status==='approved'?'✅':b.status==='pending'?'⏳':'📄'}</span></div></div>
+      <div class="blog-body">${b.body}</div>
+      ${b.highlight?`<div style="padding:0 16px 8px;"><div style="background:var(--green-lt);color:var(--green);padding:7px 10px;border-radius:7px;font-size:11px;font-weight:600;">⭐ ${b.highlight}</div></div>`:''}
+      <div class="blog-footer"><div style="display:flex;gap:5px;flex-wrap:wrap;">${b.tags.map(t=>`<span class="blog-tag">${t}</span>`).join('')}</div>
+        ${(u.role==='admin'||u.role==='superadmin')&&b.status==='pending'?`<button class="btn btn-success btn-xs" onclick="quickApprove('${b.id}')">✅</button>`:''}
+      </div>
+    </div>`;}).join('');
+}
+
+function renderTxPage(){
+  const u=state.currentUser;const teams=getVisibleTeams();
+  const tSel=document.getElementById('txTeamFilter');
+  if(tSel.options.length<=1) teams.forEach(t=>{const o=new Option(t.logo+' '+t.name,t.id);tSel.appendChild(o);});
+  document.getElementById('btnAddTx').style.display=(u.role==='team'||u.role==='member')?'inline-flex':'none';
+  const tf=document.getElementById('txTeamFilter').value;
+  const tyf=document.getElementById('txTypeFilter').value;
+  const own=u.role==='team'||u.role==='member';
+  const myTid=getMyTeam()?.id;
+  let txs=TRANSACTIONS.filter(tx=>{
+    const teamOk=teams.some(t=>t.id===tx.teamId);
+    const fT=tf==='all'||tx.teamId===tf;
+    const fTy=tyf==='all'||tx.type===tyf;
+    const fOwn=!own||tx.teamId===myTid;
+    return teamOk&&fT&&fTy&&fOwn;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('txTableRows').innerHTML=`
+    <div class="tx-row header"><div>Datum</div><div>Team</div><div>Beschreibung</div><div>Kategorie</div><div>Betrag</div><div>Beleg</div></div>`+
+    txs.map(tx=>{const team=TEAMS.find(t=>t.id===tx.teamId);return `<div class="tx-row">
+      <div style="color:var(--gray-mid)">${fmtDate(tx.date)}</div>
+      <div style="display:flex;align-items:center;"><div class="tx-team-dot" style="background:${team?.color}">${team?.logo}</div>${team?.name}</div>
+      <div>${tx.desc}</div><div style="color:var(--gray-mid)">${tx.cat}</div>
+      <div class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmtEur(tx.amount)}</div>
+      <div>${tx.receipt?'<span style="color:var(--green)">✅</span>':'—'}</div>
+    </div>`;}).join('');
+}
+function clearTxFilters(){['txTeamFilter','txTypeFilter'].forEach(id=>document.getElementById(id).value='all');renderTxPage();}
+
+// ════════════════════════════════════════════════════════════════════
+//  FEEDBACK PAGE
+// ════════════════════════════════════════════════════════════════════
+function renderFeedback(){
+  let selectedType=null;
+  document.getElementById('feedbackContent').innerHTML=`
+    <div class="feedback-hero">
+      <h2>💬 Feedback, Infos &amp; Bugreports</h2>
+      <p>Verbesserungsvorschläge, technische Probleme oder allgemeine Fragen – alles hier.</p>
+    </div>
+    <div class="feedback-type-grid">
+      <div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">📬</span>Dein Feedback wird direkt an den Dozenten (<strong>christian.neusser@me.com</strong>) und in ein Google Sheet weitergeleitet.</div>
+      <div class="feedback-type-card" onclick="selectFeedbackType('info',this)"><div class="feedback-type-icon">ℹ️</div><div class="feedback-type-label">Info anfragen</div><div class="feedback-type-desc">Fragen zur Plattform oder zum Spiel</div></div>
+      <div class="feedback-type-card" onclick="selectFeedbackType('improvement',this)"><div class="feedback-type-icon">💡</div><div class="feedback-type-label">Verbesserungsvorschlag</div><div class="feedback-type-desc">Ideen für neue Features</div></div>
+      <div class="feedback-type-card" onclick="selectFeedbackType('bug',this)"><div class="feedback-type-icon">🐛</div><div class="feedback-type-label">Bugreport</div><div class="feedback-type-desc">Fehler oder technische Probleme melden</div></div>
+      <div class="feedback-type-card" onclick="selectFeedbackType('other',this)"><div class="feedback-type-icon">📧</div><div class="feedback-type-label">Sonstiges</div><div class="feedback-type-desc">Allgemeine Nachrichten</div></div>
+    </div>
+    <div id="feedbackForm" style="display:none;max-width:640px;">
+      <div class="card"><div class="card-body">
+        <div class="form-group"><label class="form-label">Betreff <span class="req">*</span></label><input class="form-control" id="fbSubject" placeholder="Kurze Zusammenfassung..."></div>
+        <div class="form-group"><label class="form-label">Nachricht <span class="req">*</span></label><textarea class="form-control" id="fbMessage" rows="4" placeholder="Detaillierte Beschreibung..." oninput="countChars(this,'fbCount',1000)"></textarea><div class="char-counter" id="fbCount">0 / 1000</div></div>
+        <div id="bugFields" style="display:none;">
+          <div class="form-group"><label class="form-label">Seite / Bereich</label><input class="form-control" id="fbPage" placeholder="z.B. Mein Team → Buchungen"></div>
+          <div class="form-group"><label class="form-label">Schritte zur Reproduktion</label><textarea class="form-control" id="fbSteps" rows="2" placeholder="1. Klick auf... 2. Dann..."></textarea></div>
+        </div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-secondary btn-sm" onclick="document.getElementById('feedbackForm').style.display='none'">Abbrechen</button><button class="btn btn-primary btn-sm" onclick="submitFeedback()">📤 Absenden</button></div>
+      </div></div>
+    </div>
+    <div class="section-header" style="margin-top:28px;"><div class="section-title">❓ Häufige Fragen</div></div>
+    <div id="faqList">
+      ${[
+        ['Wie reiche ich meinen Wochenbericht ein?','Im Bereich "Mein Team" → "Berichte" auf "+ Bericht einreichen" klicken. Nach Admin-Freigabe startet automatisch die nächste Woche.'],
+        ['Wann wird mein Bericht freigeschaltet?','Berichte werden vom Dozenten/Admin geprüft. Nach Freigabe erscheint er im öffentlichen Blog und eure Woche wird weitergestellt.'],
+        ['Kann ich meinen Team-Namen ändern?','Ja! Unter "Mein Team" → "Team-Profil" kann der Team-Name, Slogan und die Beschreibung bearbeitet werden.'],
+        ['Wie ändere ich mein Profilfoto?','Unter "Mein Profil" (nur mit persönlichem Mitglieds-Code) das Foto hochladen oder auf das Profilbild klicken.'],
+        ['Sind meine Reflexionen öffentlich?','Nein. Reflexionen sind streng privat – nur du und der Dozent/Admin können sie sehen.'],
+        ['Wie bekomme ich meinen persönlichen Zugangscode?','Euer Admin generiert individuelle Codes (Format: MBR-XX-N) und teilt diese euch mit.'],
+        ['Wer kann den Wochenbericht einreichen?','Alle Teammitglieder können den Wochenbericht bearbeiten und Inhalte eintragen. Einreichen (d.h. zur Freigabe übergeben) darf jedoch ausschließlich der CEO des Teams. Dies stellt sicher, dass der Bericht intern abgestimmt und freigegeben wurde.'],
+        ['Bis wann muss die Reflexion eingereicht werden?','Die persönliche wöchentliche Reflexion muss bis Samstag 23:59 Uhr eingereicht werden. Erst wenn alle Teammitglieder ihre Reflexion abgegeben haben, kann der CEO den Wochenbericht einreichen. Der Wochenbericht hat eine Deadline von Sonntag 23:59 Uhr.'],
+        ['Wie funktioniert die Wahl des Mitglieds der Woche?','Jedes Teammitglied nominiert in seiner persönlichen Reflexion ein anderes Mitglied als MVP. Nach Mehrheitsprinzip wird das Mitglied mit den meisten Stimmen ausgewählt. Bei Stimmengleichheit (Patt) zählt die Stimme des CEO doppelt. Der CEO kann das Ergebnis beim Einreichen des Wochenberichts überstimmen, falls gewünscht.'],
+        ['Wann wird die Team-Stimmung sichtbar?','Die Team-Stimmung wird automatisch als Durchschnitt der Stimmungsangaben aus den individuellen Reflexionen berechnet. Sie erscheint erst nach der Freigabe des Wochenberichts durch den Admin im öffentlichen Blog, damit individuelle Angaben geschützt bleiben.'],
+      ].map(([q,a])=>`<div class="faq-item"><div class="faq-question" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">❓ ${q} <span style="font-size:14px;">▾</span></div><div class="faq-answer">${a}</div></div>`).join('')}
+    </div>
+  `;
+}
+function selectFeedbackType(type,el){
+  document.querySelectorAll('.feedback-type-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.feedbackType=type;
+  document.getElementById('feedbackForm').style.display='block';
+  document.getElementById('bugFields').style.display=type==='bug'?'block':'none';
+  document.getElementById('feedbackForm').scrollIntoView({behavior:'smooth'});
+}
+async function submitFeedback(){
+  const s=document.getElementById('fbSubject').value.trim();
+  const m=document.getElementById('fbMessage').value.trim();
+  if(!s||!m){showToast('Bitte Betreff und Nachricht ausfüllen','error');return;}
+  const payload={
+    from: state.currentUser.name,
+    team: getMyTeam()?.name||'—',
+    type: state.feedbackType||'general',
+    subject: s,
+    message: m,
+    page: document.getElementById('fbPage')?.value||'',
+    steps: document.getElementById('fbSteps')?.value||'',
+    date: new Date().toISOString(),
+    adminEmail: CONFIG.ADMIN_EMAIL,
+  };
+  FEEDBACKS.push({id:'f'+Date.now(),...payload});
+  document.getElementById('feedbackForm').style.display='none';
+  // Optimistic UI – show success immediately
+  showToast('📤 Feedback gesendet – danke!');
+  // Reset form
+  ['fbSubject','fbMessage','fbPage','fbSteps'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  // Send to Google Sheets / email if endpoint is configured
+  if(CONFIG.FEEDBACK_ENDPOINT){
+    try{
+      // no-cors: fire-and-forget (Apps Script doesn't need CORS for this)
+      fetch(CONFIG.FEEDBACK_ENDPOINT,{
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+    }catch(e){console.warn('Feedback-Endpoint nicht erreichbar:',e);}
+  } else {
+    console.info('ℹ️ CONFIG.FEEDBACK_ENDPOINT nicht gesetzt – Feedback nur lokal gespeichert.');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN PAGE
+// ════════════════════════════════════════════════════════════════════
+function renderAdminPage(){
+  const u=state.currentUser;
+  if(u.role==='team'||u.role==='member'){navigateTo('dashboard');return;}
+  const game=GAMES.find(g=>g.id===u.gameId)||GAMES[0];
+  document.getElementById('adminHeroSub').textContent=game.name+' · '+game.uni;
+  renderApprovalQueue();renderWeeksAdmin();renderReflectionsAdmin();renderAdminTeamsTable();renderAdminTxTable();renderCodesPanel();
+  // notification dots
+  const pending=BLOGS.filter(b=>b.status==='pending').length;
+  document.getElementById('approvalCount').textContent=pending;
+  document.getElementById('reflectionCount').textContent=REFLECTIONS.length;
+}
+function switchAdminTab(tabId){
+  document.querySelectorAll('#page-admin .admin-tab').forEach(t=>t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('#page-admin .admin-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('adminPanel-'+tabId)?.classList.add('active');
+}
+function renderApprovalQueue(){
+  const u=state.currentUser;
+  const gameTeams=TEAMS.filter(t=>t.gameId===(u.gameId||t.gameId));
+  const pending=BLOGS.filter(b=>b.status==='pending'&&gameTeams.some(t=>t.id===b.teamId));
+  document.getElementById('approvalCount').textContent=pending.length;
+  const el=document.getElementById('approvalQueue');
+  if(pending.length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><h3>Alle geprüft</h3><p>Keine ausstehenden Berichte.</p></div>';return;}
+  el.innerHTML=pending.map(b=>{
+    const team=TEAMS.find(t=>t.id===b.teamId);
+    return `<div class="approval-row">
+      <div class="approval-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div style="width:30px;height:30px;border-radius:8px;background:${team?.color};color:white;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${team?.logo}</div>
+        <div><strong>${b.title}</strong><div style="font-size:11px;color:var(--gray-mid);">${team?.name} · Woche ${b.week} · ${fmtDate(b.date)}</div></div>
+        <span class="blog-status status-pending" style="margin-left:auto;">⏳</span>
+        <button style="background:none;border:none;cursor:pointer;font-size:12px;margin-left:6px;">▼</button>
+      </div>
+      <div class="approval-content"><p>${b.body}</p>${b.highlight?`<p style="margin-top:6px;"><strong>⭐ Highlight:</strong> ${b.highlight}</p>`:''}</div>
+      <div class="approval-actions">
+        <button class="btn btn-success btn-sm" onclick="approveBlog('${b.id}')">✅ Freigeben</button>
+        <button class="btn btn-warning btn-sm" onclick="rejectBlog('${b.id}')">🔄 Überarbeitung</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBlog('${b.id}')">❌ Ablehnen</button>
+        <span style="margin-left:auto;font-size:11px;color:var(--gray-mid);">${b.status==='approved'?'Stimmung: '+['','😩','😟','😐','😊','🚀'][b.mood]+'('+b.mood+'/5)':'Ø Stimmung nach Freigabe sichtbar'}</span>
+      </div>
+    </div>`;}).join('');
+}
+function renderWeeksAdmin(){
+  const teams=TEAMS.filter(t=>t.gameId==='g1');
+  document.getElementById('weeksAdminTable').innerHTML=`
+    <table class="data-table" style="width:100%">
+      <thead><tr><th>Team</th><th>Aktuelle Woche</th><th>Status</th><th>Bericht Woche ${1}</th><th>Aktion</th></tr></thead>
+      <tbody>${teams.map(team=>{
+        const blog=BLOGS.find(b=>b.teamId===team.id&&b.week===team.currentWeek&&b.status==='pending');
+        return `<tr>
+          <td><div style="display:flex;align-items:center;gap:7px;"><div style="width:26px;height:26px;border-radius:6px;background:${team.color};color:white;font-size:12px;display:flex;align-items:center;justify-content:center;">${team.logo}</div><strong>${team.name}</strong></div></td>
+          <td style="text-align:center;font-weight:700;">Woche ${team.currentWeek}</td>
+          <td><span class="tag ${team.weekStatus==='approved'?'tag-green':team.weekStatus==='submitted'?'tag-orange':'tag-blue'}">${team.weekStatus==='submitted'?'⏳ Eingereicht':team.weekStatus==='approved'?'✅ Freigegeben':'📝 Offen'}</span></td>
+          <td>${blog?`<button class="btn btn-success btn-xs" onclick="approveBlogAndAdvance('${blog.id}','${team.id}')">✅ Freigeben + W${team.currentWeek+1} starten</button>`:'—'}</td>
+          <td><button class="btn btn-outline btn-xs" onclick="manualAdvanceWeek('${team.id}')">⏭️ Manuell weiter</button></td>
+        </tr>`;}).join('')}</tbody>
+    </table>`;
+}
+function renderReflectionsAdmin(){
+  const el=document.getElementById('reflectionsAdminPanel');
+  if(REFLECTIONS.length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><h3>Keine Reflexionen</h3></div>';return;}
+  const grouped={};
+  REFLECTIONS.forEach(r=>{if(!grouped[r.teamId])grouped[r.teamId]=[];grouped[r.teamId].push(r);});
+  el.innerHTML=Object.entries(grouped).map(([teamId,refs])=>{
+    const team=TEAMS.find(t=>t.id===teamId);
+    return `<div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><h3>${team?.logo} ${team?.name}</h3></div>
+      <div class="card-body">${refs.map(r=>{
+        const m=MEMBERS.find(x=>x.id===r.memberId);
+        const moodEmoji=['','😩','😟','😐','😊','🚀'][r.mood];
+        return `<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:${team?.color};color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">${m?.name?.charAt(0)}</div>
+          <strong>${m?.name}</strong><span style="color:var(--gray-mid);font-size:11px;">(${m?.role})</span>
+          <span style="margin-left:auto;font-size:12px;">${moodEmoji} ${r.mood}/5 · Woche ${r.week}</span></div>
+          ${r.experience?`<div style="font-size:12px;color:var(--gray-dark);margin-bottom:4px;"><strong>Erfahrungen:</strong> ${r.experience}</div>`:''}
+          ${r.liked?`<div style="font-size:12px;color:var(--green);margin-bottom:4px;">👍 ${r.liked}</div>`:''}
+          ${r.improved?`<div style="font-size:12px;color:var(--orange);">💡 ${r.improved}</div>`:''}
+        </div>`;}).join('')}</div>
+    </div>`;}).join('');
+}
+function renderAdminTeamsTable(){
+  const teams=TEAMS.filter(t=>t.gameId==='g1');
+  document.getElementById('adminTeamsTable').innerHTML=`<table class="data-table" style="width:100%">
+    <thead><tr><th>Team</th><th>Slogan</th><th>Mitglieder</th><th>Umsatz</th><th>Gewinn</th><th>Code</th><th>Aktionen</th></tr></thead>
+    <tbody>${teams.map(team=>{const profit=team.revenue-team.expenses;
+      return `<tr><td><div style="display:flex;gap:7px;align-items:center;"><div style="width:26px;height:26px;border-radius:6px;background:${team.color};color:white;font-size:12px;display:flex;align-items:center;justify-content:center;">${team.logo}</div><div><strong>${team.name}</strong><div style="font-size:10px;color:var(--gray-mid);">${team.biz}</div></div></div></td>
+        <td style="font-size:11px;font-style:italic;">${team.slogan||'—'}</td>
+        <td style="font-size:11px;">${MEMBERS.filter(m=>m.teamId===team.id).length} Pers.</td>
+        <td style="font-weight:700;">${fmtEur(team.revenue)}</td>
+        <td style="font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmtEur(profit)}</td>
+        <td><code style="font-size:11px;background:var(--blue-xlt);padding:1px 7px;border-radius:4px;">${team.code}</code></td>
+        <td><div style="display:flex;gap:3px;"><button class="btn btn-outline btn-xs" onclick="openMemberMgmt('${team.id}')" title="Mitglieder verwalten">👤 ${MEMBERS.filter(m=>m.teamId===team.id).length}</button><button class="btn btn-primary btn-xs" onclick="openMemberMgmt('${team.id}')" title="Mitglied hinzufügen">+ Mitglied</button><button class="btn btn-danger btn-xs" onclick="deleteTeam('${team.id}')" title="Team löschen">🗑️</button></div></td>
+      </tr>`;}).join('')}</tbody></table>`;
+}
+function renderAdminTxTable(){
+  const txs=[...TRANSACTIONS].sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('adminTxTable').innerHTML=`<div class="tx-row header"><div>Datum</div><div>Team</div><div>Beschreibung</div><div>Kategorie</div><div>Betrag</div><div>Aktionen</div></div>`+
+    txs.map(tx=>{const team=TEAMS.find(t=>t.id===tx.teamId);return `<div class="tx-row">
+      <div style="color:var(--gray-mid)">${fmtDate(tx.date)}</div>
+      <div style="display:flex;align-items:center;"><div class="tx-team-dot" style="background:${team?.color}">${team?.logo}</div>${team?.name}</div>
+      <div>${tx.desc}</div><div style="color:var(--gray-mid)">${tx.cat}</div>
+      <div class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmtEur(tx.amount)}</div>
+      <div style="display:flex;gap:3px;"><button class="btn btn-outline btn-xs" onclick="showToast('Bearbeiten – Demo','info')">✏️</button><button class="btn btn-danger btn-xs" onclick="showToast('Gelöscht – Demo','error')">🗑️</button></div>
+    </div>`;}).join('');
+}
+function renderCodesPanel(){
+  const teams=TEAMS.filter(t=>t.gameId==='g1');
+  const memberCodes=MEMBERS.filter(m=>teams.some(t=>t.id===m.teamId));
+  document.getElementById('codesPanel').innerHTML=`
+    <div class="info-box green"><span class="info-box-icon">🔑</span>Team-Codes für Login als komplettes Team, Mitglieds-Codes für individuellen Login.</div>
+    <div class="form-section-title">Team-Codes</div>
+    <table class="data-table" style="width:100%;margin-bottom:20px;">
+      <thead><tr><th>Team</th><th>Code</th><th>Status</th><th>Aktion</th></tr></thead>
+      <tbody>${teams.map(t=>`<tr>
+        <td><strong>${t.name}</strong></td>
+        <td><code style="font-size:12px;background:var(--blue-xlt);padding:2px 9px;border-radius:4px;font-weight:700;">${t.code}</code></td>
+        <td><span class="blog-status status-approved">✅ Aktiv</span></td>
+        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${t.code}')">📋</button></td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div class="form-section-title">Mitglieds-Codes</div>
+    <table class="data-table" style="width:100%">
+      <thead><tr><th>Name</th><th>Team</th><th>Rolle</th><th>Code</th><th>Aktion</th></tr></thead>
+      <tbody>${memberCodes.map(m=>{const team=TEAMS.find(t=>t.id===m.teamId);return `<tr>
+        <td><strong>${m.name}</strong></td><td>${team?.name}</td><td><span class="tag tag-blue">${m.role}</span></td>
+        <td><code style="font-size:12px;background:var(--blue-xlt);padding:2px 9px;border-radius:4px;font-weight:700;">${m.code}</code></td>
+        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${m.code}')">📋</button></td>
+      </tr>`;}).join('')}</tbody>
+    </table>`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  SUPERADMIN PAGE
+// ════════════════════════════════════════════════════════════════════
+function renderSuperPage(){
+  updateStorageStatus();
+  const totalRev=TEAMS.reduce((s,t)=>s+t.revenue,0);
+  const totalP=TEAMS.reduce((s,t)=>s+(t.revenue-t.expenses),0);
+  document.getElementById('superStats').innerHTML=`
+    <div class="stat-card purple"><div class="stat-label">Aktive Spiele</div><div class="stat-value">${GAMES.filter(g=>g.status==='active').length}</div><div class="stat-sub">${GAMES.length} gesamt</div></div>
+    <div class="stat-card"><div class="stat-label">Teams gesamt</div><div class="stat-value">${TEAMS.length}</div><div class="stat-sub">${UNIVERSITIES.length} Hochschulen</div></div>
+    <div class="stat-card green"><div class="stat-label">Plattform-Umsatz</div><div class="stat-value">${fmtEur(totalRev)}</div><div class="stat-sub">${fmtEur(totalP)} Gewinn</div></div>
+    <div class="stat-card orange"><div class="stat-label">Reflexionen</div><div class="stat-value">${REFLECTIONS.length}</div><div class="stat-sub">${BLOGS.filter(b=>b.status==='pending').length} Blogs pend.</div></div>
+    <div class="stat-card gold"><div class="stat-label">Admins</div><div class="stat-value">${ADMINS.length}</div><div class="stat-sub">aktiv</div></div>`;
+  renderLeaderboard('superLeaderboard',TEAMS);
+  if(state.superChart) state.superChart.destroy();
+  const ctx=document.getElementById('superGameChart')?.getContext('2d');
+  if(ctx) state.superChart=new Chart(ctx,{type:'bar',data:{labels:GAMES.map(g=>g.name.substring(0,18)+'…'),datasets:[{label:'Teams',data:GAMES.map(g=>g.teamCount),backgroundColor:'#2E75B6'},{label:'Blogs',data:GAMES.map(g=>BLOGS.filter(b=>TEAMS.some(t=>t.id===b.teamId&&t.gameId===g.id)).length),backgroundColor:'#375623'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}},scales:{y:{beginAtZero:true},x:{grid:{display:false}}}}});
+  // Games grid
+  document.getElementById('superGamesGrid').innerHTML=GAMES.map(game=>`<div class="game-card">
+    <div class="game-card-header"><h3>${game.name}</h3><div class="game-meta">${game.uni} · ${fmtDate(game.start)} – ${fmtDate(game.end)}</div></div>
+    <div class="game-card-body">
+      <div class="game-badges"><span class="game-badge ${game.status}">${game.status==='active'?'🟢 Aktiv':'🟡 Setup'}</span><span class="game-badge ${game.mode==='multi'?'multi':'active'}">${game.mode==='multi'?'🌐 Multi':'🏫 Intern'}</span></div>
+      <div class="game-stat-row">
+        <div class="game-stat"><div class="game-stat-val">${game.teamCount}</div><div class="game-stat-lbl">Teams</div></div>
+        <div class="game-stat"><div class="game-stat-val">${fmtEur(game.capital)}</div><div class="game-stat-lbl">Start</div></div>
+      </div>
+    </div>
+    <div class="game-card-footer"><button class="btn btn-primary btn-sm" onclick="showToast('Demo','info')">⚙️ Verwalten</button></div>
+  </div>`).join('');
+  // Admins
+  document.getElementById('adminListRows').innerHTML=ADMINS.map(a=>{const game=GAMES.find(g=>g.id===a.gameId);return `<div class="admin-list-row">
+    <div><strong>${a.name}</strong><div style="font-size:10px;color:var(--gray-mid);">${a.email}</div></div>
+    <div><span class="uni-badge">🏫 ${a.uni}</span></div><div style="font-size:11px;">${game?game.name:'—'}</div>
+    <div><span class="blog-status status-approved">✅</span></div>
+    <div style="display:flex;gap:3px;"><button class="btn btn-outline btn-xs" onclick="showToast('Code: ${a.code}','info')">🔑</button></div>
+  </div>`;}).join('');
+  // Universities
+  document.getElementById('uniList').innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">${UNIVERSITIES.map(u=>`<div class="card"><div class="card-body"><div style="font-size:28px;margin-bottom:6px;">🏫</div><div style="font-size:14px;font-weight:700;color:var(--blue-dark);margin-bottom:3px;">${u.name}</div><div style="font-size:12px;color:var(--gray-mid);margin-bottom:10px;">${u.city} · ${u.slug}</div><div style="display:flex;gap:8px;margin-bottom:10px;"><div class="game-stat" style="flex:1;"><div class="game-stat-val">${u.adminCount}</div><div class="game-stat-lbl">Admins</div></div><div class="game-stat" style="flex:1;"><div class="game-stat-val">${u.gameCount}</div><div class="game-stat-lbl">Spiele</div></div></div><button class="btn btn-primary btn-sm" onclick="openModal('modalNewAdmin')">+ Admin</button></div></div>`).join('')}</div>`;
+  // Super reflections
+  document.getElementById('superReflectionsPanel').innerHTML=REFLECTIONS.length===0?'<div class="empty-state"><div class="empty-icon">💬</div><h3>Keine Reflexionen</h3></div>':
+    REFLECTIONS.map(r=>{const m=MEMBERS.find(x=>x.id===r.memberId);const team=TEAMS.find(t=>t.id===r.teamId);
+    return `<div class="card" style="margin-bottom:10px;"><div class="card-body"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;"><div style="width:28px;height:28px;border-radius:50%;background:${team?.color};color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">${m?.name?.charAt(0)}</div><div><strong>${m?.name}</strong> <span style="color:var(--gray-mid);font-size:11px;">(${m?.role}) · ${team?.name}</span></div><span style="margin-left:auto;font-size:11px;color:var(--gray-mid);">Woche ${r.week} · ${'😩😟😐😊🚀'.charAt(r.mood-1)} ${r.mood}/5</span></div>
+      ${r.experience?`<div style="font-size:12px;color:var(--gray-dark);margin-bottom:3px;">${r.experience.substring(0,120)}…</div>`:''}
+      ${r.liked?`<div style="font-size:11px;color:var(--green);">👍 ${r.liked.substring(0,80)}</div>`:''}
+      ${r.improved?`<div style="font-size:11px;color:var(--orange);">💡 ${r.improved.substring(0,80)}</div>`:''}
+    </div></div>`;}).join('');
+}
+function switchSuperTab(tabId){
+  document.querySelectorAll('#page-superadmin .admin-tab').forEach(t=>t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('#page-superadmin .admin-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('superPanel-'+tabId)?.classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  KONZEPT PAGE
+// ════════════════════════════════════════════════════════════════════
+function renderKonzept(){
+  document.getElementById('konzeptContent').innerHTML=`
+    <div class="concept-section"><h2>🏗️ Systemarchitektur v3</h2>
+      <p>Multi-Tenant Plattform mit 3-stufigem Rollen-System, individuellem Member-Login, privatem Reflexions-System, Wochen-Progression und Logo-Upload.</p>
+      <div class="flow-row">
+        <div class="flow-box">👑 Superadmin<br><span style="font-size:10px;color:var(--gray-mid);">Plattform-weit</span></div><div class="flow-arrow">→</div>
+        <div class="flow-box">⚙️ Admin<br><span style="font-size:10px;color:var(--gray-mid);">Pro Hochschule</span></div><div class="flow-arrow">→</div>
+        <div class="flow-box">👥 Team<br><span style="font-size:10px;color:var(--gray-mid);">Team-Login</span></div><div class="flow-arrow">→</div>
+        <div class="flow-box">👤 Member<br><span style="font-size:10px;color:var(--gray-mid);">Individuell</span></div>
+      </div>
+    </div>
+    <div class="concept-section"><h2>🔒 Reflexions-System</h2>
+      <p>Jeder Teilnehmer schreibt wöchentlich eine private Reflexion (Stimmung 1-5, Erfahrungen, Was war gut, Was anders machen). Nur der Autor und Admins/Superadmin können diese lesen.</p>
+      <div class="code-block">Sichtbarkeit:<br>  - Eigene Reflexionen: nur der Autor<br>  - Admin: alle Reflexionen im eigenen Spiel<br>  - Superadmin: alle Reflexionen plattformweit<br>  - Teams / andere Member: KEIN Zugriff</div>
+    </div>
+    <div class="concept-section"><h2>📅 Wochen-Progression</h2>
+      <p>Jedes Team läuft unabhängig durch die Wochen. Ein Team schließt die Woche durch Einreichen des Wochenberichts ab. Nach Admin-Freigabe startet automatisch die nächste Woche.</p>
+      <div class="flow-row">
+        <div class="flow-box" style="background:var(--blue-xlt);">📝 Woche offen</div><div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:var(--orange-lt);color:var(--orange);">⏳ Bericht eingereicht</div><div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:var(--green-lt);color:var(--green);">✅ Admin gibt frei</div><div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:var(--blue-xlt);">📝 Nächste Woche</div>
+      </div>
+    </div>
+    <div class="concept-section"><h2>⭐ Tech-Stack-Empfehlung</h2>
+      <p><strong>Firebase + GitHub Pages</strong> – Realtime-Daten, kostenfrei, kein Backend nötig. Benutzerverwaltung via Custom Tokens (Codes), Bild-Upload via Firebase Storage, Reflexionen als private Firestore-Dokumente mit Security Rules.</p>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  REFLECTION HELPERS
+// ════════════════════════════════════════════════════════════════════
+function calcTeamAvgMood(teamId,week){
+  const refs=REFLECTIONS.filter(r=>r.teamId===teamId&&r.week===week&&r.mood);
+  if(refs.length===0)return 3;
+  return Math.round(refs.reduce((s,r)=>s+r.mood,0)/refs.length);
+}
+function calcMvpWinner(teamId,week){
+  // Count votes; CEO's vote counts double if tie
+  const refs=REFLECTIONS.filter(r=>r.teamId===teamId&&r.week===week&&r.mvpVote);
+  if(refs.length===0)return null;
+  const ceo=MEMBERS.find(m=>m.teamId===teamId&&m.role==='CEO');
+  const votes={};
+  refs.forEach(r=>{
+    const w=(ceo&&r.memberId===ceo.id)?2:1; // CEO vote double only in tie-break (tracked separately)
+    votes[r.mvpVote]=(votes[r.mvpVote]||0)+1;
+  });
+  // Find max vote count (without double-counting yet)
+  const maxVotes=Math.max(...Object.values(votes));
+  const leaders=Object.keys(votes).filter(k=>votes[k]===maxVotes);
+  let winnerId;
+  if(leaders.length===1){
+    winnerId=leaders[0];
+  } else {
+    // Tie: CEO's vote counts double → CEO's candidate wins if CEO voted
+    const ceoRef=refs.find(r=>ceo&&r.memberId===ceo.id);
+    winnerId=ceoRef?ceoRef.mvpVote:leaders[0];
+  }
+  // Check for CEO override
+  const overrideId=getMyTeam()?.mvpOverride?.[week];
+  if(overrideId) winnerId=overrideId;
+  const votesForWinner=refs.filter(r=>r.mvpVote===winnerId).length;
+  return {memberId:winnerId,votes:votesForWinner,total:refs.length,reason:`${votesForWinner}/${refs.length} Stimmen`};
+}
+function allReflectionsIn(team){
+  const members=MEMBERS.filter(m=>m.teamId===team.id);
+  const refs=REFLECTIONS.filter(r=>r.teamId===team.id&&r.week===team.currentWeek);
+  return members.every(m=>refs.find(r=>r.memberId===m.id));
+}
+function isMyCeo(){
+  const me=getMyMember();return me&&me.role==='CEO';
+}
+function updateBlogReflectionStatus(){
+  const team=getMyTeam();if(!team)return;
+  const statusEl=document.getElementById('blogReflectionStatus');
+  const overrideRow=document.getElementById('blogMvpOverrideRow');
+  const submitBtn=document.getElementById('blogSubmitBtn');
+  const hintEl=document.getElementById('blogSubmitHint');
+  if(!statusEl)return;
+  const members=MEMBERS.filter(m=>m.teamId===team.id);
+  const refs=REFLECTIONS.filter(r=>r.teamId===team.id&&r.week===team.currentWeek);
+  const allIn=members.every(m=>refs.find(r=>r.memberId===m.id));
+  const moodAvg=allIn?calcTeamAvgMood(team.id,team.currentWeek):null;
+  const moodEmoji=['','😩','😟','😐','😊','🚀'][moodAvg]||'';
+  // Build status table
+  const rows=members.map(m=>{
+    const hasRef=!!refs.find(r=>r.memberId===m.id);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--border);">
+      <span style="font-size:12px;font-weight:600;">${m.name} <span style="font-weight:400;color:var(--gray-mid);">(${m.role})</span></span>
+      <span style="font-size:12px;">${hasRef?'✅ Reflexion eingereicht':'⏳ Noch offen'}</span></div>`;
+  }).join('');
+  statusEl.innerHTML=`<div class="card" style="margin-bottom:10px;">
+    <div class="card-header"><h3>📋 Reflexionsstatus Woche ${team.currentWeek}</h3>${allIn?`<span class="tag tag-green">✅ Alle eingereicht ${moodEmoji} Ø${moodAvg}/5</span>`:`<span class="tag tag-orange">⏳ ${refs.length}/${members.length} eingereicht</span>`}</div>
+    <div style="border-radius:0 0 var(--radius) var(--radius);overflow:hidden;">${rows}</div>
+  </div>`;
+  // MVP vote display (only if all reflections in)
+  if(allIn){
+    const winner=calcMvpWinner(team.id,team.currentWeek);
+    const winnerMember=winner?MEMBERS.find(m=>m.id===winner.memberId):null;
+    const mvpBox=winner?`<div class="info-box gold" style="margin-bottom:8px;"><span class="info-box-icon">🏆</span>Voting-Ergebnis: <strong>${winnerMember?.name}</strong> (${winner.votes}/${winner.total} Stimmen)</div>`:'<div class="info-box blue" style="margin-bottom:8px;"><span class="info-box-icon">🗳️</span>Keine Stimmen abgegeben.</div>';
+    if(overrideRow){overrideRow.style.display='block';}
+    const overrideSel=document.getElementById('blogMvpOverride');
+    if(overrideSel){
+      overrideSel.innerHTML='<option value="">-- Voting-Ergebnis übernehmen ('+(winnerMember?.name||'Kein MVP')+')</option>';
+      members.forEach(m=>{const o=new Option(m.name+' ('+m.role+')',m.id);overrideSel.appendChild(o);});
+    }
+    statusEl.innerHTML+=mvpBox;
+  } else {
+    if(overrideRow) overrideRow.style.display='none';
+  }
+  // Submit button state
+  const me=getMyMember();
+  const isCeo=me&&me.role==='CEO';
+  const teamLogin=state.currentUser.role==='team';
+  if(submitBtn){
+    if(!isCeo&&!teamLogin){
+      submitBtn.disabled=true;
+      if(hintEl) hintEl.textContent='Nur der CEO kann den Bericht einreichen.';
+    } else if(!allIn){
+      submitBtn.disabled=true;
+      if(hintEl) hintEl.innerHTML='⏳ Noch nicht alle Reflexionen eingereicht (Deadline Samstag 23:59).';
+    } else {
+      submitBtn.disabled=false;
+      if(hintEl) hintEl.textContent='';
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  ACTIONS
+// ════════════════════════════════════════════════════════════════════
+function approveBlog(id){
+  const b=BLOGS.find(x=>x.id===id);if(!b)return;
+  b.status='approved';
+  const team=TEAMS.find(t=>t.id===b.teamId);
+  if(team&&team.weekStatus==='submitted'){
+    // Calculate & set team mood from reflections
+    const avgMood=calcTeamAvgMood(team.id,b.week);
+    b.mood=avgMood;
+    // Ensure MVP is set (may already be set from submitBlog)
+    const hasWeekMvp=team.mvps&&team.mvps.find(mv=>mv.week===b.week);
+    if(!hasWeekMvp){
+      const winner=calcMvpWinner(team.id,b.week);
+      if(winner){team.mvps=team.mvps||[];team.mvps.push({week:b.week,memberId:winner.memberId,reason:winner.reason||'MVP der Woche!'});}
+    }
+    team.currentWeek++;team.weekStatus='open';
+  }
+  saveData();renderApprovalQueue();renderWeeksAdmin();renderBlogPage();
+  showToast('✅ Bericht freigegeben! '+team?.name+' startet Woche '+team?.currentWeek);
+}
+function approveBlogAndAdvance(blogId,teamId){approveBlog(blogId);}
+function manualAdvanceWeek(teamId){
+  const team=TEAMS.find(t=>t.id===teamId);if(!team)return;
+  team.currentWeek++;team.weekStatus='open';
+  renderWeeksAdmin();showToast('⏭️ '+team.name+' – Woche '+team.currentWeek+' gestartet');
+}
+function quickApprove(id){approveBlog(id);}
+function rejectBlog(id){const b=BLOGS.find(x=>x.id===id);if(b){b.status='pending';renderApprovalQueue();showToast('🔄 Überarbeitung angefragt','info');}}
+function deleteBlog(id){const b=BLOGS.find(x=>x.id===id);if(b){b.status='rejected';renderApprovalQueue();showToast('❌ Abgelehnt','error');}}
+function approveAll(){BLOGS.filter(b=>b.status==='pending').forEach(b=>approveBlog(b.id));showToast('✅ Alle freigegeben!');}
+
+function submitBooking(){
+  const desc=document.getElementById('bDesc').value.trim();
+  const amt=parseFloat(document.getElementById('bAmount').value);
+  if(!desc||!amt){showToast('Pflichtfelder fehlen','error');return;}
+  const team=getMyTeam();if(!team)return;
+  const tx={id:'tx'+Date.now(),teamId:team.id,date:document.getElementById('bDate').value||new Date().toISOString().split('T')[0],
+    desc,cat:document.getElementById('bCat').value,type:document.getElementById('bType').value,amount:amt,receipt:false};
+  TRANSACTIONS.push(tx);
+  if(tx.type==='income') team.revenue+=amt; else team.expenses+=amt;
+  team.transactions++;
+  saveData();closeModal('modalBooking');showToast('💰 Buchung gespeichert!');buildTicker();
+  if(state.currentPage==='myteam') renderMyTeamPanel('transactions');
+}
+
+function submitBlog(){
+  const title=document.getElementById('blogTitle').value.trim();
+  if(!title){showToast('Bitte Titel angeben','error');return;}
+  const team=getMyTeam();if(!team)return;
+  // CEO check: only member with role CEO (or team-login) may submit
+  const me=getMyMember();
+  if(me&&me.role!=='CEO'){showToast('Nur der CEO kann den Bericht einreichen!','error');return;}
+  // Reflection completeness check
+  const teamMembers=MEMBERS.filter(m=>m.teamId===team.id);
+  const refsThisWeek=REFLECTIONS.filter(r=>r.teamId===team.id&&r.week===team.currentWeek);
+  const missing=teamMembers.filter(m=>!refsThisWeek.find(r=>r.memberId===m.id));
+  if(missing.length>0){
+    showToast('Noch nicht alle Reflexionen abgegeben: '+missing.map(m=>m.name).join(', '),'error');
+    return;
+  }
+  // Determine MVP: voting result, CEO can override
+  const voteResult=calcMvpWinner(team.id,team.currentWeek);
+  const override=document.getElementById('blogMvpOverride')?.value;
+  const mvpReason=document.getElementById('blogMvpReason')?.value.trim();
+  const finalMvpId=override||voteResult?.memberId||null;
+  if(override){team.mvpOverride=team.mvpOverride||{};team.mvpOverride[team.currentWeek]=override;}
+  if(finalMvpId){team.mvps=team.mvps||[];
+    team.mvps.push({week:team.currentWeek,memberId:finalMvpId,reason:mvpReason||voteResult?.reason||'MVP der Woche!'});}
+  // Auto mood from reflections
+  const avgMood=calcTeamAvgMood(team.id,team.currentWeek);
+  const blog={id:'b'+Date.now(),teamId:team.id,week:team.currentWeek,title,
+    body:document.getElementById('blogActivities').value||'',
+    highlight:document.getElementById('blogHighlight').value||'',
+    challenges:document.getElementById('blogChallenges').value||'',
+    nextSteps:document.getElementById('blogNextSteps').value||'',
+    mood:avgMood,
+    tags:document.getElementById('blogTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+    status:'pending',date:new Date().toISOString().split('T')[0]};
+  BLOGS.push(blog);team.weekStatus='submitted';saveData();
+  closeModal('modalBlog');showToast('📤 Bericht eingereicht – wartet auf Freigabe!');
+  if(state.currentPage==='myteam'){renderWeekSteps(team);renderMyTeamPanel(state.currentMyTeamTab);}
+}
+function saveBlogDraft(){closeModal('modalBlog');showToast('📄 Entwurf gespeichert');}
+
+function submitReflection(){
+  const m=getMyMember();if(!m){showToast('Nur für Mitglieder','error');return;}
+  const exp=document.getElementById('refExperience').value.trim();
+  const liked=document.getElementById('refLiked').value.trim();
+  const imp=document.getElementById('refImproved').value.trim();
+  if(!exp||!liked||!imp){showToast('Bitte alle Pflichtfelder ausfüllen','error');return;}
+  const team=getMyTeam();
+  const week=parseInt(document.getElementById('refWeek').value.replace('Woche ','')||1);
+  // Check if already submitted for this week
+  const existing=REFLECTIONS.find(r=>r.memberId===m.id&&r.week===week);
+  if(existing){showToast('Du hast für Woche '+week+' bereits eine Reflexion eingereicht.','info');closeModal('modalReflection');return;}
+  const mvpVote=document.getElementById('refMvpVote')?.value||null;
+  REFLECTIONS.push({id:'r'+Date.now(),memberId:m.id,teamId:m.teamId,
+    week,mood:state.selectedMood,experience:exp,liked,improved:imp,
+    role:document.getElementById('refRole').value,
+    mvpVote:mvpVote||null,
+    date:new Date().toISOString().split('T')[0]});
+  saveData();closeModal('modalReflection');showToast('💾 Reflexion gespeichert!');
+  renderReflectionPage();
+  // Update blog modal status if open
+  const blogModal=document.getElementById('modalBlog');
+  if(blogModal&&blogModal.style.display!=='none') updateBlogReflectionStatus();
+}
+
+function saveTeamProfile(){
+  const team=getMyTeam();if(!team)return;
+  team.name=document.getElementById('tpName').value.trim()||team.name;
+  team.slogan=document.getElementById('tpSlogan').value.trim();
+  team.biz=document.getElementById('tpBiz').value.trim()||team.biz;
+  team.desc=document.getElementById('tpDesc').value.trim();
+  saveData();showToast('💾 Team-Profil gespeichert!');
+  renderMyTeam();
+}
+function removeLogo(){const team=getMyTeam();if(team){team.logoDataUrl=null;renderTeamProfileForm(team);}}
+function handleLogoUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();reader.onload=ev=>{
+    const team=getMyTeam();if(!team)return;
+    team.logoDataUrl=ev.target.result;renderTeamProfileForm(team);renderMyTeam();buildTicker();
+    showToast('🖼️ Logo hochgeladen!');};reader.readAsDataURL(file);
+}
+
+function saveMemberProfile(){
+  const m=getMyMember();if(!m)return;
+  m.name=document.getElementById('mpName').value.trim()||m.name;
+  m.role=document.getElementById('mpRole').value;
+  m.title=document.getElementById('mpTitle').value.trim();
+  m.bio=document.getElementById('mpBio').value.trim();
+  saveData();showToast('💾 Profil gespeichert!');renderProfile();updateTopbar();
+}
+function removeAvatar(){const m=getMyMember();if(m){m.avatarDataUrl=null;renderProfile();}}
+function handleAvatarUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();reader.onload=ev=>{const m=getMyMember();if(!m)return;m.avatarDataUrl=ev.target.result;renderProfile();showToast('📷 Foto hochgeladen!');};
+  reader.readAsDataURL(file);
+}
+
+// Storage-Status anzeigen
+function updateStorageStatus(){
+  const el = document.getElementById('storageStatusText');
+  if(!el) return;
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    const d = JSON.parse(saved);
+    el.innerHTML = `<strong>💾 Gespeicherte Daten aktiv</strong> – ${d.TEAMS?.length||0} Teams, ${d.MEMBERS?.length||0} Mitglieder, ${d.BLOGS?.length||0} Berichte. Letzter Stand: aus deinem Browser-Speicher geladen.`;
+  } else {
+    el.innerHTML = '<strong>📋 Demo-Daten aktiv</strong> – keine eigenen Daten gespeichert. Erstelle Teams und Mitglieder um zu starten.';
+  }
+}
+
+// Pre-populate modals when opened
+const origOpenModal=openModal;
+window.openModal=function(id){
+  origOpenModal(id);
+  if(id==='modalNewGame') prepareNewGameModal();
+  if(id==='modalNewAdmin') prepareNewAdminModal();
+  if(id==='modalNewTeam'){prepareNewTeamModal();document.getElementById('ntGameInfoBox').style.display='block';}
+  if(id==='modalBlog'){
+    const team=getMyTeam();
+    const w=team?.currentWeek||1;
+    document.getElementById('blogWeek').value='Woche '+w;
+    // Reset fields
+    ['blogTitle','blogActivities','blogHighlight','blogChallenges','blogNextSteps','blogTags'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
+    // Update reflection status + MVP voting display
+    setTimeout(updateBlogReflectionStatus,50);
+  }
+  if(id==='modalReflection'){
+    const me=getMyMember();const team=getMyTeam();const w=team?.currentWeek||1;
+    if(document.getElementById('refWeek')) document.getElementById('refWeek').value='Woche '+w;
+    // reset mood buttons
+    document.querySelectorAll('.mood-btn').forEach(b=>b.classList.toggle('selected',parseInt(b.dataset.val)===3));
+    state.selectedMood=3;
+    // Populate MVP vote dropdown (all team members except self)
+    const mvpSel=document.getElementById('refMvpVote');
+    if(mvpSel&&team){
+      mvpSel.innerHTML='<option value="">-- niemanden nominieren --</option>';
+      MEMBERS.filter(m=>m.teamId===team.id&&m.id!==me?.id).forEach(m=>{
+        const o=new Option(m.name+' ('+m.role+')',m.id);mvpSel.appendChild(o);
+      });
+    }
+    // Check if already submitted this week
+    if(me){
+      const existing=REFLECTIONS.find(r=>r.memberId===me.id&&r.week===w);
+      const submitBtn=document.querySelector('#modalReflection .btn-success');
+      if(submitBtn){
+        submitBtn.disabled=!!existing;
+        submitBtn.textContent=existing?'✅ Bereits eingereicht':'💾 Reflexion speichern';
+      }
+    }
+  }
+};
+
+
+// ════════════════════════════════════════════════════════════════════
+//  MITGLIEDER-MANAGEMENT
+// ════════════════════════════════════════════════════════════════════
+function openMemberMgmt(teamId){
+  state.managingTeamId = teamId;
+  const team = TEAMS.find(t=>t.id===teamId);
+  if(!team) return;
+  document.getElementById('memberMgmtTitle').textContent = '👤 Mitglieder: '+team.name;
+  // Auto-generate next member code preview
+  const existingCount = MEMBERS.filter(m=>m.teamId===teamId).length;
+  document.getElementById('nmCode').value = makeMemberCode(team, existingCount);
+  document.getElementById('nmName').value = '';
+  document.getElementById('nmRole').value = 'CEO';
+  renderMemberMgmtList();
+  openModal('modalMemberMgmt');
+}
+function renderMemberMgmtList(){
+  const teamId = state.managingTeamId;
+  const members = MEMBERS.filter(m=>m.teamId===teamId);
+  const el = document.getElementById('memberMgmtList');
+  if(members.length===0){
+    el.innerHTML='<div class="empty-state" style="padding:20px;"><div class="empty-icon">👤</div><h3>Noch keine Mitglieder</h3></div>';
+    return;
+  }
+  el.innerHTML=`<table class="data-table" style="width:100%;margin-bottom:16px;">
+    <thead><tr><th>Name</th><th>Rolle</th><th>Code</th><th>Aktion</th></tr></thead>
+    <tbody>${members.map(m=>`<tr>
+      <td><strong>${m.name}</strong></td>
+      <td><span class="tag tag-blue">${m.role}</span></td>
+      <td><code style="font-size:11px;background:var(--blue-xlt);padding:2px 8px;border-radius:4px;font-weight:700;">${m.code}</code>
+          <button class="btn btn-xs btn-outline" onclick="copyCode('${m.code}')" style="margin-left:4px;">📋</button></td>
+      <td><button class="btn btn-danger btn-xs" onclick="deleteMemberFromTeam('${m.id}')">🗑️</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+function addMemberToTeam(){
+  const teamId = state.managingTeamId;
+  const team = TEAMS.find(t=>t.id===teamId);
+  const name = document.getElementById('nmName').value.trim();
+  if(!name){showToast('Bitte Name eingeben','error');return;}
+  const existingCount = MEMBERS.filter(m=>m.teamId===teamId).length;
+  const code = makeMemberCode(team, existingCount);
+  const memberId = nextId(MEMBERS,'mb');
+  const role = document.getElementById('nmRole').value;
+  MEMBERS.push({id:memberId, teamId, name, role, title:role, bio:'', code, avatarDataUrl:null});
+  rebuildCodes(); saveData();
+  showToast('✅ '+name+' hinzugefügt – Code: '+code);
+  document.getElementById('nmName').value='';
+  const newCount = MEMBERS.filter(m=>m.teamId===teamId).length;
+  document.getElementById('nmCode').value = makeMemberCode(team, newCount);
+  renderMemberMgmtList();
+  if(state.currentPage==='admin') renderAdminTeamsTable();
+}
+function deleteMemberFromTeam(memberId){
+  const m = MEMBERS.find(x=>x.id===memberId);
+  if(!m) return;
+  if(!confirm('Mitglied "'+m.name+'" wirklich löschen?')) return;
+  const idx = MEMBERS.indexOf(m); if(idx>=0) MEMBERS.splice(idx,1);
+  rebuildCodes(); saveData();
+  showToast('🗑️ '+m.name+' entfernt');
+  renderMemberMgmtList();
+}
+function deleteTeam(teamId){
+  const team = TEAMS.find(t=>t.id===teamId);
+  if(!team) return;
+  if(!confirm('Team "'+team.name+'" und alle zugehörigen Mitglieder löschen?')) return;
+  const idx = TEAMS.indexOf(team); if(idx>=0) TEAMS.splice(idx,1);
+  // Remove members
+  const memberIds = MEMBERS.filter(m=>m.teamId===teamId).map(m=>m.id);
+  memberIds.forEach(id=>{ const i=MEMBERS.findIndex(m=>m.id===id); if(i>=0) MEMBERS.splice(i,1); });
+  const game = GAMES.find(g=>g.id===team.gameId);
+  if(game) game.teamCount = TEAMS.filter(t=>t.gameId===game.id).length;
+  rebuildCodes(); saveData();
+  showToast('🗑️ Team "'+team.name+'" gelöscht');
+  renderAdminPage();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  CODE-EXPORT
+// ════════════════════════════════════════════════════════════════════
+function openCodeExport(){
+  const u = state.currentUser;
+  const gameTeams = TEAMS.filter(t=>t.gameId===(u.gameId||t.gameId));
+  let html = `<div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">📋</span>Alle Codes für dieses Spiel – per Klick kopieren oder als Text exportieren.</div>`;
+  html += `<div class="form-section-title">Team-Codes (für Team-Login)</div>`;
+  html += `<table class="data-table" style="width:100%;margin-bottom:18px;"><thead><tr><th>Team</th><th>Business</th><th>Code</th></tr></thead><tbody>`;
+  gameTeams.forEach(t=>{
+    html+=`<tr><td><strong>${t.name}</strong></td><td style="font-size:11px;">${t.biz}</td><td><code style="font-size:12px;font-weight:700;">${t.code}</code> <button class="btn btn-xs btn-outline" onclick="copyCode('${t.code}')">📋</button></td></tr>`;
+  });
+  html += '</tbody></table>';
+  html += `<div class="form-section-title">Mitglieds-Codes (individueller Login)</div>`;
+  html += `<table class="data-table" style="width:100%;"><thead><tr><th>Name</th><th>Team</th><th>Rolle</th><th>Code</th></tr></thead><tbody>`;
+  const gameMembers = MEMBERS.filter(m=>gameTeams.some(t=>t.id===m.teamId));
+  gameMembers.forEach(m=>{
+    const team = TEAMS.find(t=>t.id===m.teamId);
+    html+=`<tr><td><strong>${m.name}</strong></td><td>${team?.name}</td><td><span class="tag tag-blue" style="font-size:10px;">${m.role}</span></td><td><code style="font-size:12px;font-weight:700;">${m.code}</code> <button class="btn btn-xs btn-outline" onclick="copyCode('${m.code}')">📋</button></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('codeExportContent').innerHTML = html;
+  openModal('modalCodeExport');
+}
+function copyAllCodes(){
+  const u = state.currentUser;
+  const gameTeams = TEAMS.filter(t=>t.gameId===(u.gameId||t.gameId));
+  let text = '=== ZUGANGSCODES 5-Euro-Business Tracker ===\n\n';
+  text += 'TEAM-CODES (für ganzes Team):\n';
+  gameTeams.forEach(t=>{ text += `  ${t.name.padEnd(20)} ${t.code}\n`; });
+  text += '\nMITGLIEDS-CODES (individuell):\n';
+  MEMBERS.filter(m=>gameTeams.some(t=>t.id===m.teamId)).forEach(m=>{
+    const team = TEAMS.find(t=>t.id===m.teamId);
+    text += `  ${m.name.padEnd(20)} ${m.code.padEnd(14)} (${team?.name}, ${m.role})\n`;
+  });
+  navigator.clipboard?.writeText(text);
+  showToast('📋 Alle Codes kopiert!');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  MODAL-DROPDOWNS DYNAMISCH BEFÜLLEN
+// ════════════════════════════════════════════════════════════════════
+function prepareNewGameModal(){
+  const uniSel = document.getElementById('ngUni');
+  const adminSel = document.getElementById('ngAdmin');
+  if(uniSel){ uniSel.innerHTML = UNIVERSITIES.map(u=>`<option>${u.name}</option>`).join(''); }
+  if(adminSel){ adminSel.innerHTML = ADMINS.map(a=>`<option>${a.name}</option>`).join(''); }
+}
+function prepareNewAdminModal(){
+  const uniSel = document.getElementById('naUni');
+  const gameSel = document.getElementById('naGame');
+  if(uniSel){ uniSel.innerHTML = UNIVERSITIES.map(u=>`<option>${u.name}</option>`).join(''); }
+  if(gameSel){ gameSel.innerHTML = GAMES.map(g=>`<option value="${g.id}">${g.name}</option>`).join(''); }
+  genAdminCode();
+}
+function prepareNewTeamModal(){
+  document.getElementById('ntName').value='';
+  document.getElementById('ntBiz').value='';
+  document.getElementById('ntSlogan').value='';
+  document.getElementById('ntMembers').value='';
+  const u = state.currentUser;
+  const game = GAMES.find(g=>g.id===u.gameId)||GAMES[0];
+  if(game && document.getElementById('ntGameInfo')){
+    document.getElementById('ntGameInfo').textContent = game.name;
+  }
+  genTeamCode();
+}
+function createGame(){
+  const name = document.getElementById('ngName').value.trim();
+  if(!name){showToast('Bitte Spielname angeben','error');return;}
+  const uniName = document.getElementById('ngUni').value;
+  const uni = UNIVERSITIES.find(u=>u.name===uniName)||{id:'u1',name:uniName,slug:'XX'};
+  const adminName = document.getElementById('ngAdmin').value;
+  const admin = ADMINS.find(a=>a.name===adminName);
+  const gameId = nextId(GAMES,'g');
+  const newGame = {
+    id:gameId, name, uni:uni.name, uniId:uni.id,
+    admin:adminName, adminCode:admin?.code||'',
+    mode: document.getElementById('ngMode').value,
+    start: document.getElementById('ngStart').value,
+    end: document.getElementById('ngEnd').value,
+    capital: parseFloat(document.getElementById('ngCapital').value)||5,
+    teamSize: parseInt(document.getElementById('ngTeamSize').value)||4,
+    status:'active', teamCount:0, weeklyDeadline:'Sonntag 23:59', autoApprove:0, rounds:1, currentRound:1
+  };
+  GAMES.push(newGame);
+  if(admin){admin.gameId=gameId;}
+  rebuildCodes(); saveData();
+  closeModal('modalNewGame');
+  showToast('🎮 Spiel "'+name+'" angelegt!');
+  renderSuperPage();
+}
+function createAdmin(){
+  const name = document.getElementById('naName').value.trim();
+  const email = document.getElementById('naEmail').value.trim();
+  if(!name){showToast('Bitte Name angeben','error');return;}
+  const code = document.getElementById('naCode').value||makeAdminCode();
+  const uniName = document.getElementById('naUni').value;
+  const gameName = document.getElementById('naGame').value;
+  const game = GAMES.find(g=>g.name===gameName||g.id===gameName);
+  const adminId = nextId(ADMINS,'a');
+  const newAdmin = {id:adminId, name, email, uni:uniName, gameId:game?.id||'', code};
+  ADMINS.push(newAdmin);
+  rebuildCodes(); saveData();
+  closeModal('modalNewAdmin');
+  showToast('🛡️ Admin "'+name+'" ernannt – Code: '+code);
+  renderSuperPage();
+}
+function createTeam(){
+  const name = document.getElementById('ntName').value.trim();
+  if(!name){showToast('Bitte Team-Namen angeben','error');return;}
+  // Determine game: admin sees their game
+  const u = state.currentUser;
+  const gameId = u.gameId||(GAMES[0]?.id||'g1');
+  const code = document.getElementById('ntCode').value||makeUniqueTeamCode(name);
+  const COLORS = ['#2E75B6','#375623','#C55A11','#5B2C8D','#C00000','#1F6B75','#7B3F00','#2D6A4F'];
+  const EMOJIS = ['🚀','💡','🔧','🌱','⚡','🎯','💎','🔥'];
+  const idx = TEAMS.length % COLORS.length;
+  const teamId = nextId(TEAMS,'t');
+  const newTeam = {
+    id:teamId, name,
+    biz: document.getElementById('ntBiz').value.trim()||'Unternehmensidee folgt',
+    slogan: document.getElementById('ntSlogan').value.trim(),
+    color: COLORS[idx], logo: EMOJIS[idx], logoDataUrl:null,
+    gameId, code, revenue:0, expenses:0, transactions:0, weekGoal:50,
+    currentWeek:1, weekStatus:'open', mvps:[], mvpOverride:{}, desc:''
+  };
+  TEAMS.push(newTeam);
+  // Mitglieder aus dem Textfeld anlegen
+  const membersRaw = document.getElementById('ntMembers').value;
+  const roles = ['CEO','CFO','CMO','COO','CTO','Mitglied','Mitglied','Mitglied'];
+  if(membersRaw.trim()){
+    membersRaw.split(',').forEach((n,i)=>{
+      const mname = n.trim(); if(!mname) return;
+      const memberId = nextId(MEMBERS,'mb');
+      const mcode = makeMemberCode(newTeam, MEMBERS.filter(m=>m.teamId===teamId).length);
+      MEMBERS.push({id:memberId, teamId, name:mname, role:roles[i]||'Mitglied',
+        title:roles[i]||'Mitglied', bio:'', code:mcode, avatarDataUrl:null});
+    });
+  }
+  // Update game teamCount
+  const game = GAMES.find(g=>g.id===gameId);
+  if(game) game.teamCount = TEAMS.filter(t=>t.gameId===gameId).length;
+  rebuildCodes(); saveData();
+  closeModal('modalNewTeam');
+  const mCount = MEMBERS.filter(m=>m.teamId===teamId).length;
+  showToast('👥 Team "'+name+'" angelegt'+( mCount?` mit ${mCount} Mitgliedern`:'')+'! Code: '+code);
+  if(state.currentPage==='admin') renderAdminPage();
+  else if(state.currentPage==='superadmin') renderSuperPage();
+}
+function createUni(){
+  const name = document.getElementById('nuName').value.trim();
+  if(!name){showToast('Bitte Name angeben','error');return;}
+  const uniId = nextId(UNIVERSITIES,'u');
+  UNIVERSITIES.push({id:uniId, name,
+    slug: document.getElementById('nuSlug').value.trim().toUpperCase()||name.substring(0,2).toUpperCase(),
+    city: document.getElementById('nuCity').value.trim(), adminCount:0, gameCount:0});
+  saveData();
+  closeModal('modalNewUni');
+  showToast('🏫 Hochschule "'+name+'" hinzugefügt!');
+  renderSuperPage();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  CODE-GENERIERUNG
+// ════════════════════════════════════════════════════════════════════
+function makeTeamAbbr(name){
+  // "CampusClips" → "CC", "GreenWheels" → "GW", "StudyBuddy" → "SB"
+  const words = name.trim().split(/\s+/);
+  if(words.length>=2) return (words[0][0]+words[1][0]).toUpperCase();
+  return name.substring(0,2).toUpperCase();
+}
+function makeUniqueTeamCode(name){
+  const abbr = makeTeamAbbr(name);
+  const base = 'TEAM-'+abbr;
+  let n = 1;
+  while(CODES[base+String(n).padStart(3,'0')]||TEAMS.find(t=>t.code===base+String(n).padStart(3,'0'))) n++;
+  return base+String(n).padStart(3,'0');
+}
+function makeMemberCode(team, memberIdx){
+  const abbr = makeTeamAbbr(team.name);
+  const base = 'MBR-'+abbr+'-';
+  let n = memberIdx+1;
+  while(CODES[base+n]||MEMBERS.find(m=>m.code===base+n)) n++;
+  return base+n;
+}
+function makeAdminCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code;
+  do{ code='ADMIN-'+Array.from({length:4},()=>chars[Math.floor(Math.random()*chars.length)]).join(''); }
+  while(CODES[code]);
+  return code;
+}
+function nextId(arr, prefix){
+  const nums = arr.map(x=>parseInt(x.id.replace(prefix,''))||0);
+  return prefix+(nums.length?Math.max(...nums)+1:1);
+}
+function genAdminCode(){document.getElementById('naCode').value=makeAdminCode();}
+function genTeamCode(){
+  const name = document.getElementById('ntName')?.value.trim()||'';
+  document.getElementById('ntCode').value = name ? makeUniqueTeamCode(name) : 'TEAM-'+Math.random().toString(36).substring(2,6).toUpperCase();
+}
+function copyCode(c){navigator.clipboard?.writeText(c);showToast('📋 Kopiert: '+c,'info');}
+</script>
+
+<!-- MODAL: Mitglieder verwalten -->
+<div class="modal-overlay" id="modalMemberMgmt">
+ <div class="modal modal-lg">
+  <div class="modal-header">
+   <h3 id="memberMgmtTitle">&#128100; Mitglieder verwalten</h3>
+   <button class="modal-close" onclick="closeModal('modalMemberMgmt')">&#215;</button>
+  </div>
+  <div class="modal-body">
+   <div id="memberMgmtList"></div>
+   <div class="form-section-title">+ Neues Mitglied hinzuf&#252;gen</div>
+   <div class="info-box orange"><span class="info-box-icon">&#128272;</span>Der Zugangscode wird automatisch generiert und kann dann an das Mitglied weitergegeben werden.</div>
+   <div class="form-row" style="margin-top:10px;">
+    <div class="form-group"><label class="form-label">Name <span class="req">*</span></label>
+     <input type="text" class="form-control" id="nmName" placeholder="Vorname Nachname"
+       oninput="const t=TEAMS.find(x=>x.id===state.managingTeamId);if(t){const n=MEMBERS.filter(m=>m.teamId===t.id).length;document.getElementById('nmCode').value=makeMemberCode(t,n);}"></div>
+    <div class="form-group"><label class="form-label">Rolle</label>
+     <select class="form-control" id="nmRole">
+      <option>CEO</option><option>CFO</option><option>CMO</option>
+      <option>COO</option><option>CTO</option><option>Gr&#252;nder</option><option>Mitglied</option>
+     </select></div>
+    <div class="form-group"><label class="form-label">Code (auto)</label>
+     <input type="text" class="form-control" id="nmCode" readonly
+       style="font-family:'Courier New',monospace;font-weight:700;letter-spacing:1px;background:var(--blue-xlt);">
+    </div>
+   </div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalMemberMgmt')">Schlie&#223;en</button>
+   <button class="btn btn-primary" onclick="addMemberToTeam()">&#43; Mitglied hinzuf&#252;gen</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Code-Export -->
+<div class="modal-overlay" id="modalCodeExport">
+ <div class="modal modal-lg">
+  <div class="modal-header">
+   <h3>&#128272; Zugangscodes exportieren</h3>
+   <button class="modal-close" onclick="closeModal('modalCodeExport')">&#215;</button>
+  </div>
+  <div class="modal-body">
+   <div id="codeExportContent"></div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalCodeExport')">Schlie&#223;en</button>
+   <button class="btn btn-primary" onclick="copyAllCodes()">&#128203; Alle Codes kopieren</button>
+  </div>
+ </div>
+</div>
+</body>
+</html>
