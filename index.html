@@ -738,7 +738,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
    <div class="container">
     <div class="admin-hero">
      <div><h2>&#9881;&#65039; Admin-Panel</h2><p id="adminHeroSub">Verwaltung &#183; Moderation &#183; &#220;bersicht</p></div>
-     <div style="display:flex;align-items:center;gap:10px;"><button id="adminBackToSuper" class="btn btn-outline btn-sm" style="display:none;color:white;border-color:rgba(255,255,255,.5);" onclick="backToSuperAdmin()">&#8592; Superadmin</button><div style="font-size:40px;opacity:.5;">&#127925;</div></div>
+     <div style="display:flex;align-items:center;gap:10px;"><button id="adminBackToSuper" class="btn btn-outline btn-sm" style="display:none;color:white;border-color:rgba(255,255,255,.5);" onclick="backToSuperAdmin()">&#8592; Superadmin</button><button id="adminBackFromImpersonate" class="btn btn-outline btn-sm" style="display:none;color:#FF9FF3;border-color:rgba(255,159,243,.5);margin-left:6px;" onclick="returnToSuperAdminFromImpersonation()">&#128081; &#8592; Superadmin (Impersonation)</button><div style="font-size:40px;opacity:.5;">&#127925;</div></div>
     </div>
     <div class="admin-tab-bar">
      <button class="admin-tab active" onclick="switchAdminTab('approval')">&#128203; Blog-Freigabe <span class="notif-dot" id="approvalCount">0</span></button>
@@ -1595,7 +1595,7 @@ function toggleLang(){
   if(u&&u.role==='member'){const m=getMyMember();if(m){m.lang=state.lang;saveData();}}
   else if(u){u.lang=state.lang;saveData();}
   const langBtn=document.getElementById('langToggleBtn');
-  if(langBtn) langBtn.textContent=state.lang==='en'?'\U0001F1EC\U0001F1E7':'\U0001F1E9\U0001F1EA';
+  if(langBtn) langBtn.textContent=state.lang==='en'?'EN':'DE';
   navigateTo(state.currentPage);
   if(state.lang==='en') setTimeout(applyLang,150);
   logEvent('lang_toggle',{lang:state.lang});
@@ -2414,7 +2414,7 @@ function renderFeedback(){
       <h2>💬 Feedback, Infos &amp; Bugreports</h2>
       <p>Verbesserungsvorschläge, technische Probleme oder allgemeine Fragen – alles hier.</p>
     </div>
-    <div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">📬</span>Dein Feedback wird direkt an den Dozenten (<strong>${(()=>{const _g=state.currentUser&&state.currentUser.gameId?GAMES.find(x=>x.id===state.currentUser.gameId):null;return _g&&_g.adminEmail?_g.adminEmail:'christian.neusser@me.com';})()}</strong>) und in ein Google Sheet weitergeleitet.</div>
+    <div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">📬</span>Dein Feedback wird direkt an den Dozenten (<a href="mailto:${(()=>{const _g=state.currentUser&&state.currentUser.gameId?GAMES.find(x=>x.id===state.currentUser.gameId):null;return _g&&_g.adminEmail?_g.adminEmail:'christian.neusser@me.com';})()}" style="color:var(--blue-mid);font-weight:700;">${(()=>{const _g=state.currentUser&&state.currentUser.gameId?GAMES.find(x=>x.id===state.currentUser.gameId):null;return _g&&_g.adminEmail?_g.adminEmail:'christian.neusser@me.com';})()}</a>) und in ein Google Sheet weitergeleitet.</div>
     <div class="feedback-type-grid">
       <div class="feedback-type-card" onclick="selectFeedbackType('info',this)"><div class="feedback-type-icon">ℹ️</div><div class="feedback-type-label">Info anfragen</div><div class="feedback-type-desc">Fragen zur Plattform oder zum Spiel</div></div>
       <div class="feedback-type-card" onclick="selectFeedbackType('improvement',this)"><div class="feedback-type-icon">💡</div><div class="feedback-type-label">Verbesserungsvorschlag</div><div class="feedback-type-desc">Ideen für neue Features</div></div>
@@ -2514,6 +2514,9 @@ function renderAdminPage(){
   // Back-Button für Superadmin anzeigen
   const backBtn = document.getElementById('adminBackToSuper');
   if(backBtn) backBtn.style.display = (u.role==='superadmin' && state.managingGameId) ? 'inline-flex' : 'none';
+  // Show "Zurück zu Super" button also when impersonating (prevUser set)
+  const backImpBtn=document.getElementById('adminBackFromImpersonate');
+  if(backImpBtn) backImpBtn.style.display = state.prevUser ? 'inline-flex' : 'none';
   if(game) document.getElementById('adminHeroSub').textContent=game.name+' · '+(game.uni||'');
   renderApprovalQueue();renderWeeksAdmin();renderReflectionsAdmin();renderAdminTeamsTable();renderAdminTxTable();renderCodesPanel();
   // notification dots
@@ -2630,7 +2633,7 @@ function renderCodesPanel(){
         <td><strong>${t.name}</strong></td>
         <td><code style="font-size:12px;background:var(--blue-xlt);padding:2px 9px;border-radius:4px;font-weight:700;">${t.code}</code></td>
         <td><span class="blog-status status-approved">✅ Aktiv</span></td>
-        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${t.code}')">📋</button></td>
+        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${t.code}')" title="Kopieren">📋 Kopieren</button></td>
       </tr>`).join('')}</tbody>
     </table>
     <div class="form-section-title">Mitglieds-Codes</div>
@@ -2639,7 +2642,7 @@ function renderCodesPanel(){
       <tbody>${memberCodes.map(m=>{const team=TEAMS.find(t=>t.id===m.teamId);return `<tr>
         <td><strong>${m.name}</strong></td><td>${team?.name}</td><td><span class="tag tag-blue">${m.role}</span></td>
         <td><code style="font-size:12px;background:var(--blue-xlt);padding:2px 9px;border-radius:4px;font-weight:700;">${m.code}</code></td>
-        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${m.code}')">📋</button></td>
+        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${m.code}')" title="Kopieren">📋 Kopieren</button></td>
       </tr>`;}).join('')}</tbody>
     </table>`;
 }
@@ -2679,7 +2682,7 @@ function renderSuperPage(){
     <div><strong>${a.name}</strong><div style="font-size:10px;color:var(--gray-mid);">${a.email}</div></div>
     <div><span class="uni-badge">🏫 ${a.uni}</span></div><div style="font-size:11px;">${game?game.name:'—'}</div>
     <div><span class="blog-status status-approved">✅</span></div>
-    <div style="display:flex;gap:3px;"><button class="btn btn-outline btn-xs" onclick="showToast('Code: ${a.code}','info')">🔑</button></div>
+    <div style="display:flex;gap:3px;"><code style="font-size:10px;background:var(--blue-xlt);padding:2px 6px;border-radius:4px;font-weight:700;">${a.code}</code><button class="btn btn-outline btn-xs" onclick="copyCode('${a.code}')" title="Code kopieren">📋</button><button class="btn btn-secondary btn-xs" onclick="impersonateAdmin('${a.code}')" title="Als dieser Admin einloggen">&#128101; Login</button></div>
   </div>`;}).join('');
   // Universities
   document.getElementById('uniList').innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">${UNIVERSITIES.map(u=>`<div class="card"><div class="card-body"><div style="font-size:28px;margin-bottom:6px;">🏫</div><div style="font-size:14px;font-weight:700;color:var(--blue-dark);margin-bottom:3px;">${u.name}</div><div style="font-size:12px;color:var(--gray-mid);margin-bottom:10px;">${u.city} · ${u.slug}</div><div style="display:flex;gap:8px;margin-bottom:10px;"><div class="game-stat" style="flex:1;"><div class="game-stat-val">${u.adminCount}</div><div class="game-stat-lbl">Admins</div></div><div class="game-stat" style="flex:1;"><div class="game-stat-val">${u.gameCount}</div><div class="game-stat-lbl">Spiele</div></div></div><button class="btn btn-primary btn-sm" onclick="openModal('modalNewAdmin')">+ Admin</button></div></div>`).join('')}</div>`;
@@ -2704,8 +2707,9 @@ function switchSuperTab(tabId){
 // ════════════════════════════════════════════════════════════════════
 function renderKonzept(){
   document.getElementById('konzeptContent').innerHTML=`
-    <div class="concept-section"><h2>🏗️ Systemarchitektur v3</h2>
-      <p>Multi-Tenant Plattform mit 3-stufigem Rollen-System, individuellem Member-Login, privatem Reflexions-System, Wochen-Progression und Logo-Upload.</p>
+    <div class="concept-section">
+      <h2>🏗️ Systemarchitektur</h2>
+      <p>Multi-Tenant Plattform mit 4-stufigem Rollen-System, individuellem Member-Login, privatem Reflexions-System, Wochen-Progression und Forschungs-Tracking.</p>
       <div class="flow-row">
         <div class="flow-box">👑 Superadmin<br><span style="font-size:10px;color:var(--gray-mid);">Plattform-weit</span></div><div class="flow-arrow">→</div>
         <div class="flow-box">⚙️ Admin<br><span style="font-size:10px;color:var(--gray-mid);">Pro Hochschule</span></div><div class="flow-arrow">→</div>
@@ -2713,27 +2717,101 @@ function renderKonzept(){
         <div class="flow-box">👤 Member<br><span style="font-size:10px;color:var(--gray-mid);">Individuell</span></div>
       </div>
     </div>
-    <div class="concept-section"><h2>🔒 Reflexions-System</h2>
-      <p>Jeder Teilnehmer schreibt wöchentlich eine private Reflexion (Stimmung 1-5, Erfahrungen, Was war gut, Was anders machen). Nur der Autor und Admins/Superadmin können diese lesen.</p>
-      <div class="code-block">Sichtbarkeit:<br>  - Eigene Reflexionen: nur der Autor<br>  - Admin: alle Reflexionen im eigenen Spiel<br>  - Superadmin: alle Reflexionen plattformweit<br>  - Teams / andere Member: KEIN Zugriff</div>
-    </div>
-    <div class="concept-section"><h2>📅 Wochen-Progression</h2>
-      <p>Jedes Team läuft unabhängig durch die Wochen. Ein Team schließt die Woche durch Einreichen des Wochenberichts ab. Nach Admin-Freigabe startet automatisch die nächste Woche.</p>
-      <div class="flow-row">
-        <div class="flow-box" style="background:var(--blue-xlt);">📝 Woche offen</div><div class="flow-arrow">→</div>
-        <div class="flow-box" style="background:var(--orange-lt);color:var(--orange);">⏳ Bericht eingereicht</div><div class="flow-arrow">→</div>
-        <div class="flow-box" style="background:var(--green-lt);color:var(--green);">✅ Admin gibt frei</div><div class="flow-arrow">→</div>
-        <div class="flow-box" style="background:var(--blue-xlt);">📝 Nächste Woche</div>
+
+    <div class="concept-section">
+      <h2>📦 Version 1.0 — Feature-Set</h2>
+      <p>Version 1.0 ist der erste vollständige, produktionsreife Release der 5-Euro-Business Plattform für den Einsatz in Lehrveranstaltungen.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+        ${[
+          ['🔐 Auth & Rollen','4-stufiges Code-System (Superadmin / Admin / Team / Member), SHA-256 Passwörter, First-Login Setup, Passwort ändern'],
+          ['👥 Team-Management','Rollen (CEO/CFO/CMO/COO/CTO) einmalig pro Team, Team-Profil, Logo-Upload, Farben, Slogan'],
+          ['💳 Buchungen','Einnahmen & Ausgaben, CFO-only Buchungserfassung, Kategorie-System, Saldo-Berechnung'],
+          ['📖 Blog & Berichte','Wöchentliche Berichte, Admin-Freigabe-Workflow, Stimmungsbild, MVP-Wahl'],
+          ['🔒 Reflexionen','Private wöchentliche Reflexionen, nur für Autor und Admin sichtbar, Stimmung 1–5'],
+          ['📊 Dashboard & Ranking','Live-Ranking, Umsatzentwicklung (Chart), ROI-Berechnung, Ticker'],
+          ['🌐 i18n DE/EN','DOM-Walker Übersetzungssystem, per User speicherbar, Toggle in Topbar'],
+          ['📄 FAQ-Dokumente','Admin lädt PDF hoch (max. 5 MB), Anzeige im Inline-Viewer auf Feedback-Seite'],
+          ['📢 Pinnwand','Ankündigungen von Admin an alle Teams oder einzelne Teams, Anpinnen möglich'],
+          ['✉️ Messaging','Hierarchischer E-Mail-Versand (Admin→Teams/Mitglieder) via Google Apps Script'],
+          ['📡 Session-Tracking','Alle Klicks & Aktionen → Google Sheet "Tracking" (Forschungsprojekt)'],
+          ['💾 Backup','Manueller JSON-Download + automatisches 24h-Backup → Google Sheet "Backups"'],
+          ['🔔 Benachrichtigungen','E-Mail bei Bericht-Freigabe, Wochen-Fortschritt, Reflexions-Erinnerung'],
+          ['👑 Superadmin','Plattform-Übersicht, Spiel-Verwaltung, Admin-Impersonation, Eigenes Profil'],
+        ].map(([t,d])=>`<div style="background:var(--bg-light);padding:10px 14px;border-radius:var(--radius);border-left:3px solid var(--blue-mid);">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${t}</div>
+          <div style="font-size:12px;color:var(--gray-dark);">${d}</div>
+        </div>`).join('')}
       </div>
     </div>
-    <div class="concept-section"><h2>⭐ Tech-Stack-Empfehlung</h2>
-      <p><strong>Firebase + GitHub Pages</strong> – Realtime-Daten, kostenfrei, kein Backend nötig. Benutzerverwaltung via Custom Tokens (Codes), Bild-Upload via Firebase Storage, Reflexionen als private Firestore-Dokumente mit Security Rules.</p>
-    </div>`;
-}
 
-// ════════════════════════════════════════════════════════════════════
-//  REFLECTION HELPERS
-// ════════════════════════════════════════════════════════════════════
+    <div class="concept-section">
+      <h2>🔒 Reflexions-System</h2>
+      <p>Jeder Teilnehmer schreibt wöchentlich eine private Reflexion (Stimmung 1–5, Erfahrungen, Was war gut, Was anders machen). Nur der Autor und Admins/Superadmin können diese lesen.</p>
+      <pre style="background:#1e1e2e;color:#cdd6f4;padding:14px;border-radius:8px;font-size:12px;line-height:1.6;">Sichtbarkeit:
+- Eigene Reflexionen: nur der Autor
+- Admin: alle Reflexionen im eigenen Spiel
+- Superadmin: alle Reflexionen plattformweit
+- Teams / andere Member: KEIN Zugriff</pre>
+    </div>
+
+    <div class="concept-section">
+      <h2>📅 Wochen-Progression</h2>
+      <p>Jedes Team läuft unabhängig durch die Wochen. Ein Team schließt die Woche durch Einreichen des Wochenberichts ab. Nach Admin-Freigabe startet automatisch die nächste Woche.</p>
+      <div class="flow-row">
+        <div class="flow-box" style="background:var(--bg-light);">📂 Woche offen</div><div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:#FFF3CD;border-color:#FFC107;">⏳ Bericht eingereicht</div><div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:#D4EDDA;border-color:#28A745;">✅ Admin gibt frei</div><div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:var(--bg-light);">📂 Nächste Woche</div>
+      </div>
+    </div>
+
+    <div class="concept-section">
+      <h2>📜 Change-Historie</h2>
+      <div style="font-size:13px;">
+        ${[
+          ['v0.1','Initiales Prototyp: Grundstruktur, Teams, Buchungen (localStorage)'],
+          ['v0.2','Ranking-Dashboard, Umsatz-Chart, Blog-System'],
+          ['v0.3','Multi-Game-Support, Hochschulen, Admin-Konsole'],
+          ['v0.4','Superadmin-Panel, GitHub Pages Deployment, Demo-Daten'],
+          ['v0.5','Self-Registration, Ticker, Team-Profil, Logo-Upload'],
+          ['v0.6','Bug-Fixes: Syntax-Fehler, Feedback-Layout, Superadmin Verwalten'],
+          ['v0.7','Superadmin: Profil bearbeiten, zusätzliche Superadmins anlegen'],
+          ['v0.8','Chart: echte Wochendaten statt Zufallszahlen, Wochen-Rollback'],
+          ['v0.9','Passwort-System (SHA-256), E-Mail-Benachrichtigungen, CEO-Tab, FAQ-PDFs, DE/EN i18n'],
+          ['v0.10','Rollen-Einzigartigkeit (CEO/CFO etc.), Inline-Editierung, CFO-only Buchungen'],
+          ['v0.11','Eingebetteter PDF-Viewer, Session-Tracking → Google Sheet, Backup-System, Konzept-Seite'],
+          ['v0.12','Sprach-Toggle in Topbar, Admin PDF-Upload, Dozenten-E-Mail pro Spiel, Pinnwand, Messaging'],
+          ['v0.13','Bug-Fixes: SUPER-NEUSS Persistenz, Sprach-Button sichtbar, Rollen-Anzeige beim Login'],
+          ['v1.0 🎯','Vollständiger Release: alle Features aus v0.x integriert und stabilisiert'],
+        ].map(([v,d])=>`<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg-mid);">
+          <div><span style="background:var(--blue-mid);color:white;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;">${v}</span></div>
+          <div style="color:var(--gray-dark);padding-top:2px;">${d}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="concept-section">
+      <h2>🚀 Roadmap v2.0</h2>
+      <p>Geplante Features für die nächste Hauptversion (Firebase-Backend erforderlich für Echtzeit-Features):</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+        ${[
+          ['🔥 Echtzeit-Chat','Team-Chat-Fenster mit Firebase Realtime Database, Nachrichtenverlauf, Lesebestätigung'],
+          ['📱 Mobile App','Progressive Web App (PWA), Push-Notifications, Offline-Fähigkeit'],
+          ['🤖 KI-Assistent','ChatGPT-Integration als Unternehmensberater für Teams, Reflexions-Analyse'],
+          ['📈 Advanced Analytics','Heatmaps, Verweildauer-Analyse, Engagement-Scores, Export als PDF-Report'],
+          ['🎮 Gamification','Achievements, Badges, Level-System, Team-Challenges zwischen Hochschulen'],
+          ['📅 Kalender-Integration','Deadlines in Google Calendar, iCal-Export, automatische Erinnerungen'],
+          ['🔗 LMS-Integration','ILIAS / Moodle / Canvas SSO, automatische Notenübergabe'],
+          ['🏦 Simuliertes Banking','Virtuelle Bank-API, Kredit-Simulation, Investitions-Tracking'],
+        ].map(([t,d])=>`<div style="background:var(--bg-light);padding:10px 14px;border-radius:var(--radius);border-left:3px solid #FF9FF3;opacity:.9;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${t}</div>
+          <div style="font-size:12px;color:var(--gray-dark);">${d}</div>
+        </div>`).join('')}
+      </div>
+      <div class="info-box blue" style="margin-top:16px;"><span class="info-box-icon">💡</span>v2.0 erfordert ein serverbasiertes Backend (Firebase/Supabase) für Echtzeit-Features. Die aktuelle v1.x-Architektur (localStorage + GitHub Pages) bleibt parallel verfügbar als Offline-Variante.</div>
+    </div>
+  `;
+}
 function calcTeamAvgMood(teamId,week){
   const refs=REFLECTIONS.filter(r=>r.teamId===teamId&&r.week===week&&r.mood);
   if(refs.length===0)return 3;
@@ -3400,7 +3478,19 @@ function genTeamCode(){
   const name = document.getElementById('ntName')?.value.trim()||'';
   document.getElementById('ntCode').value = name ? makeUniqueTeamCode(name) : 'TEAM-'+Math.random().toString(36).substring(2,6).toUpperCase();
 }
-function copyCode(c){navigator.clipboard?.writeText(c);showToast('📋 Kopiert: '+c,'info');}
+function copyCode(c){
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(c).then(()=>showToast('Kopiert: '+c,'success')).catch(()=>copyCodeFallback(c));
+  } else { copyCodeFallback(c); }
+}
+function copyCodeFallback(c){
+  const el=document.createElement('textarea');
+  el.value=c; el.style.position='fixed'; el.style.opacity='0';
+  document.body.appendChild(el); el.select();
+  try{document.execCommand('copy');showToast('Kopiert: '+c,'success');}
+  catch(e){showToast('Code: '+c,'info');}
+  document.body.removeChild(el);
+}
 
 // ════════════════════════════════════════════════════════════════════
 //  SUPERADMIN: Spiel verwalten, Profil, Ernennung
@@ -3408,6 +3498,26 @@ function copyCode(c){navigator.clipboard?.writeText(c);showToast('📋 Kopiert: 
 function manageGameAsSuperAdmin(gameId){
   state.managingGameId = gameId;
   navigateTo('admin');
+}
+function impersonateAdmin(adminCode){
+  const entry=CODES[adminCode];
+  if(!entry||entry.role!=='admin'){showToast('Admin-Code nicht gefunden','error');return;}
+  // Save superadmin context for return
+  state.prevUser=state.currentUser;
+  state.currentUser={...entry, code:adminCode};
+  state.managingGameId=null;
+  buildNavigation();updateTopbar();
+  navigateTo('admin');
+  showToast('Angemeldet als '+entry.name+' (Admin) — "Zurueck zu Super" zum Wechseln','info');
+}
+function returnToSuperAdminFromImpersonation(){
+  if(state.prevUser){
+    state.currentUser=state.prevUser;
+    state.prevUser=null;
+    buildNavigation();updateTopbar();
+    navigateTo('superadmin');
+    showToast('Zurueck als Superadmin','success');
+  }
 }
 function backToSuperAdmin(){
   state.managingGameId = null;
