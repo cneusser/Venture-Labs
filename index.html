@@ -2001,8 +2001,8 @@ function renderDashboard(){
   const teams=getVisibleTeams();
   if(teams.length===0){renderEmptyDashboard();return;}
   const allTx=TRANSACTIONS.filter(tx=>teams.some(t=>t.id===tx.teamId));
-  const totalRev=allTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const totalExp=allTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const totalRev=allTx.filter(t=>t.type==='income'&&t.cat!=='Kapital').reduce((s,t)=>s+t.amount,0);
+  const totalExp=allTx.filter(t=>t.type==='expense'&&t.cat!=='Kapital').reduce((s,t)=>s+t.amount,0);
   document.getElementById('dashStats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Gesamtumsatz</div><div class="stat-value">${fmtEur(totalRev)}</div><div class="stat-sub">${teams.length} Teams</div></div>
     <div class="stat-card green"><div class="stat-label">Gewinn gesamt</div><div class="stat-value" style="color:${totalRev-totalExp>=0?'var(--green)':'var(--red)'}">${fmtEur(totalRev-totalExp)}</div><div class="stat-sub">nach Kosten</div></div>
