@@ -1111,7 +1111,7 @@ function rebuildCodes(){
   CODES = {};
   // Read persisted Superadmin profile from localStorage (set by saveSuperProfile)
   const _sp=(()=>{try{return JSON.parse(localStorage.getItem('5euro_superprofile')||'null');}catch(e){return null;}})();
-  CODES['SUPER-NEUSS'] = {role:'superadmin', name:(_sp&&_sp.name)||'Prof. Neusser', email:(_sp&&_sp.email)||'christian.neusser@me.com', label:'Superadmin'};
+  CODES['SUPER-NEUSS'] = {role:'superadmin', name:(_sp&&_sp.name)||'Dr. Christian Neusser', email:(_sp&&_sp.email)||'christian.neusser@me.com', label:'Superadmin'};
   SUPERADMINS.forEach(sa => {
     if(sa.code) CODES[sa.code] = {role:'superadmin', superAdminId:sa.id, name:sa.name, email:sa.email||'', label:'Superadmin'};
   });
@@ -1155,6 +1155,14 @@ function loadData(){
     replace(SUPERADMINS,d.SUPERADMINS||[]);
     replace(FAQ_DOCS,d.FAQ_DOCS||[]);
     replace(ANNOUNCEMENTS,d.ANNOUNCEMENTS||[]);
+    // Migrate single-PDF fields to faqPdfs array
+    GAMES.forEach(g=>{
+      if(!g.faqPdfs) g.faqPdfs=[];
+      if(g.faqPdf&&g.faqPdfName&&!g.faqPdfs.some(p=>p.name===g.faqPdfName)){
+        g.faqPdfs.push({id:'pdf-migrated',name:g.faqPdfName,data:g.faqPdf,uploadedAt:new Date().toISOString()});
+        delete g.faqPdf; delete g.faqPdfName;
+      }
+    });
     rebuildCodes();
     return true;
   }catch(e){console.warn('loadData error',e);return false;}
@@ -1538,6 +1546,7 @@ function buildNavigation(){
     pages.push({id:'blog',    label:'📖 Blog'});
     pages.push({id:'teams',   label:'👥 Teams'});
     pages.push({id:'feedback',label:'💬 Feedback'});
+    pages.push({id:'konzept',  label:'📐 Konzept'});
   } else if(u.role==='member'){
     pages.push({id:'dashboard',  label:'🏆 Ranking'});
     pages.push({id:'myteam',     label:'👥 Mein Team'});
@@ -1545,6 +1554,7 @@ function buildNavigation(){
     pages.push({id:'reflection', label:'🔒 Reflexion'});
     pages.push({id:'blog',       label:'📖 Blog'});
     pages.push({id:'feedback',   label:'💬 Feedback'});
+    pages.push({id:'konzept',    label:'📐 Konzept'});
   } else if(u.role==='admin'){
     pages.push({id:'dashboard',label:'🏆 Ranking'});
     pages.push({id:'teams',    label:'👥 Teams'});
@@ -1552,6 +1562,7 @@ function buildNavigation(){
     pages.push({id:'blog',     label:'📖 Blog'});
     pages.push({id:'admin',    label:'⚙️ Admin',cls:'admin-nav'});
     pages.push({id:'feedback', label:'💬 Feedback'});
+    pages.push({id:'konzept',  label:'📐 Konzept'});
   } else {
     pages.push({id:'dashboard',  label:'🏆 Ranking'});
     pages.push({id:'teams',      label:'👥 Teams'});
@@ -1653,46 +1664,103 @@ function renderDokumente(){
   const game=GAMES.find(g=>g.id===effectiveGameId);
   const el=document.getElementById('dokumenteContent');
   if(!el||!game) return;
-  const hasPdf=!!(game.faqPdf);
-  el.innerHTML='<div class="section-header"><div class="section-title admin-title">Spielregeln / FAQ</div></div>'
+  if(!game.faqPdfs) game.faqPdfs=[];
+  const pdfs=game.faqPdfs;
+  el.innerHTML='<div class="section-header"><div class="section-title admin-title">Spielregeln / FAQ-Dokumente</div></div>'
     +'<div class="card"><div class="card-body">'
-    +'<p style="font-size:13px;color:var(--gray-mid);margin-bottom:12px;">Lade ein PDF hoch (max. 5 MB), das auf der Feedback-Seite angezeigt wird.</p>'
-    +(hasPdf?'<div class="info-box green" style="margin-bottom:12px;"><span class="info-box-icon">OK</span>Aktuell: <strong>'+(game.faqPdfName||'PDF')+'</strong><button class="btn btn-danger btn-sm" style="margin-left:12px;" onclick="removeGamePdf(\''+game.id+'\')">Entfernen</button><button class="btn btn-secondary btn-sm" style="margin-left:6px;" onclick="openGamePdfAdmin()">Vorschau</button></div>':'<div class="info-box blue" style="margin-bottom:12px;"><span class="info-box-icon">i</span>Noch kein Dokument hochgeladen.</div>')
-    +'<div class="form-group"><label class="form-label">PDF hochladen</label>'
-    +'<input type="file" class="form-control" id="gamePdfFile" accept=".pdf" onchange="uploadGamePdf(\''+game.id+'\',this)"></div></div></div>'
+    +'<p style="font-size:13px;color:var(--gray-mid);margin-bottom:12px;">Lade beliebig viele PDFs hoch (je max. 5 MB).</p>'
+    +(pdfs.length===0
+      ?'<div class="info-box blue" style="margin-bottom:12px;"><span class="info-box-icon">i</span>Noch keine Dokumente.</div>'
+      :'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">'
+        +pdfs.map(function(p){return '<div style="display:flex;align-items:center;gap:10px;background:var(--bg-light);padding:8px 12px;border-radius:var(--radius);">'
+          +'<span style="font-size:20px;">&#128196;</span>'
+          +'<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.name+'</div>'
+          +(p.uploadedAt?'<div style="font-size:11px;color:var(--gray-mid);">'+new Date(p.uploadedAt).toLocaleDateString('de-DE')+'</div>':'')
+          +'</div>'
+          +'<button class="btn btn-outline btn-xs" onclick="openPdfById(\''+game.id+'\',\''+p.id+'\')">&#128065;</button>'
+          +'<button class="btn btn-danger btn-xs" onclick="removeGamePdfById(\''+game.id+'\',\''+p.id+'\')">&#10005;</button>'
+          +'</div>';}).join('')+'</div>')
+    +'<div class="form-group"><label class="form-label">PDF hinzufuegen (Mehrfachauswahl moeglich)</label>'
+    +'<input type="file" class="form-control" id="gamePdfFile" accept=".pdf" multiple onchange="uploadGamePdf(\''+game.id+'\',this)"></div>'
+    +'</div></div>'
     +'<div class="section-header" style="margin-top:24px;"><div class="section-title admin-title">Spiel-Einstellungen</div></div>'
     +'<div class="card"><div class="card-body"><div class="form-row"><div class="form-group"><label class="form-label">Dozenten-E-Mail</label>'
     +'<input class="form-control" id="gameAdminEmail" value="'+(game.adminEmail||'')+'" placeholder="dozent@hochschule.de"></div>'
     +'<div class="form-group"><label class="form-label">noreply-Domain</label>'
-    +'<input class="form-control" id="gameNoreply" value="'+(game.noreplyDomain||'5euro-business.de')+'"></div></div>'
-    +'<button class="btn btn-primary btn-sm" onclick="saveGameSettings(\''+game.id+'\')">Speichern</button></div></div>';
+    +'<input class="form-control" id="gameNoreply" value="'+(game.noreplyDomain||'5euro-business.de')+'"></div>'
+    +'</div><button class="btn btn-primary btn-sm" onclick="saveGameSettings(\''+game.id+'\')">Speichern</button></div></div>';
 }
 
 function uploadGamePdf(gameId,input){
-  const file=input.files[0];
-  if(!file) return;
-  if(file.size>5*1024*1024){showToast('PDF zu gross','error');return;}
-  const reader=new FileReader();
-  reader.onload=function(e){
-    const game=GAMES.find(g=>g.id===gameId);
-    if(!game) return;
-    game.faqPdf=e.target.result.split(',')[1];
-    game.faqPdfName=file.name;
-    saveData();
-    showToast('PDF gespeichert: '+file.name,'success');
-    logEvent('pdf_upload',{gameId,name:file.name,size:file.size});
-    renderDokumente();
-  };
-  reader.readAsDataURL(file);
+  const files=Array.from(input.files);
+  if(!files.length) return;
+  const game=GAMES.find(g=>g.id===gameId);
+  if(!game) return;
+  if(!game.faqPdfs) game.faqPdfs=[];
+  let done=0;
+  files.forEach(function(file){
+    if(file.size>5*1024*1024){showToast(file.name+' zu gross (max. 5 MB)','error');return;}
+    const reader=new FileReader();
+    reader.onload=function(e){
+      game.faqPdfs.push({id:'pdf-'+Date.now()+'-'+Math.random().toString(36).substr(2,4),
+        name:file.name,data:e.target.result.split(',')[1],uploadedAt:new Date().toISOString()});
+      done++;
+      if(done===files.length){saveData();showToast(done+' PDF(s) gespeichert','success');logEvent('pdf_upload',{gameId,count:done});renderDokumente();}
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function removeGamePdf(gameId){
   const game=GAMES.find(g=>g.id===gameId);
   if(!game) return;
   delete game.faqPdf; delete game.faqPdfName;
-  saveData();
-  showToast('PDF entfernt','info');
-  renderDokumente();
+  if(game.faqPdfs) game.faqPdfs=[];
+  saveData();showToast('PDFs entfernt','info');renderDokumente();
+}
+
+function removeGamePdfById(gameId,pdfId){
+  const game=GAMES.find(g=>g.id===gameId);
+  if(!game||!game.faqPdfs) return;
+  const p=game.faqPdfs.find(function(x){return x.id===pdfId;});
+  game.faqPdfs=game.faqPdfs.filter(function(x){return x.id!==pdfId;});
+  saveData();showToast((p?p.name:'PDF')+' entfernt','info');renderDokumente();
+}
+
+function openPdfById(gameId,pdfId){
+  const game=GAMES.find(g=>g.id===gameId);
+  if(!game||!game.faqPdfs) return;
+  const p=game.faqPdfs.find(function(x){return x.id===pdfId;});
+  if(!p){showToast('PDF nicht gefunden','error');return;}
+  const frame=document.getElementById('pdfViewerFrame');
+  const title=document.getElementById('pdfViewerTitle');
+  const dl=document.getElementById('pdfViewerDownload');
+  if(title) title.textContent=p.name;
+  const src='data:application/pdf;base64,'+p.data;
+  frame.src=src;
+  if(dl){dl.href=src;dl.download=p.name;}
+  openModal('modalPdfViewer');
+  logEvent('pdf_view',{gameId,name:p.name});
+}
+
+function openGamePdf(pdfId){
+  const u=state.currentUser;
+  const g=u&&u.gameId?GAMES.find(function(x){return x.id===u.gameId;}):null;
+  if(!g) return;
+  const pdfs=(g.faqPdfs||[]);
+  const p=pdfId?pdfs.find(function(x){return x.id===pdfId;}):pdfs[0];
+  const data=p?p.data:g.faqPdf;
+  const name=p?p.name:(g.faqPdfName||'Dokument');
+  if(!data){showToast('Kein Dokument verfuegbar','error');return;}
+  const frame=document.getElementById('pdfViewerFrame');
+  const title=document.getElementById('pdfViewerTitle');
+  const dl=document.getElementById('pdfViewerDownload');
+  if(title) title.textContent=name;
+  const src='data:application/pdf;base64,'+data;
+  frame.src=src;
+  if(dl){dl.href=src;dl.download=name;}
+  openModal('modalPdfViewer');
+  logEvent('pdf_view',{name});
 }
 
 function saveGameSettings(gameId){
@@ -1705,31 +1773,6 @@ function saveGameSettings(gameId){
   logEvent('game_settings_save',{gameId,adminEmail:game.adminEmail});
 }
 
-function openGamePdfAdmin(){
-  const u=state.currentUser;
-  const effectiveGameId=state.managingGameId||u.gameId;
-  const game=GAMES.find(g=>g.id===effectiveGameId);
-  if(!game||!game.faqPdf){showToast('Kein PDF','error');return;}
-  const modal=document.getElementById('modalPdfViewer');
-  const frame=document.getElementById('pdfViewerFrame');
-  const title=document.getElementById('pdfViewerTitle');
-  if(title) title.textContent=game.faqPdfName||'Dokument';
-  frame.src='data:application/pdf;base64,'+game.faqPdf;
-  modal.style.display='flex';
-}
-
-function openGamePdf(){
-  const u=state.currentUser;
-  const g=u&&u.gameId?GAMES.find(x=>x.id===u.gameId):null;
-  if(!g||!g.faqPdf){showToast('Kein Dokument','error');return;}
-  const modal=document.getElementById('modalPdfViewer');
-  const frame=document.getElementById('pdfViewerFrame');
-  const title=document.getElementById('pdfViewerTitle');
-  if(title) title.textContent=g.faqPdfName||'Dokument';
-  frame.src='data:application/pdf;base64,'+g.faqPdf;
-  modal.style.display='flex';
-  logEvent('pdf_view',{name:g.faqPdfName});
-}
 
 function renderMessaging(){
   const u=state.currentUser;
@@ -2453,9 +2496,19 @@ function renderFeedback(){
     const _u=state.currentUser;
     const _g=_u&&_u.gameId?GAMES.find(function(x){return x.id===_u.gameId;}):null;
     const _sec=document.getElementById('faqDocSection');
-    if(_sec&&_g&&_g.faqPdf){
-      _sec.innerHTML='<div class="card" style="margin-bottom:16px;"><div class="card-body" style="display:flex;align-items:center;gap:14px;"><span style="font-size:28px;">&#128196;</span><div><div style="font-weight:700;font-size:14px;">'+(_g.faqPdfName||'Spielregeln / FAQ')+'</div><div style="font-size:12px;color:var(--gray-mid);">Vom Dozenten hochgeladen</div></div><button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openGamePdf()">&#128065; &#214;ffnen</button></div></div>';
-    }
+    if(!_sec||!_g) return;
+    const _pdfs=(_g.faqPdfs||[]).concat(_g.faqPdf?[{id:'legacy',name:_g.faqPdfName||'Dokument',data:_g.faqPdf}]:[]);
+    if(_pdfs.length===0) return;
+    _sec.innerHTML='<div class="section-header" style="margin-top:0;margin-bottom:8px;"><div class="section-title">&#128196; Dokumente vom Dozenten</div></div>'
+      +_pdfs.map(function(p){
+        return '<div class="card" style="margin-bottom:10px;"><div class="card-body" style="display:flex;align-items:center;gap:14px;padding:12px 16px;">'
+          +'<span style="font-size:26px;">&#128196;</span>'
+          +'<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+p.name+'</div>'
+          +(p.uploadedAt?'<div style="font-size:11px;color:var(--gray-mid);">'+new Date(p.uploadedAt).toLocaleDateString('de-DE')+'</div>':'')
+          +'</div>'
+          +'<button class="btn btn-primary btn-sm" onclick="openGamePdf(\'+p.id+\')">&#128065; &#214;ffnen</button>'
+          +'</div></div>';
+      }).join('');
   },50);
 }
 function selectFeedbackType(type,el){
