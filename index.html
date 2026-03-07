@@ -70,6 +70,14 @@ a{color:var(--blue-mid);text-decoration:none;}
 .role-badge.member-badge{background:rgba(55,86,35,.3);color:#A5D6A7;}
 .topbar-logout{background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.8);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;}
 .topbar-logout:hover{background:rgba(255,255,255,.22);color:white;}
+.btn-lang{background:rgba(255,255,255,.12);border:none;color:white;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:15px;line-height:1;}
+.btn-lang:hover{background:rgba(255,255,255,.22);}
+.announce-card{background:white;border-left:4px solid var(--blue-mid);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow-sm);}
+.announce-card.pinned{border-left-color:#FFD700;background:#FFFDF0;}
+.announce-meta{font-size:11px;color:var(--gray-mid);margin-top:6px;}
+.announce-title{font-weight:700;font-size:14px;margin-bottom:4px;}
+.compose-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--blue-mid);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;}
+.compose-btn:hover{background:var(--blue-dark);}
 
 /* TICKER */
 .ticker{background:var(--blue-mid);color:white;padding:5px 0;font-size:12px;overflow:hidden;display:flex;align-items:center;}
@@ -559,6 +567,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <nav class="topbar-nav" id="topNav"></nav>
   <div class="topbar-right">
    <div class="role-badge" id="roleBadge"></div>
+   <button class="btn-lang" id="langToggleBtn" onclick="toggleLang()" title="Sprache / Language">&#127465;&#127466;</button>
    <button class="topbar-logout" onclick="doLogout()">&#9167; Logout</button>
   </div>
  </div>
@@ -589,7 +598,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
   <!-- PAGE: Mein Team -->
-  <div class="page" id="page-myteam">
+  <div class="page" id="page-myteam"><div id="teamAnnouncements" style="margin:0 0 8px 0;"></div>
    <div class="container">
     <div id="myTeamHero" style="border-radius:var(--radius-lg);padding:24px 28px;color:white;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;"></div>
     <div class="week-steps" id="weekSteps"></div>
@@ -737,6 +746,9 @@ textarea.form-control{resize:vertical;min-height:70px;}
      <button class="admin-tab" onclick="switchAdminTab('teams-admin')">&#128101; Teams</button>
      <button class="admin-tab" onclick="switchAdminTab('transactions-admin')">&#128179; Buchungen</button>
      <button class="admin-tab" onclick="switchAdminTab('codes')">&#128273; Codes</button>
+     <button class="admin-tab" onclick="switchAdminTab('pinnwand')">&#128226; Pinnwand</button>
+     <button class="admin-tab" onclick="switchAdminTab('dokumente')">&#128196; Dokumente</button>
+     <button class="admin-tab" onclick="switchAdminTab('messaging')">&#9993;&#65039; Nachrichten</button>
     </div>
     <div class="admin-panel active" id="adminPanel-approval">
      <div class="section-header"><div class="section-title admin-title">Blog-Berichte zur Freigabe</div><button class="btn btn-success btn-sm" onclick="approveAll()">&#9989; Alle freigeben</button></div>
@@ -764,6 +776,9 @@ textarea.form-control{resize:vertical;min-height:70px;}
      <div class="section-header"><div class="section-title admin-title">Zugangscodes</div></div>
      <div id="codesPanel"></div>
     </div>
+    <div class="admin-panel" id="adminPanel-pinnwand"><div id="pinnwandContent"></div></div>
+    <div class="admin-panel" id="adminPanel-dokumente"><div id="dokumenteContent"></div></div>
+    <div class="admin-panel" id="adminPanel-messaging"><div id="messagingContent"></div></div>
    </div>
   </div>
 
@@ -1084,6 +1099,7 @@ let REFLECTIONS = [];
 let FEEDBACKS = [];
 let SUPERADMINS = []; // zusätzliche Superadmins
 let FAQ_DOCS   = []; // PDFs/Docs in FAQ
+let ANNOUNCEMENTS = [];
 
 // ════════════════════════════════════════════════════════════════════
 //  AUTH / CODES
@@ -1118,7 +1134,7 @@ function saveData(){
   if(!saveData._cnt) saveData._cnt=0;
   if(++saveData._cnt % 10 === 0) flushTrackBuffer();
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS
+      UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS,ANNOUNCEMENTS
     }));
   }catch(e){console.warn('saveData error',e);}
 }
@@ -1135,6 +1151,7 @@ function loadData(){
     replace(FEEDBACKS,d.FEEDBACKS);
     replace(SUPERADMINS,d.SUPERADMINS||[]);
     replace(FAQ_DOCS,d.FAQ_DOCS||[]);
+    replace(ANNOUNCEMENTS,d.ANNOUNCEMENTS||[]);
     rebuildCodes();
     return true;
   }catch(e){console.warn('loadData error',e);return false;}
@@ -1470,7 +1487,6 @@ function finishLogin(code){
   document.getElementById('appShell').style.display='block';
   initApp();
   logEvent('login', {lang: state.lang});
-  sendAutoBackup();
   if(state.lang==='en') setTimeout(applyLang,150);
 }
 
@@ -1498,6 +1514,8 @@ function initApp(){
 
 function buildNavigation(){
   const u=state.currentUser;const nav=document.getElementById('topNav');nav.innerHTML='';
+  const langBtn=document.getElementById('langToggleBtn');
+  if(langBtn) langBtn.textContent=state.lang==='en'?'\U0001F1EC\U0001F1E7':'\U0001F1E9\U0001F1EA';
   const pages=[];
   if(u.role==='team'){
     pages.push({id:'dashboard',label:'🏆 Ranking'});
@@ -1552,6 +1570,194 @@ function updateTopbar(){
     badge.className='role-badge team-badge';
     badge.innerHTML=(team?team.logo+' '+team.name:u.name);
   }
+}
+
+function toggleLang(){
+  state.lang=state.lang==='de'?'en':'de';
+  const u=state.currentUser;
+  if(u&&u.role==='member'){const m=getMyMember();if(m){m.lang=state.lang;saveData();}}
+  else if(u){u.lang=state.lang;saveData();}
+  const langBtn=document.getElementById('langToggleBtn');
+  if(langBtn) langBtn.textContent=state.lang==='en'?'\U0001F1EC\U0001F1E7':'\U0001F1E9\U0001F1EA';
+  navigateTo(state.currentPage);
+  if(state.lang==='en') setTimeout(applyLang,150);
+  logEvent('lang_toggle',{lang:state.lang});
+}
+
+function renderPinnwand(){
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u.gameId;
+  const gameAnnouncements=ANNOUNCEMENTS.filter(a=>a.gameId===effectiveGameId).sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+  const teams=TEAMS.filter(t=>t.gameId===effectiveGameId);
+  const el=document.getElementById('pinnwandContent');
+  if(!el) return;
+  el.innerHTML='<div class="section-header"><div class="section-title admin-title">Pinnwand</div></div>'
+    +'<div class="card"><div class="card-body">'
+    +'<div class="form-row">'
+    +'<div class="form-group" style="flex:2"><label class="form-label">Titel</label>'
+    +'<input class="form-control" id="annTitle" placeholder="Titel..."></div>'
+    +'<div class="form-group" style="flex:1"><label class="form-label">Zielgruppe</label>'
+    +'<select class="form-control" id="annTarget"><option value="">Alle Teams</option>'
+    +teams.map(t=>'<option value="'+t.id+'">'+t.logo+' '+t.name+'</option>').join('')
+    +'</select></div></div>'
+    +'<div class="form-group"><label class="form-label">Nachricht</label>'
+    +'<textarea class="form-control" id="annText" rows="3"></textarea></div>'
+    +'<div style="display:flex;gap:8px;align-items:center;">'
+    +'<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">'
+    +'<input type="checkbox" id="annPinned"> Anpinnen</label>'
+    +'<button class="btn btn-primary btn-sm" onclick="postAnnouncement()">Ankuendigung senden</button>'
+    +'</div></div></div>'
+    +(gameAnnouncements.length===0
+      ?'<div class="empty-state"><div class="empty-icon"></div><h3>Keine Ankuendigungen</h3></div>'
+      :gameAnnouncements.map(a=>'<div class="announce-card'+(a.pinned?' pinned':'')+'"><div class="announce-title">'+(a.pinned?'X ':'')+a.title+'</div><div style="font-size:13px;white-space:pre-wrap;">'+a.text+'</div><div class="announce-meta">'+(a.teamId?'Team: '+(TEAMS.find(t=>t.id===a.teamId)||{name:a.teamId}).name:'Alle Teams')+' Von '+a.from+' <button class="btn btn-danger btn-sm" style="margin-left:12px;padding:2px 8px;" onclick="deleteAnnouncement(\''+a.id+'\')">Loeschen</button></div></div>').join(''));
+}
+
+function postAnnouncement(){
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u.gameId;
+  const title=document.getElementById('annTitle').value.trim();
+  const text=document.getElementById('annText').value.trim();
+  if(!title||!text){showToast('Bitte Titel und Text ausfuellen','error');return;}
+  ANNOUNCEMENTS.push({id:'ann-'+Date.now(),gameId:effectiveGameId,teamId:document.getElementById('annTarget').value||null,title,text,from:u.name||u.code,fromRole:u.role,ts:new Date().toISOString(),pinned:document.getElementById('annPinned').checked});
+  saveData();
+  logEvent('announcement_post',{gameId:effectiveGameId});
+  showToast('Ankuendigung gesendet!','success');
+  renderPinnwand();
+}
+
+function deleteAnnouncement(id){
+  const idx=ANNOUNCEMENTS.findIndex(a=>a.id===id);
+  if(idx>=0){ANNOUNCEMENTS.splice(idx,1);saveData();renderPinnwand();showToast('Geloescht','info');}
+}
+
+function renderDokumente(){
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u.gameId;
+  const game=GAMES.find(g=>g.id===effectiveGameId);
+  const el=document.getElementById('dokumenteContent');
+  if(!el||!game) return;
+  const hasPdf=!!(game.faqPdf);
+  el.innerHTML='<div class="section-header"><div class="section-title admin-title">Spielregeln / FAQ</div></div>'
+    +'<div class="card"><div class="card-body">'
+    +'<p style="font-size:13px;color:var(--gray-mid);margin-bottom:12px;">Lade ein PDF hoch (max. 5 MB), das auf der Feedback-Seite angezeigt wird.</p>'
+    +(hasPdf?'<div class="info-box green" style="margin-bottom:12px;"><span class="info-box-icon">OK</span>Aktuell: <strong>'+(game.faqPdfName||'PDF')+'</strong><button class="btn btn-danger btn-sm" style="margin-left:12px;" onclick="removeGamePdf(\''+game.id+'\')">Entfernen</button><button class="btn btn-secondary btn-sm" style="margin-left:6px;" onclick="openGamePdfAdmin()">Vorschau</button></div>':'<div class="info-box blue" style="margin-bottom:12px;"><span class="info-box-icon">i</span>Noch kein Dokument hochgeladen.</div>')
+    +'<div class="form-group"><label class="form-label">PDF hochladen</label>'
+    +'<input type="file" class="form-control" id="gamePdfFile" accept=".pdf" onchange="uploadGamePdf(\''+game.id+'\',this)"></div></div></div>'
+    +'<div class="section-header" style="margin-top:24px;"><div class="section-title admin-title">Spiel-Einstellungen</div></div>'
+    +'<div class="card"><div class="card-body"><div class="form-row"><div class="form-group"><label class="form-label">Dozenten-E-Mail</label>'
+    +'<input class="form-control" id="gameAdminEmail" value="'+(game.adminEmail||'')+'" placeholder="dozent@hochschule.de"></div>'
+    +'<div class="form-group"><label class="form-label">noreply-Domain</label>'
+    +'<input class="form-control" id="gameNoreply" value="'+(game.noreplyDomain||'5euro-business.de')+'"></div></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="saveGameSettings(\''+game.id+'\')">Speichern</button></div></div>';
+}
+
+function uploadGamePdf(gameId,input){
+  const file=input.files[0];
+  if(!file) return;
+  if(file.size>5*1024*1024){showToast('PDF zu gross','error');return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const game=GAMES.find(g=>g.id===gameId);
+    if(!game) return;
+    game.faqPdf=e.target.result.split(',')[1];
+    game.faqPdfName=file.name;
+    saveData();
+    showToast('PDF gespeichert: '+file.name,'success');
+    logEvent('pdf_upload',{gameId,name:file.name,size:file.size});
+    renderDokumente();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeGamePdf(gameId){
+  const game=GAMES.find(g=>g.id===gameId);
+  if(!game) return;
+  delete game.faqPdf; delete game.faqPdfName;
+  saveData();
+  showToast('PDF entfernt','info');
+  renderDokumente();
+}
+
+function saveGameSettings(gameId){
+  const game=GAMES.find(g=>g.id===gameId);
+  if(!game) return;
+  game.adminEmail=document.getElementById('gameAdminEmail').value.trim();
+  game.noreplyDomain=document.getElementById('gameNoreply').value.trim();
+  saveData();
+  showToast('Gespeichert','success');
+  logEvent('game_settings_save',{gameId,adminEmail:game.adminEmail});
+}
+
+function openGamePdfAdmin(){
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u.gameId;
+  const game=GAMES.find(g=>g.id===effectiveGameId);
+  if(!game||!game.faqPdf){showToast('Kein PDF','error');return;}
+  const modal=document.getElementById('modalPdfViewer');
+  const frame=document.getElementById('pdfViewerFrame');
+  const title=document.getElementById('pdfViewerTitle');
+  if(title) title.textContent=game.faqPdfName||'Dokument';
+  frame.src='data:application/pdf;base64,'+game.faqPdf;
+  modal.style.display='flex';
+}
+
+function openGamePdf(){
+  const u=state.currentUser;
+  const g=u&&u.gameId?GAMES.find(x=>x.id===u.gameId):null;
+  if(!g||!g.faqPdf){showToast('Kein Dokument','error');return;}
+  const modal=document.getElementById('modalPdfViewer');
+  const frame=document.getElementById('pdfViewerFrame');
+  const title=document.getElementById('pdfViewerTitle');
+  if(title) title.textContent=g.faqPdfName||'Dokument';
+  frame.src='data:application/pdf;base64,'+g.faqPdf;
+  modal.style.display='flex';
+  logEvent('pdf_view',{name:g.faqPdfName});
+}
+
+function renderMessaging(){
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u.gameId;
+  const game=GAMES.find(g=>g.id===effectiveGameId);
+  const teams=TEAMS.filter(t=>t.gameId===effectiveGameId);
+  const members=MEMBERS.filter(m=>teams.some(t=>t.id===m.teamId)&&m.email);
+  const el=document.getElementById('messagingContent');
+  if(!el) return;
+  el.innerHTML='<div class="section-header"><div class="section-title admin-title">Nachricht versenden</div></div>'
+    +'<div class="card"><div class="card-body">'
+    +'<p style="font-size:13px;color:var(--gray-mid);margin-bottom:12px;">Sende E-Mails an Studierende ('+members.length+' mit E-Mail).</p>'
+    +'<div class="form-group"><label class="form-label">Empfaenger</label>'
+    +'<select class="form-control" id="msgRecipient"><option value="all">Alle ('+members.length+')</option>'
+    +teams.map(function(t){var tm=members.filter(function(m){return m.teamId===t.id;});return tm.length>0?'<option value="team:'+t.id+'">'+t.logo+' '+t.name+' ('+tm.length+')</option>':''}).join('')
+    +members.map(function(m){return '<option value="member:'+m.id+'">'+m.name+'</option>'}).join('')
+    +'</select></div>'
+    +'<div class="form-group"><label class="form-label">Betreff</label><input class="form-control" id="msgSubject" placeholder="..."></div>'
+    +'<div class="form-group"><label class="form-label">Nachricht</label><textarea class="form-control" id="msgBody" rows="5"></textarea></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="sendAdminMessage()">Senden</button>'
+    +'<div id="msgStatus" style="margin-top:10px;"></div></div></div>';
+}
+
+async function sendAdminMessage(){
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u.gameId;
+  const game=GAMES.find(g=>g.id===effectiveGameId);
+  const subject=document.getElementById('msgSubject').value.trim();
+  const body=document.getElementById('msgBody').value.trim();
+  const recipientVal=document.getElementById('msgRecipient').value;
+  if(!subject||!body){showToast('Betreff und Nachricht fehlen','error');return;}
+  const teams=TEAMS.filter(t=>t.gameId===effectiveGameId);
+  let recipients=[];
+  if(recipientVal==='all'){recipients=MEMBERS.filter(m=>teams.some(t=>t.id===m.teamId)&&m.email).map(m=>m.email);}
+  else if(recipientVal.startsWith('team:')){const tid=recipientVal.split(':')[1];recipients=MEMBERS.filter(m=>m.teamId===tid&&m.email).map(m=>m.email);}
+  else if(recipientVal.startsWith('member:')){const mid=recipientVal.split(':')[1];const mem=MEMBERS.find(x=>x.id===mid);if(mem&&mem.email) recipients=[mem.email];}
+  if(recipients.length===0){showToast('Keine E-Mail-Adressen','error');return;}
+  const statusEl=document.getElementById('msgStatus');
+  statusEl.innerHTML='<div class="info-box blue">...gesendet</div>';
+  try{
+    const resp=await fetch(CONFIG.FEEDBACK_ENDPOINT,{method:'POST',body:JSON.stringify({type:'admin_message',from:u.name||u.code,noreplyDomain:game&&game.noreplyDomain?game.noreplyDomain:'5euro-business.de',gameName:game?game.name:'5-Euro-Business',subject,body,recipients})});
+    const result=await resp.json();
+    if(result.success){statusEl.innerHTML='<div class="info-box green">OK: '+recipients.length+' gesendet</div>';logEvent('admin_message_sent',{gameId:effectiveGameId,count:recipients.length});document.getElementById('msgSubject').value='';document.getElementById('msgBody').value='';}
+    else {statusEl.innerHTML='<div class="info-box red">Fehler: '+(result.error||'Unbekannt')+'</div>';}
+  }catch(err){statusEl.innerHTML='<div class="info-box red">'+err.message+'</div>';}
 }
 
 function buildTicker(){
@@ -1744,6 +1950,7 @@ function switchMyTeamTab(tab){
 
 function renderMyTeam(){
   const team=getMyTeam();if(!team)return;
+  setTimeout(renderTeamAnnouncements,100);
   // Hero
   const logoHtml=team.logoDataUrl?`<img src="${team.logoDataUrl}" style="width:56px;height:56px;border-radius:12px;object-fit:cover;border:3px solid rgba(255,255,255,.4);">`:`<span style="font-size:40px;">${team.logo}</span>`;
   document.getElementById('myTeamHero').style.background=`linear-gradient(135deg,${team.color}EE,${team.color}88)`;
@@ -1855,6 +2062,20 @@ function renderTeamProfileForm(team){
     <div class="form-hint" style="margin-top:6px;">Das Logo wird auf Teamkarten und im Ranking angezeigt.</div>`;
 }
 
+function renderTeamAnnouncements(){
+  const team=getMyTeam();
+  if(!team) return;
+  const u=state.currentUser;
+  const relevant=ANNOUNCEMENTS.filter(function(a){
+    return a.gameId===team.gameId&&(a.teamId===null||a.teamId===''||a.teamId===team.id);
+  }).sort(function(a,b){return new Date(b.ts)-new Date(a.ts);}).slice(0,5);
+  const el=document.getElementById('teamAnnouncements');
+  if(!el||relevant.length===0) return;
+  el.innerHTML='<div class="section-header" style="margin-top:20px;"><div class="section-title">Ankuendigungen</div></div>'
+    +relevant.map(function(a){
+      return '<div class="announce-card'+(a.pinned?' pinned':'')+'"><div class="announce-title">'+(a.pinned?'X ':'')+a.title+'</div><div style="font-size:13px;white-space:pre-wrap;">'+a.text+'</div><div class="announce-meta">Von '+a.from+' &middot; '+new Date(a.ts).toLocaleDateString('de-DE')+'</div></div>';
+    }).join('');
+}
 function renderMembersSection(team){
   const members=MEMBERS.filter(m=>m.teamId===team.id);
   const u=state.currentUser;
@@ -2176,7 +2397,7 @@ function renderFeedback(){
       <h2>💬 Feedback, Infos &amp; Bugreports</h2>
       <p>Verbesserungsvorschläge, technische Probleme oder allgemeine Fragen – alles hier.</p>
     </div>
-    <div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">📬</span>Dein Feedback wird direkt an den Dozenten (<strong>christian.neusser@me.com</strong>) und in ein Google Sheet weitergeleitet.</div>
+    <div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">📬</span>Dein Feedback wird direkt an den Dozenten (<strong>${(()=>{const _g=state.currentUser&&state.currentUser.gameId?GAMES.find(x=>x.id===state.currentUser.gameId):null;return _g&&_g.adminEmail?_g.adminEmail:'christian.neusser@me.com';})()}</strong>) und in ein Google Sheet weitergeleitet.</div>
     <div class="feedback-type-grid">
       <div class="feedback-type-card" onclick="selectFeedbackType('info',this)"><div class="feedback-type-icon">ℹ️</div><div class="feedback-type-label">Info anfragen</div><div class="feedback-type-desc">Fragen zur Plattform oder zum Spiel</div></div>
       <div class="feedback-type-card" onclick="selectFeedbackType('improvement',this)"><div class="feedback-type-icon">💡</div><div class="feedback-type-label">Verbesserungsvorschlag</div><div class="feedback-type-desc">Ideen für neue Features</div></div>
@@ -2211,6 +2432,14 @@ function renderFeedback(){
       ].map(([q,a])=>`<div class="faq-item"><div class="faq-question" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">❓ ${q} <span style="font-size:14px;">▾</span></div><div class="faq-answer">${a}</div></div>`).join('')}
     </div>
   `;
+  setTimeout(function(){
+    const _u=state.currentUser;
+    const _g=_u&&_u.gameId?GAMES.find(function(x){return x.id===_u.gameId;}):null;
+    const _sec=document.getElementById('faqDocSection');
+    if(_sec&&_g&&_g.faqPdf){
+      _sec.innerHTML='<div class="card" style="margin-bottom:16px;"><div class="card-body" style="display:flex;align-items:center;gap:14px;"><span style="font-size:28px;">&#128196;</span><div><div style="font-weight:700;font-size:14px;">'+(_g.faqPdfName||'Spielregeln / FAQ')+'</div><div style="font-size:12px;color:var(--gray-mid);">Vom Dozenten hochgeladen</div></div><button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openGamePdf()">&#128065; &#214;ffnen</button></div></div>';
+    }
+  },50);
 }
 function selectFeedbackType(type,el){
   document.querySelectorAll('.feedback-type-card').forEach(c=>c.classList.remove('selected'));
@@ -2280,6 +2509,9 @@ function switchAdminTab(tabId){
   event.currentTarget.classList.add('active');
   document.querySelectorAll('#page-admin .admin-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('adminPanel-'+tabId)?.classList.add('active');
+  if(tabId==='pinnwand') renderPinnwand();
+  else if(tabId==='dokumente') renderDokumente();
+  else if(tabId==='messaging') renderMessaging();
 }
 function renderApprovalQueue(){
   const u=state.currentUser;
@@ -2682,7 +2914,7 @@ function submitBlog(){
     tags:document.getElementById('blogTags').value.split(',').map(t=>t.trim()).filter(Boolean),
     status:'pending',date:new Date().toISOString().split('T')[0]};
   BLOGS.push(blog);team.weekStatus='submitted';saveData();
-  closeModal('modalBlog');logEvent('blog_submit', {teamId: team.id, week: team.currentWeek});showToast('📤 Bericht eingereicht – wartet auf Freigabe!');
+  closeModal('modalBlog');showToast('📤 Bericht eingereicht – wartet auf Freigabe!');
   if(state.currentPage==='myteam'){renderWeekSteps(team);renderMyTeamPanel(state.currentMyTeamTab);}
 }
 function saveBlogDraft(){closeModal('modalBlog');showToast('📄 Entwurf gespeichert');}
@@ -3792,7 +4024,7 @@ const BACKUP_KEY = '5euro_lastbackup';
 const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function exportDataJson(){
-  const d = {UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS};
+  const d = {UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS,ANNOUNCEMENTS};
   return JSON.stringify(d, null, 2);
 }
 
