@@ -406,19 +406,59 @@ textarea.form-control{resize:vertical;min-height:70px;}
  <div class="login-card" id="loginCard">
 
   <!-- ── LOGIN MODE ──────────────────────────────────── -->
+  <div class="lang-toggle">
+   <button class="lang-btn active" id="langBtnDE" onclick="setLoginLang('de')">DE</button>
+   <button class="lang-btn" id="langBtnEN" onclick="setLoginLang('en')">EN</button>
+  </div>
+
   <div id="loginMode">
    <div class="login-logo">5&#8364;</div>
    <h2 class="login-title">5-Euro-Business</h2>
-   <p class="login-sub">Tracker &#183; Management &#183; Reflexion</p>
-   <div class="login-input-wrap">
-    <input type="text" id="loginCode" placeholder="ZUGANGSCODE EINGEBEN" maxlength="16"
-     oninput="this.value=this.value.toUpperCase()" onkeypress="if(event.key==='Enter')doLogin()">
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion</p>
+   <!-- Step 1: Code -->
+   <div id="loginStep1">
+    <div class="login-input-wrap">
+     <input type="text" id="loginCode" placeholder="ZUGANGSCODE / ACCESS CODE" maxlength="20"
+      oninput="this.value=this.value.toUpperCase()" onkeypress="if(event.key==='Enter')doLoginStep1()">
+    </div>
+    <div class="login-error" id="loginError">&#10060; <span id="lt_errCode">Ung&#252;ltiger Code</span></div>
+    <button class="login-btn" onclick="doLoginStep1()">&#128273; Einloggen / Sign In</button>
+    <div style="text-align:center;margin-top:14px;">
+     <span style="font-size:13px;color:#aaa;" id="lt_noCode">Noch kein Code?</span>
+     <button onclick="showRegister()" style="background:none;border:none;color:var(--blue-mid);font-size:13px;font-weight:700;cursor:pointer;margin-left:6px;" id="lt_regBtn">&#128100; Jetzt registrieren &rarr;</button>
+    </div>
    </div>
-   <div class="login-error" id="loginError">&#10060; Ung&#252;ltiger Code – bitte erneut versuchen</div>
-   <button class="login-btn" onclick="doLogin()">&#128273; Einloggen</button>
-   <div style="text-align:center;margin-top:14px;">
-    <span style="font-size:13px;color:#aaa;">Noch kein Code?</span>
-    <button onclick="showRegister()" style="background:none;border:none;color:var(--blue-mid);font-size:13px;font-weight:700;cursor:pointer;margin-left:6px;">&#128100; Jetzt registrieren &rarr;</button>
+   <!-- Step 2: Password entry -->
+   <div id="loginStep2" style="display:none;">
+    <div style="text-align:center;margin-bottom:6px;font-size:12px;color:#888;" id="lt_pwdFor">Passwort f&#252;r:</div>
+    <div style="text-align:center;font-weight:700;color:var(--blue-dark);margin-bottom:12px;" id="lt_pwdUser"></div>
+    <div class="login-input-wrap">
+     <input type="password" id="loginPwd" placeholder="PASSWORT / PASSWORD" maxlength="64"
+      onkeypress="if(event.key==='Enter')doLoginStep2()">
+    </div>
+    <div class="login-error" id="loginPwdError">&#10060; <span id="lt_errPwd">Falsches Passwort</span></div>
+    <button class="login-btn" onclick="doLoginStep2()" id="lt_pwdBtn">&#128274; Weiter / Continue</button>
+    <div style="text-align:center;margin-top:8px;">
+     <button onclick="loginBack()" style="background:none;border:none;color:#aaa;font-size:12px;cursor:pointer;">&#8592; <span id="lt_back">Zur&#252;ck / Back</span></button>
+    </div>
+   </div>
+   <!-- Step 3: First-time password setup -->
+   <div id="loginStep3" style="display:none;">
+    <div class="info-box blue" style="font-size:11px;margin-bottom:12px;text-align:left;">
+     <span class="info-box-icon">&#128274;</span><span id="lt_pwdSetDesc">Willkommen! Lege ein pers&#246;nliches Passwort fest.<br><em>Welcome! Please set a personal password.</em></span>
+    </div>
+    <div class="login-input-wrap" style="margin-bottom:8px;">
+     <input type="password" id="loginNewPwd" placeholder="NEUES PASSWORT / NEW PASSWORD" maxlength="64">
+    </div>
+    <div class="login-input-wrap">
+     <input type="password" id="loginNewPwd2" placeholder="BEST&#196;TIGEN / CONFIRM" maxlength="64"
+      onkeypress="if(event.key==='Enter')doSetFirstPassword()">
+    </div>
+    <div class="login-error" id="loginPwdSetError">&#10060; <span id="lt_errPwdSet">Passw&#246;rter stimmen nicht &#252;berein</span></div>
+    <button class="login-btn" onclick="doSetFirstPassword()" id="lt_setPwdBtn">&#128274; Passwort setzen / Set Password</button>
+    <div style="text-align:center;margin-top:8px;">
+     <button onclick="skipPassword()" style="background:none;border:none;color:#aaa;font-size:11px;cursor:pointer;" id="lt_skipPwd">&#9888; &#220;berspringen (unsicher) / Skip (insecure)</button>
+    </div>
    </div>
   </div>
 
@@ -558,6 +598,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
      <button class="profile-tab active" onclick="switchMyTeamTab('overview')">&#128200; &#220;bersicht</button>
      <button class="profile-tab" onclick="switchMyTeamTab('profil')">&#9999;&#65039; Team-Profil</button>
      <button class="profile-tab" onclick="switchMyTeamTab('members')">&#128101; Mitglieder</button>
+     <button class="profile-tab" id="ceomgmtTab" style="display:none;" onclick="switchMyTeamTab('ceomgmt')">&#128081; Verwaltung</button>
      <button class="profile-tab" onclick="switchMyTeamTab('transactions')">&#128179; Buchungen</button>
      <button class="profile-tab" onclick="switchMyTeamTab('blogs')">&#128221; Berichte</button>
     </div>
@@ -578,6 +619,9 @@ textarea.form-control{resize:vertical;min-height:70px;}
     </div>
     <div class="profile-panel" id="myteamPanel-members">
      <div id="membersSection"></div>
+    </div>
+    <div class="profile-panel" id="myteamPanel-ceomgmt">
+     <div id="ceoMgmtSection"></div>
     </div>
     <div class="profile-panel" id="myteamPanel-transactions">
      <div class="section-header">
@@ -684,7 +728,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
    <div class="container">
     <div class="admin-hero">
      <div><h2>&#9881;&#65039; Admin-Panel</h2><p id="adminHeroSub">Verwaltung &#183; Moderation &#183; &#220;bersicht</p></div>
-     <div style="font-size:40px;opacity:.5;">&#127925;</div>
+     <div style="display:flex;align-items:center;gap:10px;"><button id="adminBackToSuper" class="btn btn-outline btn-sm" style="display:none;color:white;border-color:rgba(255,255,255,.5);" onclick="backToSuperAdmin()">&#8592; Superadmin</button><div style="font-size:40px;opacity:.5;">&#127925;</div></div>
     </div>
     <div class="admin-tab-bar">
      <button class="admin-tab active" onclick="switchAdminTab('approval')">&#128203; Blog-Freigabe <span class="notif-dot" id="approvalCount">0</span></button>
@@ -728,7 +772,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
    <div class="container">
     <div class="superadmin-hero">
      <div><h2>&#128081; Superadmin-Panel</h2><p>Plattform-Verwaltung &#183; Alle Spiele &#183; Alle Hochschulen</p></div>
-     <div style="font-size:40px;opacity:.4;">&#127760;</div>
+     <div style="display:flex;align-items:center;gap:10px;"><button class="btn btn-outline btn-sm" style="color:white;border-color:rgba(255,255,255,.5);" onclick="openModal('modalEditSuperProfile')">&#9998; Mein Profil</button><div style="font-size:40px;opacity:.4;">&#127760;</div></div>
     </div>
     <div class="admin-tab-bar">
      <button class="admin-tab active" onclick="switchSuperTab('overview')">&#128202; &#220;bersicht</button>
@@ -757,8 +801,9 @@ textarea.form-control{resize:vertical;min-height:70px;}
      <div class="team-grid" id="superGamesGrid"></div>
     </div>
     <div class="admin-panel" id="superPanel-admins">
-     <div class="section-header"><div class="section-title super-title">&#128737;&#65039; Admins</div><button class="btn btn-purple btn-sm" onclick="openModal('modalNewAdmin')">+ Admin ernennen</button></div>
+     <div class="section-header"><div class="section-title super-title">&#128737;&#65039; Admins</div><div style="display:flex;gap:8px;"><button class="btn btn-purple btn-sm" onclick="openModal('modalNewSuperAdmin')">&#128081; Superadmin ernennen</button><button class="btn btn-purple btn-sm" onclick="openModal('modalNewAdmin')">+ Admin ernennen</button></div></div>
      <div class="data-table-wrap">
+      <div style="margin-bottom:14px;" id="superAdminListWrap"><div class="info-box gold" style="margin-bottom:8px;"><span class="info-box-icon">&#128081;</span><strong>Superadmins</strong></div><div id="superAdminListRows"></div></div>
       <div class="admin-list-row header"><div>Name / E-Mail</div><div>Hochschule</div><div>Spiel</div><div>Status</div><div>Aktionen</div></div>
       <div id="adminListRows"></div>
      </div>
@@ -1037,6 +1082,8 @@ let REFLECTIONS = [];
 
 // FEEDBACK submissions
 let FEEDBACKS = [];
+let SUPERADMINS = []; // zusätzliche Superadmins
+let FAQ_DOCS   = []; // PDFs/Docs in FAQ
 
 // ════════════════════════════════════════════════════════════════════
 //  AUTH / CODES
@@ -1046,6 +1093,9 @@ let CODES = {};
 function rebuildCodes(){
   CODES = {};
   CODES['SUPER-NEUSS'] = {role:'superadmin', name:'Prof. Neusser', label:'Superadmin'};
+  SUPERADMINS.forEach(sa => {
+    if(sa.code) CODES[sa.code] = {role:'superadmin', superAdminId:sa.id, name:sa.name, email:sa.email||'', label:'Superadmin'};
+  });
   ADMINS.forEach(a => {
     if(a.code) CODES[a.code] = {role:'admin', adminId:a.id, gameId:a.gameId, name:a.name, uni:a.uni||'', label:'Admin '+(a.uni||'')};
   });
@@ -1065,7 +1115,7 @@ const STORAGE_KEY = '5euro_tracker_v5';
 function saveData(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS
+      UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS
     }));
   }catch(e){console.warn('saveData error',e);}
 }
@@ -1080,6 +1130,8 @@ function loadData(){
     replace(BLOGS,d.BLOGS); replace(TRANSACTIONS,d.TRANSACTIONS);
     replace(REFLECTIONS,d.REFLECTIONS); replace(ADMINS,d.ADMINS);
     replace(FEEDBACKS,d.FEEDBACKS);
+    replace(SUPERADMINS,d.SUPERADMINS||[]);
+    replace(FAQ_DOCS,d.FAQ_DOCS||[]);
     rebuildCodes();
     return true;
   }catch(e){console.warn('loadData error',e);return false;}
@@ -1104,6 +1156,8 @@ const dataLoaded = loadData();
 // ════════════════════════════════════════════════════════════════════
 let state = {
   currentUser: null,
+  managingGameId: null, // superadmin managing a specific game
+  lang: 'de',
   currentPage: 'dashboard',
   currentMyTeamTab: 'overview',
   currentAdminTab: 'approval',
@@ -1221,7 +1275,7 @@ function registerUser(){
       biz:document.getElementById('regBiz').value.trim()||'Unternehmensidee folgt',
       slogan:'', color:COLORS[idx], logo:EMOJIS[idx], logoDataUrl:null,
       gameId, code:tcode, revenue:0, expenses:0, transactions:0, weekGoal:50,
-      currentWeek:1, weekStatus:'open', mvps:[], mvpOverride:{}, desc:''
+      currentWeek:1, weekStatus:'open', mvps:[], mvpOverride:{}, desc:'', email:'', notif:{blog:true,week:true,reflect:true}, lang:'de'
     };
     TEAMS.push(newTeam);
     if(game) game.teamCount=TEAMS.filter(t=>t.gameId===gameId).length;
@@ -1307,7 +1361,45 @@ function countChars(el,counterId,max){
 // ════════════════════════════════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════════════════════════════════
-function doLogin(){
+
+// ── PASSWORD & LANGUAGE SYSTEM ───────────────────────────────────────────────
+const PWD_KEY='5euro_passwords';
+function getPwds(){try{return JSON.parse(localStorage.getItem(PWD_KEY)||'{}')}catch{return {};}}
+function savePwd(code,hash){const p=getPwds();p[code]=hash;localStorage.setItem(PWD_KEY,JSON.stringify(p));}
+async function hashPwd(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+let _loginLang='de';
+let _loginTempCode='';
+function setLoginLang(lang){
+  _loginLang=lang;
+  document.getElementById('langBtnDE').classList.toggle('active',lang==='de');
+  document.getElementById('langBtnEN').classList.toggle('active',lang==='en');
+  if(lang==='en'){
+    document.getElementById('lt_sub').textContent='Tracker \u00b7 Management \u00b7 Reflection';
+    document.getElementById('lt_noCode').textContent='No code yet?';
+    document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Register now \u2192';
+    document.getElementById('lt_pwdFor').textContent='Password for:';
+    document.getElementById('lt_errCode').textContent='Invalid code';
+    document.getElementById('lt_errPwd').textContent='Wrong password';
+    document.getElementById('lt_errPwdSet').textContent='Passwords do not match';
+    document.getElementById('lt_back').textContent='Back';
+    document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f Skip (insecure)';
+  } else {
+    document.getElementById('lt_sub').textContent='Tracker \u00b7 Management \u00b7 Reflexion';
+    document.getElementById('lt_noCode').textContent='Noch kein Code?';
+    document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Jetzt registrieren \u2192';
+    document.getElementById('lt_pwdFor').textContent='Passwort f\u00fcr:';
+    document.getElementById('lt_errCode').textContent='Ung\u00fcltiger Code';
+    document.getElementById('lt_errPwd').textContent='Falsches Passwort';
+    document.getElementById('lt_errPwdSet').textContent='Passw\u00f6rter stimmen nicht \u00fcberein';
+    document.getElementById('lt_back').textContent='Zur\u00fcck';
+    document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f \u00dcberspringen (unsicher)';
+  }
+}
+function doLogin(){doLoginStep1();}
+function doLoginStep1(){
   const code=document.getElementById('loginCode').value.trim().toUpperCase();
   const user=CODES[code];
   if(!user){
@@ -1316,11 +1408,67 @@ function doLogin(){
     setTimeout(()=>{err.style.display='none';document.getElementById('loginCode').style.borderColor='';},3000);
     return;
   }
+  _loginTempCode=code;
+  const pwds=getPwds();
+  if(pwds[code]){
+    document.getElementById('loginStep1').style.display='none';
+    document.getElementById('loginStep2').style.display='block';
+    document.getElementById('lt_pwdUser').textContent=user.name;
+    document.getElementById('loginPwd').value='';
+    setTimeout(()=>document.getElementById('loginPwd').focus(),50);
+  } else {
+    document.getElementById('loginStep1').style.display='none';
+    document.getElementById('loginStep3').style.display='block';
+    document.getElementById('loginNewPwd').value='';
+    document.getElementById('loginNewPwd2').value='';
+    setTimeout(()=>document.getElementById('loginNewPwd').focus(),50);
+  }
+}
+async function doLoginStep2(){
+  const pwd=document.getElementById('loginPwd').value;
+  if(!pwd){document.getElementById('loginPwdError').style.display='block';return;}
+  const hash=await hashPwd(pwd);
+  const pwds=getPwds();
+  if(pwds[_loginTempCode]!==hash){
+    document.getElementById('loginPwdError').style.display='block';
+    setTimeout(()=>document.getElementById('loginPwdError').style.display='none',3000);
+    return;
+  }
+  finishLogin(_loginTempCode);
+}
+async function doSetFirstPassword(){
+  const p1=document.getElementById('loginNewPwd').value;
+  const p2=document.getElementById('loginNewPwd2').value;
+  const errEl=document.getElementById('loginPwdSetError');
+  if(p1.length<6){
+    document.getElementById('lt_errPwdSet').textContent=_loginLang==='en'?'Min. 6 characters':'Mindestens 6 Zeichen';
+    errEl.style.display='block';return;
+  }
+  if(p1!==p2){errEl.style.display='block';return;}
+  const hash=await hashPwd(p1);
+  savePwd(_loginTempCode,hash);
+  showToast(_loginLang==='en'?'Password set successfully!':'\u2705 Passwort erfolgreich gesetzt!');
+  finishLogin(_loginTempCode);
+}
+function skipPassword(){finishLogin(_loginTempCode);}
+function loginBack(){
+  _loginTempCode='';
+  document.getElementById('loginStep2').style.display='none';
+  document.getElementById('loginStep3').style.display='none';
+  document.getElementById('loginStep1').style.display='block';
+}
+function finishLogin(code){
+  const user=CODES[code];
+  const member=MEMBERS.find(m=>m.code===code)||ADMINS.find(a=>a.code===code);
+  const lang=(member&&member.lang)?member.lang:_loginLang||'de';
+  state.lang=lang;
   state.currentUser={...user,code};
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
   initApp();
+  if(state.lang==='en') setTimeout(applyLang,150);
 }
+
 function doLogout(){
   state.currentUser=null;
   document.getElementById('appShell').style.display='none';
@@ -1337,6 +1485,7 @@ function initApp(){
   buildNavigation();updateTopbar();buildTicker();
   const def=u.role==='superadmin'?'superadmin':u.role==='admin'?'admin':'dashboard';
   navigateTo(def);
+  if(state.lang==='en') setTimeout(applyLang,200);
 }
 
 function buildNavigation(){
@@ -1426,6 +1575,7 @@ function renderPage(p){
     reflection:renderReflectionPage,teams:renderTeamsPage,blog:renderBlogPage,
     tx:renderTxPage,feedback:renderFeedback,admin:renderAdminPage,
     superadmin:renderSuperPage,konzept:renderKonzept})[p]?.();
+  if(state.lang==='en') setTimeout(applyLang,80);
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1507,15 +1657,43 @@ function renderDashboard(){
         <div class="act-body"><div class="act-text"><strong>${team?.name}</strong>: ${tx.desc} <strong style="color:${tx.type==='income'?'var(--green)':'var(--red)'}">${tx.type==='income'?'+':'-'}${fmtEur(tx.amount)}</strong></div>
         <div class="act-time">${fmtDate(tx.date)}</div></div></div>`;
     }).join('');
-  // Chart
+  // Chart — echte Wochendaten
   if(state.revenueChart) state.revenueChart.destroy();
   const ctx=document.getElementById('revenueChart').getContext('2d');
-  const weeks=['19. Mrz','23. Mrz','30. Mrz','6. Apr','10. Apr','24. Apr'];
-  state.revenueChart=new Chart(ctx,{type:'line',data:{labels:weeks,
-    datasets:teams.slice(0,5).map(team=>({label:team.name,data:weeks.map((_,i)=>+(team.revenue*0.5*(i+1)/weeks.length+Math.random()*3).toFixed(2)),
-      borderColor:team.color,backgroundColor:team.color+'22',borderWidth:2,tension:0.4,fill:false,pointRadius:3}))},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}},
-      scales:{y:{ticks:{callback:v=>v+'€'},grid:{color:'#E0E7F0'}},x:{grid:{display:false}}}}});
+  const chartGame=u.gameId?GAMES.find(g=>g.id===u.gameId):GAMES[0];
+  const maxWeek=teams.length?Math.max(...teams.map(t=>t.currentWeek)):1;
+  const weekLabels=Array.from({length:maxWeek},(_,i)=>'W'+(i+1));
+  // Für jedes Team: Umsatz kumuliert pro Woche
+  function getWeekForDate(dateStr,gameStart){
+    if(!dateStr||!gameStart) return 1;
+    const diff=(new Date(dateStr)-new Date(gameStart))/(1000*60*60*24);
+    return Math.max(1,Math.ceil((diff+1)/7));
+  }
+  const datasets=teams.slice(0,6).map(team=>{
+    const weekRevs=Array(maxWeek).fill(0);
+    TRANSACTIONS.filter(tx=>tx.teamId===team.id&&tx.type==='income').forEach(tx=>{
+      const w=getWeekForDate(tx.date,chartGame?.start)-1;
+      if(w>=0&&w<maxWeek) weekRevs[w]+=tx.amount;
+    });
+    // kumuliert
+    const cumData=weekRevs.reduce((acc,v,i)=>{acc.push(+(((acc[i-1]||0)+v).toFixed(2)));return acc;},[]);
+    return {label:team.name,data:cumData,borderColor:team.color,backgroundColor:team.color+'22',
+      borderWidth:2,tension:0.3,fill:false,pointRadius:4,pointHoverRadius:6};
+  });
+  const hasData=datasets.some(d=>d.data.some(v=>v>0));
+  if(!hasData){
+    // Leere Anzeige wenn keine Transaktionen
+    document.getElementById('revenueChart').parentElement.innerHTML=
+      '<div style="height:180px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--gray-mid);">'+
+      '<div style="font-size:32px;">📈</div><div style="font-size:13px;">Noch keine Buchungen — startet hier sobald Umsätze erfasst werden</div></div>';
+    return;
+  }
+  state.revenueChart=new Chart(ctx,{type:'line',data:{labels:weekLabels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtEur(c.parsed.y)+' (kum.)'}}},
+      scales:{y:{ticks:{callback:v=>fmtEur(v)},grid:{color:'#E0E7F0'},beginAtZero:true},
+        x:{grid:{display:false}}}}});
 }
 
 function renderLeaderboard(elId,teams){
@@ -1688,6 +1866,11 @@ function renderMembersSection(team){
           ${isMe?`<button class="btn btn-outline btn-xs" style="margin-top:6px;" onclick="navigateTo('profile')">✏️ Bearbeiten</button>`:`<div style="font-size:10px;color:var(--gray-mid);margin-top:4px;">Code: <code>${m.code}</code></div>`}
         </div>
       </div>`;}).join('')}</div>`;
+  // CEO management tab visibility
+  const ceotab=document.getElementById('ceomgmtTab');
+  const cusr=state.currentUser;
+  const myMem=MEMBERS.find(mb=>mb.code===cusr.code);
+  if(ceotab) ceotab.style.display=(myMem?.role==='CEO'||cusr.role==='admin'||cusr.role==='superadmin')?'':'none';
 }
 
 function renderMyTransactions(team){
@@ -1741,21 +1924,59 @@ function renderProfile(){
       <div style="font-size:12px;opacity:.7;margin-top:4px;font-style:italic;">${m.bio||'Noch keine Bio hinterlegt.'}</div>
     </div>`;
   document.getElementById('profileEditForm').innerHTML=`
-    <div class="form-section-title">Mein Profil bearbeiten</div>
-    <div class="form-group"><label class="form-label">Name</label>
+    <div class="form-section-title">${state.lang==='en'?'Edit My Profile':'Mein Profil bearbeiten'}</div>
+    <div class="form-group"><label class="form-label">${state.lang==='en'?'Name':'Name'}</label>
       <input class="form-control" id="mpName" value="${m.name}"></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Rolle / Funktion</label>
+      <div class="form-group"><label class="form-label">${state.lang==='en'?'Role / Function':'Rolle / Funktion'}</label>
         <select class="form-control" id="mpRole">
           ${['CEO','CFO','CMO','COO','CTO','Gründer','Berater','Sonstiges'].map(r=>`<option ${m.role===r?'selected':''}>${r}</option>`).join('')}
         </select></div>
-      <div class="form-group"><label class="form-label">Titel (z.B. Geschäftsführer)</label>
+      <div class="form-group"><label class="form-label">${state.lang==='en'?'Title (e.g. Managing Director)':'Titel (z.B. Geschäftsführer)'}</label>
         <input class="form-control" id="mpTitle" value="${m.title||''}"></div>
     </div>
-    <div class="form-group"><label class="form-label">Bio (max. 200 Zeichen)</label>
+    <div class="form-group"><label class="form-label">E-Mail <span style="font-size:10px;color:var(--gray-mid);">(${state.lang==='en'?'for notifications':'für Benachrichtigungen'})</span></label>
+      <input type="email" class="form-control" id="mpEmail" placeholder="${state.lang==='en'?'your@email.com':'deine@email.de'}" value="${m.email||''}"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${state.lang==='en'?'Language':'Sprache'}</label>
+        <select class="form-control" id="mpLang">
+          <option value="de" ${(m.lang||'de')==='de'?'selected':''}>🇩🇪 Deutsch</option>
+          <option value="en" ${m.lang==='en'?'selected':''}>🇬🇧 English</option>
+        </select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Bio (max. 200 ${state.lang==='en'?'characters':'Zeichen'})</label>
       <textarea class="form-control" id="mpBio" rows="3" maxlength="200" oninput="countChars(this,'mpBioCount',200)">${m.bio||''}</textarea>
       <div class="char-counter" id="mpBioCount">${(m.bio||'').length} / 200</div></div>
-    <button class="btn btn-primary btn-sm" onclick="saveMemberProfile()">💾 Profil speichern</button>`;
+    <div class="form-section-title" style="margin-top:18px;">${state.lang==='en'?'Notifications':'Benachrichtigungen'} <span style="font-size:11px;font-weight:400;color:var(--gray-mid);">${state.lang==='en'?'(requires email)':'(erfordert E-Mail)'}</span></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="mpNotifBlog" ${(m.notif&&m.notif.blog!==false)?'checked':''}> ${state.lang==='en'?'Blog report approved':'Wochenbericht freigegeben'}</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="mpNotifWeek" ${(m.notif&&m.notif.week!==false)?'checked':''}> ${state.lang==='en'?'New week starts':'Neue Woche startet'}</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="mpNotifReflect" ${(m.notif&&m.notif.reflect!==false)?'checked':''}> ${state.lang==='en'?'Reflection reminder (Saturday)':'Reflexions-Erinnerung (Samstag)'}</label>
+    </div>
+    <div class="form-section-title" style="margin-top:18px;">${state.lang==='en'?'Security':'Sicherheit'}</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="showChangePassword()">🔐 ${state.lang==='en'?'Change Password':'Passwort ändern'}</button>
+      <span id="pwdStatusBadge"></span>
+    </div>
+    <div id="changePwdSection" style="display:none;background:var(--bg-light);padding:14px;border-radius:var(--radius);margin-bottom:14px;">
+      <div class="form-group"><label class="form-label">${state.lang==='en'?'Current Password (leave empty if none set)':'Aktuelles Passwort (leer lassen wenn keins gesetzt)'}</label>
+        <input type="password" class="form-control" id="cpOld" placeholder="(${state.lang==='en'?'current password':'aktuelles Passwort'})"></div>
+      <div class="form-group"><label class="form-label">${state.lang==='en'?'New Password (min. 6 characters)':'Neues Passwort (mind. 6 Zeichen)'}</label>
+        <input type="password" class="form-control" id="cpNew1" placeholder="${state.lang==='en'?'New password':'Neues Passwort'}"></div>
+      <div class="form-group"><label class="form-label">${state.lang==='en'?'Confirm Password':'Passwort bestätigen'}</label>
+        <input type="password" class="form-control" id="cpNew2" placeholder="${state.lang==='en'?'Confirm':'Bestätigen'}"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="doChangePassword()">✅ ${state.lang==='en'?'Save':'Speichern'}</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('changePwdSection').style.display='none'">✗ ${state.lang==='en'?'Cancel':'Abbrechen'}</button>
+      </div>
+    </div>
+    <div class="info-box blue" style="font-size:11px;margin-bottom:14px;">
+      <span class="info-box-icon">🔑</span>${state.lang==='en'?'Your access code: ':'Dein Zugangscode: '}<strong style="font-family:monospace;letter-spacing:1px;">${state.currentUser?.code||''}</strong>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveMemberProfile()">💾 ${state.lang==='en'?'Save Profile':'Profil speichern'}</button>`;
   document.getElementById('profileAvatarSection').innerHTML=`
     <div class="form-section-title">Profilfoto</div>
     ${m.avatarDataUrl?`<div style="margin-bottom:10px;text-align:center;"><img src="${m.avatarDataUrl}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--blue-light);"><br><button class="btn btn-secondary btn-xs" style="margin-top:6px;" onclick="removeAvatar()">🗑️ Entfernen</button></div>`:''}
@@ -1764,6 +1985,15 @@ function renderProfile(){
     </div>
     <div class="form-hint" style="margin-top:6px;">Dein Foto ist für alle Teammitglieder sichtbar.</div>`;
   renderMyReflections();
+  // Update password status badge
+  const psBadge=document.getElementById('pwdStatusBadge');
+  if(psBadge){
+    const hasPwd=!!getPwds()[state.currentUser?.code];
+    const lng=state.lang==='en';
+    psBadge.innerHTML=hasPwd
+      ?`<span style="color:var(--green)">✅ ${lng?'Password set':'Passwort gesetzt'}</span>`
+      :`<span style="color:var(--orange)">⚠️ ${lng?'No password yet (insecure)':'Noch kein Passwort (unsicher)'}</span>`;
+  }
 }
 
 function switchProfileTab(tab){
@@ -1773,6 +2003,7 @@ function switchProfileTab(tab){
   document.querySelectorAll('#page-profile .profile-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('profilePanel-'+tab)?.classList.add('active');
   if(tab==='myreflections') renderMyReflections();
+  if(tab==='ceomgmt') renderCeoManagement();
 }
 
 function renderMyReflections(){
@@ -1934,8 +2165,8 @@ function renderFeedback(){
       <h2>💬 Feedback, Infos &amp; Bugreports</h2>
       <p>Verbesserungsvorschläge, technische Probleme oder allgemeine Fragen – alles hier.</p>
     </div>
+    <div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">📬</span>Dein Feedback wird direkt an den Dozenten (<strong>christian.neusser@me.com</strong>) und in ein Google Sheet weitergeleitet.</div>
     <div class="feedback-type-grid">
-      <div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">📬</span>Dein Feedback wird direkt an den Dozenten (<strong>christian.neusser@me.com</strong>) und in ein Google Sheet weitergeleitet.</div>
       <div class="feedback-type-card" onclick="selectFeedbackType('info',this)"><div class="feedback-type-icon">ℹ️</div><div class="feedback-type-label">Info anfragen</div><div class="feedback-type-desc">Fragen zur Plattform oder zum Spiel</div></div>
       <div class="feedback-type-card" onclick="selectFeedbackType('improvement',this)"><div class="feedback-type-icon">💡</div><div class="feedback-type-label">Verbesserungsvorschlag</div><div class="feedback-type-desc">Ideen für neue Features</div></div>
       <div class="feedback-type-card" onclick="selectFeedbackType('bug',this)"><div class="feedback-type-icon">🐛</div><div class="feedback-type-label">Bugreport</div><div class="feedback-type-desc">Fehler oder technische Probleme melden</div></div>
@@ -1953,6 +2184,7 @@ function renderFeedback(){
       </div></div>
     </div>
     <div class="section-header" style="margin-top:28px;"><div class="section-title">❓ Häufige Fragen</div></div>
+    <div id="faqDocSection"></div>
     <div id="faqList">
       ${[
         ['Wie reiche ich meinen Wochenbericht ein?','Im Bereich "Mein Team" → "Berichte" auf "+ Bericht einreichen" klicken. Nach Admin-Freigabe startet automatisch die nächste Woche.'],
@@ -2020,8 +2252,12 @@ async function submitFeedback(){
 function renderAdminPage(){
   const u=state.currentUser;
   if(u.role==='team'||u.role==='member'){navigateTo('dashboard');return;}
-  const game=GAMES.find(g=>g.id===u.gameId)||GAMES[0];
-  document.getElementById('adminHeroSub').textContent=game.name+' · '+game.uni;
+  const effectiveGameId = state.managingGameId || u.gameId;
+  const game=GAMES.find(g=>g.id===effectiveGameId)||GAMES[0];
+  // Back-Button für Superadmin anzeigen
+  const backBtn = document.getElementById('adminBackToSuper');
+  if(backBtn) backBtn.style.display = (u.role==='superadmin' && state.managingGameId) ? 'inline-flex' : 'none';
+  if(game) document.getElementById('adminHeroSub').textContent=game.name+' · '+(game.uni||'');
   renderApprovalQueue();renderWeeksAdmin();renderReflectionsAdmin();renderAdminTeamsTable();renderAdminTxTable();renderCodesPanel();
   // notification dots
   const pending=BLOGS.filter(b=>b.status==='pending').length;
@@ -2071,7 +2307,7 @@ function renderWeeksAdmin(){
           <td style="text-align:center;font-weight:700;">Woche ${team.currentWeek}</td>
           <td><span class="tag ${team.weekStatus==='approved'?'tag-green':team.weekStatus==='submitted'?'tag-orange':'tag-blue'}">${team.weekStatus==='submitted'?'⏳ Eingereicht':team.weekStatus==='approved'?'✅ Freigegeben':'📝 Offen'}</span></td>
           <td>${blog?`<button class="btn btn-success btn-xs" onclick="approveBlogAndAdvance('${blog.id}','${team.id}')">✅ Freigeben + W${team.currentWeek+1} starten</button>`:'—'}</td>
-          <td><button class="btn btn-outline btn-xs" onclick="manualAdvanceWeek('${team.id}')">⏭️ Manuell weiter</button></td>
+          <td style="display:flex;gap:4px;"><button class="btn btn-outline btn-xs" onclick="manualRollbackWeek('${team.id}')" title="Eine Woche zurück">⏮️ Zurück</button><button class="btn btn-outline btn-xs" onclick="manualAdvanceWeek('${team.id}')">⏭️ Weiter</button></td>
         </tr>`;}).join('')}</tbody>
     </table>`;
 }
@@ -2175,9 +2411,10 @@ function renderSuperPage(){
         <div class="game-stat"><div class="game-stat-val">${fmtEur(game.capital)}</div><div class="game-stat-lbl">Start</div></div>
       </div>
     </div>
-    <div class="game-card-footer"><button class="btn btn-primary btn-sm" onclick="showToast('Demo','info')">⚙️ Verwalten</button></div>
+    <div class="game-card-footer"><button class="btn btn-primary btn-sm" onclick="manageGameAsSuperAdmin('${game.id}')">⚙️ Verwalten</button></div>
   </div>`).join('');
   // Admins
+  renderSuperAdminList();
   document.getElementById('adminListRows').innerHTML=ADMINS.map(a=>{const game=GAMES.find(g=>g.id===a.gameId);return `<div class="admin-list-row">
     <div><strong>${a.name}</strong><div style="font-size:10px;color:var(--gray-mid);">${a.email}</div></div>
     <div><span class="uni-badge">🏫 ${a.uni}</span></div><div style="font-size:11px;">${game?game.name:'—'}</div>
@@ -2354,12 +2591,22 @@ function approveBlog(id){
   }
   saveData();renderApprovalQueue();renderWeeksAdmin();renderBlogPage();
   showToast('✅ Bericht freigegeben! '+team?.name+' startet Woche '+team?.currentWeek);
+  if(team) sendNotification('blog',team.id,(team.currentWeek-1));
+  if(team) sendNotification('week',team.id,team.currentWeek);
 }
 function approveBlogAndAdvance(blogId,teamId){approveBlog(blogId);}
 function manualAdvanceWeek(teamId){
   const team=TEAMS.find(t=>t.id===teamId);if(!team)return;
   team.currentWeek++;team.weekStatus='open';
-  renderWeeksAdmin();showToast('⏭️ '+team.name+' – Woche '+team.currentWeek+' gestartet');
+  saveData();renderWeeksAdmin();showToast('⏭️ '+team.name+' – Woche '+team.currentWeek+' gestartet');
+  sendNotification('week',team.id,team.currentWeek);
+}
+function manualRollbackWeek(teamId){
+  const team=TEAMS.find(t=>t.id===teamId);if(!team)return;
+  if(team.currentWeek<=1){showToast('Bereits in Woche 1','info');return;}
+  if(!confirm('Team "'+team.name+'" eine Woche zurücksetzen auf Woche '+(team.currentWeek-1)+'? Der Bericht der aktuellen Woche bleibt erhalten.')) return;
+  team.currentWeek--;team.weekStatus='open';
+  saveData();renderWeeksAdmin();showToast('⏮️ '+team.name+' – zurück auf Woche '+team.currentWeek);
 }
 function quickApprove(id){approveBlog(id);}
 function rejectBlog(id){const b=BLOGS.find(x=>x.id===id);if(b){b.status='pending';renderApprovalQueue();showToast('🔄 Überarbeitung angefragt','info');}}
@@ -2467,7 +2714,38 @@ function saveMemberProfile(){
   m.role=document.getElementById('mpRole').value;
   m.title=document.getElementById('mpTitle').value.trim();
   m.bio=document.getElementById('mpBio').value.trim();
-  saveData();showToast('💾 Profil gespeichert!');renderProfile();updateTopbar();
+  m.email=document.getElementById('mpEmail')?.value.trim()||'';
+  const langEl=document.getElementById('mpLang');
+  if(langEl){m.lang=langEl.value;state.lang=m.lang;if(m.lang==='en')setTimeout(applyLang,100);}
+  if(!m.notif) m.notif={};
+  m.notif.blog=document.getElementById('mpNotifBlog')?.checked!==false;
+  m.notif.week=document.getElementById('mpNotifWeek')?.checked!==false;
+  m.notif.reflect=document.getElementById('mpNotifReflect')?.checked!==false;
+  saveData();
+  showToast(state.lang==='en'?'Profile saved!':'Profil gespeichert!');
+  renderProfile();updateTopbar();
+}
+function showChangePassword(){
+  document.getElementById('changePwdSection').style.display='block';
+}
+async function doChangePassword(){
+  const code=state.currentUser?.code;
+  const oldPwd=document.getElementById('cpOld').value;
+  const np1=document.getElementById('cpNew1').value;
+  const np2=document.getElementById('cpNew2').value;
+  const pwds=getPwds();
+  const lng=state.lang==='en';
+  if(np1.length<6){showToast(lng?'Min. 6 characters':'Mind. 6 Zeichen','error');return;}
+  if(np1!==np2){showToast(lng?'Passwords do not match':'Passwörter stimmen nicht überein','error');return;}
+  if(pwds[code]){
+    const oldHash=await hashPwd(oldPwd);
+    if(pwds[code]!==oldHash){showToast(lng?'Wrong current password':'Falsches aktuelles Passwort','error');return;}
+  }
+  const newHash=await hashPwd(np1);
+  savePwd(code,newHash);
+  document.getElementById('changePwdSection').style.display='none';
+  showToast(lng?'Password changed successfully!':'Passwort erfolgreich geändert!');
+  renderProfile();
 }
 function removeAvatar(){const m=getMyMember();if(m){m.avatarDataUrl=null;renderProfile();}}
 function handleAvatarUpload(e){
@@ -2495,6 +2773,8 @@ window.openModal=function(id){
   origOpenModal(id);
   if(id==='modalNewGame') prepareNewGameModal();
   if(id==='modalNewAdmin') prepareNewAdminModal();
+  if(id==='modalEditSuperProfile') openSuperProfileEdit();
+  if(id==='modalNewSuperAdmin'){document.getElementById('nsaCode').value=makeSuperCode();}
   if(id==='modalNewTeam'){prepareNewTeamModal();document.getElementById('ntGameInfoBox').style.display='block';}
   if(id==='modalBlog'){
     const team=getMyTeam();
@@ -2812,6 +3092,455 @@ function genTeamCode(){
   document.getElementById('ntCode').value = name ? makeUniqueTeamCode(name) : 'TEAM-'+Math.random().toString(36).substring(2,6).toUpperCase();
 }
 function copyCode(c){navigator.clipboard?.writeText(c);showToast('📋 Kopiert: '+c,'info');}
+
+// ════════════════════════════════════════════════════════════════════
+//  SUPERADMIN: Spiel verwalten, Profil, Ernennung
+// ════════════════════════════════════════════════════════════════════
+function manageGameAsSuperAdmin(gameId){
+  state.managingGameId = gameId;
+  navigateTo('admin');
+}
+function backToSuperAdmin(){
+  state.managingGameId = null;
+  navigateTo('superadmin');
+}
+function makeSuperCode(){
+  const r=()=>Math.random().toString(36).substring(2,4).toUpperCase();
+  return 'SUPER-'+r()+r();
+}
+function openSuperProfileEdit(){
+  const u=state.currentUser;
+  document.getElementById('espName').value = u.name||'';
+  document.getElementById('espEmail').value = u.email||'';
+  document.getElementById('espCode').value = u.code||'SUPER-NEUSS';
+  openModal('modalEditSuperProfile');
+}
+function saveSuperProfile(){
+  const name = document.getElementById('espName').value.trim();
+  const email = document.getElementById('espEmail').value.trim();
+  const newCode = document.getElementById('espCode').value.trim().toUpperCase()||'SUPER-NEUSS';
+  if(!name){showToast('Bitte Name eingeben','error');return;}
+  const oldCode = state.currentUser.code;
+  // Remove old code from CODES, add new
+  delete CODES[oldCode];
+  CODES[newCode] = {role:'superadmin', name, email, label:'Superadmin'};
+  // Update main SUPER-NEUSS if that was the old code
+  if(oldCode==='SUPER-NEUSS'){
+    // Patch the hardcoded entry too if code didn't change
+    if(newCode==='SUPER-NEUSS'){
+      CODES['SUPER-NEUSS'] = {role:'superadmin', name, email, label:'Superadmin'};
+    }
+  }
+  state.currentUser.name = name;
+  state.currentUser.email = email;
+  state.currentUser.code = newCode;
+  saveData();
+  closeModal('modalEditSuperProfile');
+  showToast('✅ Profil gespeichert. Neuer Code: '+newCode);
+  renderSuperPage();
+  // Update badge
+  const badge = document.getElementById('roleBadge');
+  if(badge) badge.innerHTML='👑 '+name+' · Superadmin';
+}
+function createSuperAdmin(){
+  const name = document.getElementById('nsaName').value.trim();
+  const email = document.getElementById('nsaEmail').value.trim();
+  const code = document.getElementById('nsaCode').value.trim().toUpperCase()||makeSuperCode();
+  if(!name){showToast('Bitte Name angeben','error');return;}
+  if(CODES[code]){showToast('Code bereits vergeben','error');return;}
+  const saId = nextId(SUPERADMINS,'sa');
+  SUPERADMINS.push({id:saId, name, email, code});
+  rebuildCodes(); saveData();
+  closeModal('modalNewSuperAdmin');
+  showToast('👑 Superadmin "'+name+'" ernannt – Code: '+code);
+  renderSuperPage();
+}
+function renderSuperAdminList(){
+  const el = document.getElementById('superAdminListRows');
+  if(!el) return;
+  const rows = [{name:'Prof. Neusser', email:'christian.neusser@me.com', code:'SUPER-NEUSS', builtin:true}, ...SUPERADMINS];
+  el.innerHTML = rows.map(sa => `<div class="admin-list-row">
+    <div><strong>👑 ${sa.name}</strong><div style="font-size:10px;color:var(--gray-mid);">${sa.email||''}</div></div>
+    <div><span style="font-size:11px;color:var(--gray-mid);">${sa.builtin?'Haupt-Superadmin':'Ernannt'}</span></div>
+    <div style="font-size:11px;color:var(--gray-mid);">Alle Spiele</div>
+    <div><span class="blog-status status-approved">✅</span></div>
+    <div style="display:flex;gap:3px;">
+      <button class="btn btn-outline btn-xs" onclick="showToast('Code: ${sa.code}','info')">🔑</button>
+      ${!sa.builtin ? `<button class="btn btn-danger btn-xs" onclick="removeSuperAdmin('${sa.id}')">🗑️</button>` : ''}
+    </div>
+  </div>`).join('');
+}
+function removeSuperAdmin(id){
+  if(!confirm('Superadmin wirklich entfernen?')) return;
+  const idx = SUPERADMINS.findIndex(sa=>sa.id===id);
+  if(idx>=0) SUPERADMINS.splice(idx,1);
+  rebuildCodes(); saveData();
+  renderSuperPage();
+  showToast('Superadmin entfernt');
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+async function sendNotification(type, teamId, extra){
+  const team=TEAMS.find(t=>t.id===teamId);if(!team)return;
+  const members=MEMBERS.filter(m=>m.teamId===teamId&&m.email);
+  if(!members.length)return;
+  const game=GAMES.find(g=>g.id===team.gameId);
+  const subjects={
+    blog:  {de:'✅ Wochenbericht freigegeben – Woche '+(extra||''),       en:'✅ Weekly report approved – Week '+(extra||'')},
+    week:  {de:'🚀 Neue Woche '+(extra||'')+' startet – '+team.name,     en:'🚀 New week '+(extra||'')+' starts – '+team.name},
+    reflect:{de:'📝 Reflexion noch ausstehend – bis Samstag 23:59',       en:'📝 Reflection pending – due Saturday 23:59'}
+  };
+  const bodies={
+    blog:  {de:`Hallo Team ${team.name},\n\neuer Wochenbericht für Woche ${extra} wurde freigegeben. Ihr seid jetzt in der nächsten Woche.\n\nBei Fragen: ${CONFIG.ADMIN_EMAIL}`,
+            en:`Hi Team ${team.name},\n\nYour weekly report for week ${extra} has been approved. You are now in the next week.\n\nQuestions: ${CONFIG.ADMIN_EMAIL}`},
+    week:  {de:`Hallo Team ${team.name},\n\nWoche ${extra} hat begonnen. Erfasst eure Buchungen und reicht bis Sonntag 23:59 den Wochenbericht ein.\n\nErreichbar unter: ${CONFIG.ADMIN_EMAIL}`,
+            en:`Hi Team ${team.name},\n\nWeek ${extra} has started. Record your transactions and submit your weekly report by Sunday 23:59.\n\nContact: ${CONFIG.ADMIN_EMAIL}`},
+    reflect:{de:`Hallo,\n\nerinnerung: bitte heute noch deine Reflexion für ${team.name} einreichen (Deadline: Samstag 23:59).\n\nZugangscode: [dein Code]\nSpiel: ${game?.name||''}`,
+             en:`Hi,\n\nreminder: please submit your reflection for ${team.name} today (deadline: Saturday 23:59).\n\nAccess code: [your code]\nGame: ${game?.name||''}`}
+  };
+  for(const member of members){
+    const notifKey=type;
+    if(!member.notif||member.notif[notifKey]===false) continue;
+    const lang=member.lang||'de';
+    const subj=subjects[type][lang];
+    const body=bodies[type][lang];
+    try{
+      await fetch(CONFIG.FEEDBACK_ENDPOINT,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'notification',to:member.email,subject:subj,message:body,sender:member.name,team:team.name,game:game?.name||''})
+      });
+    }catch(e){console.warn('Notification failed',e);}
+  }
+}
+
+// ── CEO / ADMIN TEAM MANAGEMENT ─────────────────────────────────────────────
+function renderCeoManagement(){
+  const team=getMyTeam();if(!team)return;
+  const el=document.getElementById('ceoMgmtSection');if(!el)return;
+  const members=MEMBERS.filter(m=>m.teamId===team.id);
+  const game=GAMES.find(g=>g.id===team.gameId);
+  const maxSize=game?.teamSize||4;
+  const lng=state.lang==='en';
+  el.innerHTML=`
+    <div class="section-header">
+      <div class="section-title">&#128081; ${lng?'Team Management':'Team-Verwaltung'}</div>
+      ${members.length<maxSize?`<button class="btn btn-primary btn-sm" onclick="openAddMemberModal('${team.id}')">+ ${lng?'Add Member':'Mitglied hinzufügen'}</button>`:''}
+    </div>
+    <div class="info-box gold" style="margin-bottom:14px;">
+      <span class="info-box-icon">&#128274;</span>${lng?'Access codes are shown here. Share them only with the respective team members.':'Zugangscodes werden hier angezeigt. Teile sie nur mit den jeweiligen Teammitgliedern.'}
+    </div>
+    <div class="data-table-wrap">
+      <div class="admin-list-row header"><div>${lng?'Name':'Name'}</div><div>${lng?'Role':'Rolle'}</div><div>${lng?'Email':'E-Mail'}</div><div>${lng?'Access Code':'Zugangscode'}</div><div>${lng?'Actions':'Aktionen'}</div></div>
+      ${members.map(m=>`<div class="admin-list-row">
+        <div><strong>${m.name}</strong>${m.role==='CEO'?` <span class="tag tag-gold" style="font-size:9px;">CEO</span>`:''}</div>
+        <div><span style="font-size:12px;">${m.role}</span></div>
+        <div style="font-size:11px;color:var(--gray-mid);">${m.email||`<em>${lng?'not set':'nicht hinterlegt'}</em>`}</div>
+        <div><code style="font-size:11px;background:var(--bg-light);padding:2px 6px;border-radius:4px;">${m.code}</code></div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-xs" onclick="copyCeoCode('${m.code}')" title="${lng?'Copy code':'Code kopieren'}">&#128203;</button>
+          <button class="btn btn-outline btn-xs" onclick="editMemberFromCeo('${m.id}')" title="${lng?'Edit':'Bearbeiten'}">&#9998;</button>
+          ${m.role!=='CEO'?`<button class="btn btn-danger btn-xs" onclick="removeMemberFromCeo('${m.id}')" title="${lng?'Remove':'Entfernen'}">&#128465;</button>`:''}
+        </div>
+      </div>`).join('')}
+    </div>`;
+}
+function copyCeoCode(code){
+  navigator.clipboard?.writeText(code).then(()=>showToast((state.lang==='en'?'Code copied: ':'Code kopiert: ')+code,'info'));
+}
+function openAddMemberModal(teamId){
+  document.getElementById('nmTeamId').value=teamId;
+  document.getElementById('nmName').value='';
+  document.getElementById('nmRole').value='CFO';
+  openModal('modalNewMember');
+}
+function editMemberFromCeo(memberId){
+  const m=MEMBERS.find(x=>x.id===memberId);if(!m)return;
+  const lng=state.lang==='en';
+  const name=prompt((lng?'Name for ':'Name für ')+m.name+':',m.name);
+  if(name&&name.trim()) m.name=name.trim();
+  const role=prompt((lng?'Role (CEO/CFO/CMO/COO/CTO):':'Rolle (CEO/CFO/CMO/COO/CTO):'),m.role);
+  if(role&&role.trim()) m.role=role.trim().toUpperCase();
+  saveData();renderCeoManagement();renderMembersSection(getMyTeam());
+  showToast(lng?'Member updated.':'Mitglied aktualisiert.');
+}
+function removeMemberFromCeo(memberId){
+  const m=MEMBERS.find(x=>x.id===memberId);if(!m)return;
+  const lng=state.lang==='en';
+  if(!confirm((lng?'Remove ':'Mitglied ')+m.name+(lng?' from the team?':' aus dem Team entfernen?'))) return;
+  const idx=MEMBERS.indexOf(m);
+  MEMBERS.splice(idx,1);
+  rebuildCodes();saveData();
+  renderCeoManagement();renderMembersSection(getMyTeam());
+  showToast(lng?m.name+' removed.':m.name+' entfernt.');
+}
+
+// ── FAQ DOCS ──────────────────────────────────────────────────────────────────
+function renderFaqDocs(container){
+  if(FAQ_DOCS.length===0 && state.currentUser?.role!=='superadmin') return;
+  const lng=state.lang==='en';
+  const docTypeLabels={
+    instructions:{de:'Spielanleitung',en:'Game Instructions',icon:'📘'},
+    howto:{de:'How to Play',en:'How to Play',icon:'🎯'},
+    template:{de:'Vorlage',en:'Template',icon:'📄'},
+    other:{de:'Dokument',en:'Document',icon:'📎'}
+  };
+  let html2=`<div class="section-header" style="margin-top:28px;">
+    <div class="section-title">&#128196; ${lng?'Documents & Guides':'Dokumente &amp; Anleitungen'}</div>
+    ${state.currentUser?.role==='superadmin'?`<button class="btn btn-purple btn-sm" onclick="openModal('modalUploadDoc')">+ ${lng?'Add Document':'Dokument hinzufügen'}</button>`:''}
+  </div>`;
+  if(FAQ_DOCS.length===0){
+    html2+=`<div class="empty-state" style="padding:20px;"><div class="empty-icon">📄</div><p>${lng?'No documents yet. Add game instructions or how-to guides here.':'Noch keine Dokumente. Füge hier Spielanleitung oder How-to-Guides hinzu.'}</p></div>`;
+  } else {
+    html2+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">`;
+    FAQ_DOCS.forEach(doc=>{
+      const t=docTypeLabels[doc.type]||docTypeLabels.other;
+      html2+=`<div class="card">
+        <div class="card-body" style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="font-size:32px;line-height:1;">${t.icon}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;color:var(--blue-dark);margin-bottom:3px;">${doc.title}</div>
+            <div style="font-size:11px;color:var(--gray-mid);margin-bottom:8px;">${doc.desc||t[lng?'en':'de']}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${doc.url?`<a href="${doc.url}" target="_blank" class="btn btn-primary btn-xs">&#128196; ${lng?'Open':'Öffnen'}</a>`:''}
+              ${doc.data?`<button class="btn btn-primary btn-xs" onclick="openPdfDoc('${doc.id}')">&#128196; ${lng?'View PDF':'PDF anzeigen'}</button>`:''}
+              ${state.currentUser?.role==='superadmin'?`<button class="btn btn-danger btn-xs" onclick="removeFaqDoc('${doc.id}')">&#128465;</button>`:''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html2+=`</div>`;
+  }
+  container.insertAdjacentHTML('afterbegin', html2);
+}
+function openPdfDoc(docId){
+  const doc=FAQ_DOCS.find(d=>d.id===docId);if(!doc||!doc.data)return;
+  const w=window.open();
+  w.document.write('<iframe src="'+doc.data+'" style="width:100%;height:100vh;border:none;"></iframe>');
+}
+function removeFaqDoc(docId){
+  if(!confirm('Dokument wirklich entfernen?'))return;
+  const idx=FAQ_DOCS.findIndex(d=>d.id===docId);
+  if(idx>=0) FAQ_DOCS.splice(idx,1);
+  saveData();
+  // re-render feedback page
+  if(state.currentPage==='feedback') navigateTo('feedback');
+  showToast('Dokument entfernt.');
+}
+function saveDocUpload(){
+  const title=document.getElementById('docTitle').value.trim();
+  if(!title){showToast('Bitte Titel angeben','error');return;}
+  const desc=document.getElementById('docDesc').value.trim();
+  const type=document.getElementById('docType').value;
+  const url=document.getElementById('docUrl').value.trim();
+  const file=document.getElementById('docFile').files[0];
+  const docId='doc'+Date.now();
+  if(file){
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      FAQ_DOCS.push({id:docId,title,desc,type,data:ev.target.result,url:'',date:new Date().toISOString().split('T')[0]});
+      saveData();
+      closeModal('modalUploadDoc');
+      showToast('Dokument hochgeladen!');
+      if(state.currentPage==='feedback') navigateTo('feedback');
+    };
+    reader.readAsDataURL(file);
+  } else if(url){
+    FAQ_DOCS.push({id:docId,title,desc,type,data:'',url,date:new Date().toISOString().split('T')[0]});
+    saveData();
+    closeModal('modalUploadDoc');
+    showToast('Dokument gespeichert!');
+    if(state.currentPage==='feedback') navigateTo('feedback');
+  } else {
+    showToast('Bitte Datei hochladen oder URL eingeben','error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  i18n — COMPLETE DE → EN TRANSLATION MAP
+// ═══════════════════════════════════════════════════════════════════════════════
+const TRANS_MAP = {
+  // Navigation
+  'Ranking':'Ranking', 'Mein Team':'My Team', 'Mein Profil':'My Profile',
+  'Reflexion':'Reflection', 'Blog':'Blog', 'Buchungen':'Transactions',
+  'Feedback':'Feedback', 'Konzept':'Concept', 'Admin':'Admin', 'Super':'Super',
+  // Dashboard stats
+  'Gesamtumsatz':'Total Revenue', 'Gewinn gesamt':'Total Profit',
+  'Transaktionen':'Transactions', 'Ø ROI':'Avg ROI',
+  'nach Kosten':'after costs', 'gesamt':'total', 'auf 5€ Start':'on €5 start',
+  'Aktuelles Ranking':'Current Ranking', 'Aktivitäten':'Activities',
+  'Umsatzentwicklung':'Revenue Development',
+  'Noch keine Buchungen — startet hier sobald Umsätze erfasst werden':'No transactions yet — chart appears as revenue is recorded',
+  // My Team tabs
+  'Übersicht':'Overview', 'Team-Profil':'Team Profile', 'Mitglieder':'Members',
+  'Berichte':'Reports', 'Verwaltung':'Management',
+  // Week states
+  'Offen':'Open', 'Eingereicht':'Submitted', 'Freigegeben':'Approved',
+  'Woche läuft':'Week running', 'wartet auf Freigabe':'awaiting approval',
+  // Common buttons
+  'Speichern':'Save', 'Abbrechen':'Cancel', 'Schließen':'Close',
+  'Bearbeiten':'Edit', 'Löschen':'Delete', 'Hinzufügen':'Add',
+  'Absenden':'Send', 'Zurück':'Back', 'Weiter':'Next',
+  'Kopieren':'Copy', 'Hochladen':'Upload',
+  'Profil speichern':'Save Profile', 'Änderungen speichern':'Save Changes',
+  // Profile
+  'Mein Profil bearbeiten':'Edit My Profile', 'Name':'Name',
+  'Rolle / Funktion':'Role / Function',
+  'Titel (z.B. Geschäftsführer)':'Title (e.g. Managing Director)',
+  'Bio (max. 200 Zeichen)':'Bio (max. 200 characters)',
+  'Profilfoto':'Profile Photo',
+  'Foto hochladen':'Upload Photo',
+  'Dein Foto ist für alle Teammitglieder sichtbar.':'Your photo is visible to all team members.',
+  'Dein Zugangscode':'Your access code',
+  'Passwort ändern':'Change Password',
+  'Passwort gesetzt':'Password set', 'Noch kein Passwort (unsicher)':'No password yet (insecure)',
+  'Aktuelles Passwort (leer lassen wenn keins gesetzt)':'Current Password (leave empty if none set)',
+  'Neues Passwort (mind. 6 Zeichen)':'New Password (min. 6 characters)',
+  'Passwort bestätigen':'Confirm Password',
+  'Sprache':'Language', 'Sicherheit':'Security',
+  'Benachrichtigungen':'Notifications',
+  'für Benachrichtigungen':'for notifications',
+  'erfordert E-Mail':'requires email',
+  'Wochenbericht freigegeben':'Blog report approved',
+  'Neue Woche startet':'New week starts',
+  'Reflexions-Erinnerung (Samstag)':'Reflection reminder (Saturday)',
+  // Team Profile
+  'Team-Name':'Team Name', 'Slogan':'Slogan', 'Geschäftsidee':'Business Idea',
+  'Beschreibung':'Description', 'Team-Farbe':'Team Color',
+  'Team-Logo':'Team Logo', 'Logo hochladen':'Upload Logo',
+  'Team-Logo anpassen':'Customize Team Logo',
+  // Reflection
+  'Persönliche Reflexion':'Personal Reflection',
+  'Neue Reflexion':'New Reflection',
+  'Erfahrung diese Woche':'Experience this week',
+  'Was lief gut?':'What went well?',
+  'Was kann verbessert werden?':'What can be improved?',
+  'Stimmung / Energie':'Mood / Energy',
+  'Mitglied der Woche (MVP)':'Member of the week (MVP)',
+  'Reflexion einreichen':'Submit Reflection',
+  'Meine Reflexionen':'My Reflections',
+  'Deine Reflexion ist nur für dich und den Dozenten sichtbar.':'Your reflection is only visible to you and the instructor.',
+  // Blog
+  'Wochenbericht einreichen':'Submit Weekly Report',
+  'Umsatz diese Woche':'Revenue this week',
+  'Was haben wir gelernt?':'What did we learn?',
+  'Ausblick nächste Woche':'Outlook next week',
+  'Herausforderungen':'Challenges',
+  'Bericht einreichen':'Submit report',
+  'Wochenberichte':'Weekly Reports',
+  // Transactions / Booking
+  'Buchung erfassen':'Record Transaction',
+  'Einnahme':'Income', 'Ausgabe':'Expense',
+  'Betrag (€)':'Amount (€)', 'Beschreibung':'Description',
+  'Kategorie':'Category', 'Datum':'Date',
+  'Umsatz':'Revenue', 'Gewinn':'Profit', 'Kosten':'Costs',
+  // Admin
+  'Admin-Panel':'Admin Panel', 'Blog-Freigabe':'Blog Approval',
+  'Wochen-Status':'Week Status', 'Reflexionen':'Reflections',
+  'Teams':'Teams', 'Codes':'Codes',
+  'Blog-Berichte zur Freigabe':'Blog reports for approval',
+  'Alle freigeben':'Approve all',
+  'Wochen-Status pro Team':'Week status per team',
+  'Jedes Team durchläuft die Wochen unabhängig voneinander.':'Each team progresses through weeks independently.',
+  'TEAM':'TEAM', 'AKTUELLE WOCHE':'CURRENT WEEK', 'STATUS':'STATUS',
+  'AKTION':'ACTION', 'Manuell weiter':'Manual advance',
+  'Nutzerverwaltung':'User Management',
+  'Zugangscode':'Access code',
+  // Superadmin
+  'Superadmin-Panel':'Superadmin Panel',
+  'Plattform-Verwaltung · Alle Spiele · Alle Hochschulen':'Platform Management · All Games · All Universities',
+  'Spiele':'Games', 'Admins':'Admins', 'Hochschulen':'Universities',
+  'Alle Reflexionen':'All Reflections',
+  'Neues Spiel anlegen':'Create new game',
+  'Admin ernennen':'Appoint admin',
+  'Superadmin ernennen':'Appoint superadmin',
+  'Mein Profil':'My Profile',
+  'Verwalten':'Manage',
+  'Neues Spiel':'New Game',
+  'Übersicht':'Overview',
+  // Feedback
+  'Feedback, Infos & Bugreports':'Feedback, Info & Bug Reports',
+  'Verbesserungsvorschläge, technische Probleme oder allgemeine Fragen – alles hier.':'Suggestions, technical issues or general questions — all here.',
+  'Info anfragen':'Request info',
+  'Fragen zur Plattform oder zum Spiel':'Questions about the platform or game',
+  'Verbesserungsvorschlag':'Suggestion',
+  'Ideen für neue Features':'Ideas for new features',
+  'Bugreport':'Bug report',
+  'Fehler oder technische Probleme melden':'Report errors or technical issues',
+  'Sonstiges':'Other',
+  'Allgemeine Nachrichten':'General messages',
+  'Häufige Fragen':'Frequently Asked Questions',
+  'Dokumente & Anleitungen':'Documents & Guides',
+  'Betreff':'Subject', 'Nachricht':'Message',
+  'Detaillierte Beschreibung...':'Detailed description...',
+  'Seite / Bereich':'Page / Section',
+  'Schritte zur Reproduktion':'Steps to reproduce',
+  'Dein Feedback wird direkt an den Dozenten':'Your feedback is sent directly to the instructor',
+  // Registration
+  'Registrierung':'Registration',
+  'Tritt einem aktiven Spiel bei':'Join an active game',
+  'DEIN NAME *':'YOUR NAME *',
+  'SEMESTER / SPIEL *':'SEMESTER / GAME *',
+  'Neues Team gründen':'Found a new team',
+  'Bestehendem Team beitreten':'Join existing team',
+  'Vorname Nachname':'First Last Name',
+  'Team-Name *':'Team Name *',
+  'Geschäftsidee (optional)':'Business idea (optional)',
+  'Team gründen & starten':'Found team & start',
+  'Team beitreten':'Join team',
+  'Dein Zugangscode:':'Your access code:',
+  'Notiere diesen Code! Du brauchst ihn zum Einloggen.':'Note this code! You need it to log in.',
+  'Mit diesem Code einloggen':'Log in with this code',
+  // Misc
+  'Noch keine Bio hinterlegt.':'No bio added yet.',
+  'Noch keine Bio.':'No bio yet.',
+  'Lade...':'Loading...', 'Fehler':'Error',
+  'Keine Daten':'No data',
+  'Keine Einträge':'No entries',
+  'Keine Teams':'No teams',
+  'Keine Reflexionen':'No reflections',
+  'Keine Buchungen':'No transactions',
+  // Konzept
+  'Konzept':'Concept',
+  // Week banners
+  ' läuft':' running',
+  'wartet auf Freigabe durch den Admin.':'awaiting approval by the admin.',
+  'Danach startet Woche':'After that, week',
+  'automatisch.':'starts automatically.',
+  'Freigabe erhalten!':'Approved!',
+  'abgeschlossen. Ihr seid jetzt in Woche':'completed. You are now in week',
+  'Wochenbericht eingereicht':'Weekly report submitted',
+};
+
+function applyLang(){
+  if(state.lang!=='en') return;
+  const root=document.getElementById('appShell')||document.body;
+  // Text nodes
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
+  const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    let t=n.textContent;
+    // Replace known German phrases (longest first to avoid partial replacement)
+    const keys=Object.keys(TRANS_MAP).sort((a,b)=>b.length-a.length);
+    for(const k of keys){
+      if(t.includes(k)){t=t.replaceAll(k,TRANS_MAP[k]);}
+    }
+    if(t!==n.textContent) n.textContent=t;
+  });
+  // Placeholders
+  root.querySelectorAll('[placeholder]').forEach(el=>{
+    const ph=el.getAttribute('placeholder');
+    if(ph&&TRANS_MAP[ph]) el.setAttribute('placeholder',TRANS_MAP[ph]);
+  });
+  // title attributes
+  root.querySelectorAll('[title]').forEach(el=>{
+    const ti=el.getAttribute('title');
+    if(ti&&TRANS_MAP[ti]) el.setAttribute('title',TRANS_MAP[ti]);
+  });
+}
+
 </script>
 
 <!-- MODAL: Mitglieder verwalten -->
@@ -2860,6 +3589,75 @@ function copyCode(c){navigator.clipboard?.writeText(c);showToast('📋 Kopiert: 
   <div class="modal-footer">
    <button class="btn btn-secondary" onclick="closeModal('modalCodeExport')">Schlie&#223;en</button>
    <button class="btn btn-primary" onclick="copyAllCodes()">&#128203; Alle Codes kopieren</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Superadmin-Profil bearbeiten -->
+<div class="modal-overlay" id="modalEditSuperProfile">
+ <div class="modal">
+  <div class="modal-header"><h3>&#9998; Mein Superadmin-Profil</h3><button class="modal-close" onclick="closeModal('modalEditSuperProfile')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="form-group"><label class="form-label">Anzeigename <span class="req">*</span></label>
+    <input class="form-control" id="espName" placeholder="z.B. Prof. Neusser"></div>
+   <div class="form-group"><label class="form-label">E-Mail</label>
+    <input type="email" class="form-control" id="espEmail" placeholder="ihre@email.de"></div>
+   <div class="form-group"><label class="form-label">Zugangscode</label>
+    <input class="form-control" id="espCode" placeholder="SUPER-XXXX" style="font-family:monospace;font-weight:700;letter-spacing:1px;"></div>
+   <div class="info-box gold" style="font-size:11px;"><span class="info-box-icon">&#9888;</span>Notieren Sie Ihren neuen Code, bevor Sie speichern. Der alte Code wird sofort ungültig.</div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalEditSuperProfile')">Abbrechen</button>
+   <button class="btn btn-primary" onclick="saveSuperProfile()">&#128190; Speichern</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Neuer Superadmin ernennen -->
+<div class="modal-overlay" id="modalNewSuperAdmin">
+ <div class="modal">
+  <div class="modal-header"><h3>&#128081; Superadmin ernennen</h3><button class="modal-close" onclick="closeModal('modalNewSuperAdmin')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="form-group"><label class="form-label">Name <span class="req">*</span></label>
+    <input class="form-control" id="nsaName" placeholder="z.B. Prof. Müller"></div>
+   <div class="form-group"><label class="form-label">E-Mail</label>
+    <input type="email" class="form-control" id="nsaEmail" placeholder="optional"></div>
+   <div class="form-group"><label class="form-label">Zugangscode</label>
+    <div style="display:flex;gap:8px;"><input class="form-control" id="nsaCode" placeholder="SUPER-XXXX" style="font-family:monospace;font-weight:700;letter-spacing:1px;"><button class="btn btn-outline btn-sm" onclick="document.getElementById('nsaCode').value=makeSuperCode()">&#127922; Generieren</button></div></div>
+   <div class="info-box blue" style="font-size:11px;"><span class="info-box-icon">&#128274;</span>Superadmins haben vollen Zugriff auf alle Spiele und Daten.</div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalNewSuperAdmin')">Abbrechen</button>
+   <button class="btn btn-primary" onclick="createSuperAdmin()">&#128081; Ernennen</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: FAQ-Dokument hochladen -->
+<div class="modal-overlay" id="modalUploadDoc">
+ <div class="modal">
+  <div class="modal-header"><h3>&#128196; Dokument hinzuf&#252;gen</h3><button class="modal-close" onclick="closeModal('modalUploadDoc')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="form-group"><label class="form-label">Titel *</label>
+    <input class="form-control" id="docTitle" placeholder="z.B. Spielanleitung SoSe 2026"></div>
+   <div class="form-group"><label class="form-label">Beschreibung</label>
+    <input class="form-control" id="docDesc" placeholder="Kurze Beschreibung des Dokuments"></div>
+   <div class="form-group"><label class="form-label">Typ</label>
+    <select class="form-control" id="docType">
+     <option value="instructions">&#128218; Spielanleitung</option>
+     <option value="howto">&#127919; How to Play</option>
+     <option value="template">&#128196; Vorlage</option>
+     <option value="other">&#128196; Sonstiges</option>
+    </select></div>
+   <div class="form-group"><label class="form-label">PDF-Datei hochladen</label>
+    <input type="file" class="form-control" id="docFile" accept=".pdf"></div>
+   <div class="form-group"><label class="form-label">— oder — Externe URL (Google Drive, etc.)</label>
+    <input type="url" class="form-control" id="docUrl" placeholder="https://drive.google.com/..."></div>
+   <div class="info-box gold" style="font-size:11px;"><span class="info-box-icon">&#9888;</span>Gro&#223;e PDFs (>2 MB) k&#246;nnen den Speicher belasten. Bevorzuge externe URLs f&#252;r gro&#223;e Dateien.</div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalUploadDoc')">Abbrechen</button>
+   <button class="btn btn-primary" onclick="saveDocUpload()">&#128190; Speichern</button>
   </div>
  </div>
 </div>
