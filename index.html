@@ -787,7 +787,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
        <span id="storageStatusText">Daten werden geladen...</span>
        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
          <button class="btn btn-secondary btn-sm" onclick="resetToDemo()">↩️ Demo-Daten wiederherstellen</button>
-         <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ Operative Daten löschen</button>
+         <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ Operative Daten löschen</button><button class="btn btn-secondary btn-sm" onclick="downloadBackup()">⬇️ Backup herunterladen</button><button class="btn btn-secondary btn-sm" onclick="importBackup()">⬆️ Backup wiederherstellen</button>
        </div>
      </div>
      <div class="stat-grid" id="superStats"></div>
@@ -831,7 +831,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
 <!-- MODAL: Buchung -->
 <div class="modal-overlay" id="modalBooking">
  <div class="modal">
-  <div class="modal-header"><h3>&#128176; Buchung erfassen</h3><button class="modal-close" onclick="closeModal('modalBooking')">&#215;</button></div>
+  <div class="modal-header"><h3>&#128176; Buchung erfassen <span id="bookingRoleInfo" style="font-size:11px;font-weight:400;opacity:.7;"></span></h3><button class="modal-close" onclick="closeModal('modalBooking')">&#215;</button></div>
   <div class="modal-body">
    <div class="form-row">
     <div class="form-group"><label class="form-label">Typ <span class="req">*</span></label>
@@ -1114,6 +1114,9 @@ rebuildCodes();
 const STORAGE_KEY = '5euro_tracker_v5';
 function saveData(){
   try{
+  // Throttled tracking buffer flush
+  if(!saveData._cnt) saveData._cnt=0;
+  if(++saveData._cnt % 10 === 0) flushTrackBuffer();
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS
     }));
@@ -1466,10 +1469,14 @@ function finishLogin(code){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
   initApp();
+  logEvent('login', {lang: state.lang});
+  sendAutoBackup();
   if(state.lang==='en') setTimeout(applyLang,150);
 }
 
-function doLogout(){
+function doLogout(){  logEvent('logout', {duration: Math.round((Date.now() - new Date(_sessionStart).getTime())/1000)+'s'});
+  flushTrackBuffer(true);
+
   state.currentUser=null;
   document.getElementById('appShell').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
@@ -1482,7 +1489,8 @@ function doLogout(){
 // ════════════════════════════════════════════════════════════════════
 function initApp(){
   const u=state.currentUser;
-  buildNavigation();updateTopbar();buildTicker();
+  buildNavigation();updateTopbar();
+  logEvent('page_view', {page: p});buildTicker();
   const def=u.role==='superadmin'?'superadmin':u.role==='admin'?'admin':'dashboard';
   navigateTo(def);
   if(state.lang==='en') setTimeout(applyLang,200);
@@ -1861,7 +1869,7 @@ function renderMembersSection(team){
         <div class="member-avatar" style="background:${team.color};">${avatarHtml}</div>
         <div class="member-info">
           <div class="member-info-name">${m.name} ${isMe?'<span style="color:var(--blue-mid);font-size:10px;">(Du)</span>':''}</div>
-          <div class="member-role-badge">${m.role} · ${m.title}</div>
+          <div class="member-role-badge">${m.role==="CEO"?"👑 CEO":m.role==="CFO"?"💰 CFO":m.role} · ${m.title}</div>
           <div class="member-bio">${m.bio||'Noch keine Bio.'}</div>
           ${isMe?`<button class="btn btn-outline btn-xs" style="margin-top:6px;" onclick="navigateTo('profile')">✏️ Bearbeiten</button>`:`<div style="font-size:10px;color:var(--gray-mid);margin-top:4px;">Code: <code>${m.code}</code></div>`}
         </div>
@@ -2131,7 +2139,10 @@ function renderTxPage(){
   const u=state.currentUser;const teams=getVisibleTeams();
   const tSel=document.getElementById('txTeamFilter');
   if(tSel.options.length<=1) teams.forEach(t=>{const o=new Option(t.logo+' '+t.name,t.id);tSel.appendChild(o);});
-  document.getElementById('btnAddTx').style.display=(u.role==='team'||u.role==='member')?'inline-flex':'none';
+  // CFO-only bookings: only CFO member (or admin/team-login) can add transactions
+  const myMemberForTx=MEMBERS.find(m=>m.code===u.code);
+  const canBook=(u.role==='admin'||u.role==='superadmin'||u.role==='team'||(u.role==='member'&&myMemberForTx?.role==='CFO'));
+  document.getElementById('btnAddTx').style.display=canBook?'inline-flex':'none';
   const tf=document.getElementById('txTeamFilter').value;
   const tyf=document.getElementById('txTypeFilter').value;
   const own=u.role==='team'||u.role==='member';
@@ -2574,6 +2585,7 @@ function updateBlogReflectionStatus(){
 //  ACTIONS
 // ════════════════════════════════════════════════════════════════════
 function approveBlog(id){
+  logEvent('admin_blog_approve', {blogId: id});
   const b=BLOGS.find(x=>x.id===id);if(!b)return;
   b.status='approved';
   const team=TEAMS.find(t=>t.id===b.teamId);
@@ -2595,7 +2607,7 @@ function approveBlog(id){
   if(team) sendNotification('week',team.id,team.currentWeek);
 }
 function approveBlogAndAdvance(blogId,teamId){approveBlog(blogId);}
-function manualAdvanceWeek(teamId){
+function manualAdvanceWeek(teamId){  logEvent('admin_week_advance', {teamId, week: team.currentWeek});
   const team=TEAMS.find(t=>t.id===teamId);if(!team)return;
   team.currentWeek++;team.weekStatus='open';
   saveData();renderWeeksAdmin();showToast('⏭️ '+team.name+' – Woche '+team.currentWeek+' gestartet');
@@ -2618,6 +2630,15 @@ function submitBooking(){
   const amt=parseFloat(document.getElementById('bAmount').value);
   if(!desc||!amt){showToast('Pflichtfelder fehlen','error');return;}
   const team=getMyTeam();if(!team)return;
+  // CFO check: only CFO (or admin/team-login) may submit bookings
+  const u=state.currentUser;
+  if(u.role==='member'){
+    const myM=getMyMember();
+    if(!myM||myM.role!=='CFO'){
+      showToast(state.lang==='en'?'Only the CFO can record transactions!':'Nur der CFO kann Buchungen erfassen!','error');
+      return;
+    }
+  }
   const tx={id:'tx'+Date.now(),teamId:team.id,date:document.getElementById('bDate').value||new Date().toISOString().split('T')[0],
     desc,cat:document.getElementById('bCat').value,type:document.getElementById('bType').value,amount:amt,receipt:false};
   TRANSACTIONS.push(tx);
@@ -2661,7 +2682,7 @@ function submitBlog(){
     tags:document.getElementById('blogTags').value.split(',').map(t=>t.trim()).filter(Boolean),
     status:'pending',date:new Date().toISOString().split('T')[0]};
   BLOGS.push(blog);team.weekStatus='submitted';saveData();
-  closeModal('modalBlog');showToast('📤 Bericht eingereicht – wartet auf Freigabe!');
+  closeModal('modalBlog');logEvent('blog_submit', {teamId: team.id, week: team.currentWeek});showToast('📤 Bericht eingereicht – wartet auf Freigabe!');
   if(state.currentPage==='myteam'){renderWeekSteps(team);renderMyTeamPanel(state.currentMyTeamTab);}
 }
 function saveBlogDraft(){closeModal('modalBlog');showToast('📄 Entwurf gespeichert');}
@@ -2773,6 +2794,10 @@ window.openModal=function(id){
   origOpenModal(id);
   if(id==='modalNewGame') prepareNewGameModal();
   if(id==='modalNewAdmin') prepareNewAdminModal();
+  if(id==='modalBooking'){
+    const bri=document.getElementById('bookingRoleInfo');
+    if(bri){const me=getMyMember();bri.textContent=me?`(${me.name} · ${me.role})`:'';} 
+  }
   if(id==='modalEditSuperProfile') openSuperProfileEdit();
   if(id==='modalNewSuperAdmin'){document.getElementById('nsaCode').value=makeSuperCode();}
   if(id==='modalNewTeam'){prepareNewTeamModal();document.getElementById('ntGameInfoBox').style.display='block';}
@@ -2832,31 +2857,66 @@ function renderMemberMgmtList(){
   const teamId = state.managingTeamId;
   const members = MEMBERS.filter(m=>m.teamId===teamId);
   const el = document.getElementById('memberMgmtList');
+  const hasCeo = members.some(m=>m.role==='CEO');
   if(members.length===0){
-    el.innerHTML='<div class="empty-state" style="padding:20px;"><div class="empty-icon">👤</div><h3>Noch keine Mitglieder</h3></div>';
+    el.innerHTML='<div class="empty-state" style="padding:20px;"><div class="empty-icon">👤</div><h3>Noch keine Mitglieder</h3><p style="color:var(--red);font-weight:600;">⚠️ Bitte CEO zuerst hinzufügen!</p></div>';
     return;
   }
-  el.innerHTML=`<table class="data-table" style="width:100%;margin-bottom:16px;">
-    <thead><tr><th>Name</th><th>Rolle</th><th>Code</th><th>Aktion</th></tr></thead>
-    <tbody>${members.map(m=>`<tr>
+  const usedRoles=members.map(m=>m.role);
+  el.innerHTML=`
+    ${!hasCeo?'<div class="info-box" style="background:#FFF3CD;border-left:3px solid var(--orange);margin-bottom:10px;"><span class="info-box-icon">⚠️</span>Kein CEO definiert! Bitte einen CEO zuweisen.</div>':''}
+    <table class="data-table" style="width:100%;margin-bottom:16px;">
+    <thead><tr><th>Name</th><th>Rolle</th><th>Code</th><th style="text-align:right;">Aktion</th></tr></thead>
+    <tbody id="memberMgmtRows">${members.map(m=>`<tr id="mrow_${m.id}">
       <td><strong>${m.name}</strong></td>
-      <td><span class="tag tag-blue">${m.role}</span></td>
+      <td><span class="tag" style="${m.role==='CEO'?'background:#FFF3CD;color:#856404;font-weight:700;':m.role==='CFO'?'background:#E8F5E9;color:#2E7D32;font-weight:700;':'background:var(--blue-xlt);color:var(--blue-dark);'}"
+          >${m.role==='CEO'?'👑 CEO':m.role==='CFO'?'💰 CFO':m.role}</span></td>
       <td><code style="font-size:11px;background:var(--blue-xlt);padding:2px 8px;border-radius:4px;font-weight:700;">${m.code}</code>
-          <button class="btn btn-xs btn-outline" onclick="copyCode('${m.code}')" style="margin-left:4px;">📋</button></td>
-      <td><button class="btn btn-danger btn-xs" onclick="deleteMemberFromTeam('${m.id}')">🗑️</button></td>
+          <button class="btn btn-xs btn-outline" onclick="copyCode('${m.code}')" style="margin-left:4px;" title="Kopieren">📋</button></td>
+      <td style="text-align:right;">
+        <button class="btn btn-outline btn-xs" onclick="openEditMember('${m.id}')" title="Bearbeiten">✏️</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteMemberFromTeam('${m.id}')" title="Entfernen" style="margin-left:3px;">🗑️</button>
+      </td>
     </tr>`).join('')}</tbody>
-  </table>`;
+  </table>
+  <div id="editMemberInline" style="display:none;background:var(--bg-light);border-radius:var(--radius);padding:14px;margin-bottom:12px;border:1.5px solid var(--blue-light);">
+    <div style="font-weight:700;margin-bottom:10px;color:var(--blue-dark);">✏️ Mitglied bearbeiten</div>
+    <input type="hidden" id="editMemberId">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Name</label>
+        <input class="form-control" id="editMemberName" placeholder="Vorname Nachname"></div>
+      <div class="form-group"><label class="form-label">Rolle</label>
+        <select class="form-control" id="editMemberRole" onchange="checkEditRoleAvail(this.value)">
+          <option>CEO</option><option>CFO</option><option>CMO</option>
+          <option>COO</option><option>CTO</option><option>Gründer</option><option>Mitglied</option>
+        </select>
+        <div id="editRoleWarn" style="font-size:11px;color:var(--red);margin-top:3px;display:none;">
+          ⚠️ Diese Rolle ist bereits vergeben. Wird jetzt übertragen (alter Inhaber wird zu "Mitglied").
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary btn-sm" onclick="saveEditMember()">✅ Speichern</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeEditMember()">✗ Abbrechen</button>
+    </div>
+  </div>`;
 }
 function addMemberToTeam(){
+  logEvent('admin_member_add', {teamId, role, name});
   const teamId = state.managingTeamId;
   const team = TEAMS.find(t=>t.id===teamId);
   const name = document.getElementById('nmName').value.trim();
   if(!name){showToast('Bitte Name eingeben','error');return;}
+  const role = document.getElementById('nmRole').value;
+  // Role uniqueness check
+  if(getRoleTaken(teamId,role,null)){
+    showToast(`Rolle "${role}" ist bereits vergeben. Bitte zuerst die bestehende Rolle ändern.`,'error');
+    return;
+  }
   const existingCount = MEMBERS.filter(m=>m.teamId===teamId).length;
   const code = makeMemberCode(team, existingCount);
   const memberId = nextId(MEMBERS,'mb');
-  const role = document.getElementById('nmRole').value;
-  MEMBERS.push({id:memberId, teamId, name, role, title:role, bio:'', code, avatarDataUrl:null});
+  MEMBERS.push({id:memberId, teamId, name, role, title:role, bio:'', code, avatarDataUrl:null, email:'', notif:{blog:true,week:true,reflect:true}, lang:'de'});
   rebuildCodes(); saveData();
   showToast('✅ '+name+' hinzugefügt – Code: '+code);
   document.getElementById('nmName').value='';
@@ -3222,10 +3282,18 @@ function renderCeoManagement(){
   const game=GAMES.find(g=>g.id===team.gameId);
   const maxSize=game?.teamSize||4;
   const lng=state.lang==='en';
+  const hasCeoMbr=members.some(m=>m.role==='CEO');
   el.innerHTML=`
     <div class="section-header">
       <div class="section-title">&#128081; ${lng?'Team Management':'Team-Verwaltung'}</div>
-      ${members.length<maxSize?`<button class="btn btn-primary btn-sm" onclick="openAddMemberModal('${team.id}')">+ ${lng?'Add Member':'Mitglied hinzufügen'}</button>`:''}
+      <button class="btn btn-primary btn-sm" onclick="openAddMemberModal('${team.id}')">+ ${lng?'Add Member':'Mitglied hinzufügen'}</button>
+      ${members.length>=maxSize?`<span style="font-size:11px;color:var(--orange);margin-left:8px;">⚠️ ${lng?'Above recommended size ('+maxSize+')':'Über empfohlener Größe ('+maxSize+')'}</span>`:''}
+    </div>
+    ${!hasCeoMbr?`<div class="info-box" style="background:#FFF3CD;border-left:3px solid var(--orange);margin-bottom:10px;"><span class="info-box-icon">⚠️</span>${lng?'No CEO assigned! Please assign a CEO.':'Kein CEO vergeben! Bitte einen CEO zuweisen.'}</div>`:''}
+    <div class="info-box blue" style="margin-bottom:14px;font-size:12px;">
+      <span class="info-box-icon">ℹ️</span>
+      <strong>CEO</strong> ${lng?'submits weekly report':'reicht Wochenbericht ein'} &nbsp;·&nbsp;
+      <strong>CFO</strong> ${lng?'records all bookings':'erfasst alle Buchungen'}
     </div>
     <div class="info-box gold" style="margin-bottom:14px;">
       <span class="info-box-icon">&#128274;</span>${lng?'Access codes are shown here. Share them only with the respective team members.':'Zugangscodes werden hier angezeigt. Teile sie nur mit den jeweiligen Teammitgliedern.'}
@@ -3243,7 +3311,8 @@ function renderCeoManagement(){
           ${m.role!=='CEO'?`<button class="btn btn-danger btn-xs" onclick="removeMemberFromCeo('${m.id}')" title="${lng?'Remove':'Entfernen'}">&#128465;</button>`:''}
         </div>
       </div>`).join('')}
-    </div>`;
+    </div>
+    <div id="ceoEditArea" style="display:none;background:var(--bg-light);border-radius:var(--radius);padding:14px;margin-top:14px;border:1.5px solid var(--blue-light);"></div>`;
 }
 function copyCeoCode(code){
   navigator.clipboard?.writeText(code).then(()=>showToast((state.lang==='en'?'Code copied: ':'Code kopiert: ')+code,'info'));
@@ -3255,14 +3324,66 @@ function openAddMemberModal(teamId){
   openModal('modalNewMember');
 }
 function editMemberFromCeo(memberId){
+  // Use the same edit form as admin (set managingTeamId to current team)
+  const team=getMyTeam();if(!team)return;
+  state.managingTeamId=team.id;
+  // If admin modal is not open, open inline edit in CEO panel
+  openEditMemberCeoPanel(memberId);
+}
+function openEditMemberCeoPanel(memberId){
   const m=MEMBERS.find(x=>x.id===memberId);if(!m)return;
   const lng=state.lang==='en';
-  const name=prompt((lng?'Name for ':'Name für ')+m.name+':',m.name);
-  if(name&&name.trim()) m.name=name.trim();
-  const role=prompt((lng?'Role (CEO/CFO/CMO/COO/CTO):':'Rolle (CEO/CFO/CMO/COO/CTO):'),m.role);
-  if(role&&role.trim()) m.role=role.trim().toUpperCase();
-  saveData();renderCeoManagement();renderMembersSection(getMyTeam());
-  showToast(lng?'Member updated.':'Mitglied aktualisiert.');
+  const team=getMyTeam();if(!team)return;
+  const members=MEMBERS.filter(x=>x.teamId===team.id);
+  // Build an edit form in the CEO mgmt section
+  const editArea=document.getElementById('ceoEditArea');
+  if(!editArea)return;
+  const roles=['CEO','CFO','CMO','COO','CTO','Gründer','Mitglied'];
+  editArea.style.display='block';
+  editArea.innerHTML=`
+    <div style="font-weight:700;margin-bottom:10px;color:var(--blue-dark);">✏️ ${lng?'Edit Member':'Mitglied bearbeiten'}: ${m.name}</div>
+    <input type="hidden" id="ceoeditId" value="${m.id}">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${lng?'Name':'Name'}</label>
+        <input class="form-control" id="ceoeditName" value="${m.name}"></div>
+      <div class="form-group"><label class="form-label">${lng?'Role':'Rolle'}</label>
+        <select class="form-control" id="ceoeditRole" onchange="checkCeoEditRole(this.value,'${m.id}')">
+          ${roles.map(r=>`<option ${m.role===r?'selected':''}>${r}</option>`).join('')}
+        </select>
+        <div id="ceoeditRoleWarn" style="font-size:11px;color:var(--orange);margin-top:3px;display:none;">
+          ⚠️ ${lng?'This role is already taken. The current holder will become "Mitglied".':'Rolle bereits vergeben. Bisheriger Inhaber wird zu "Mitglied".'}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary btn-sm" onclick="saveCeoEditMember()">✅ ${lng?'Save':'Speichern'}</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('ceoEditArea').style.display='none'">✗ ${lng?'Cancel':'Abbrechen'}</button>
+    </div>`;
+  editArea.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function checkCeoEditRole(role,excludeId){
+  const team=getMyTeam();if(!team)return;
+  const taken=getRoleTaken(team.id,role,excludeId);
+  const w=document.getElementById('ceoeditRoleWarn');
+  if(w) w.style.display=taken?'block':'none';
+}
+function saveCeoEditMember(){
+  const id=document.getElementById('ceoeditId').value;
+  const m=MEMBERS.find(x=>x.id===id);if(!m)return;
+  const newName=document.getElementById('ceoeditName').value.trim();
+  const newRole=document.getElementById('ceoeditRole').value;
+  if(!newName){showToast('Name darf nicht leer sein','error');return;}
+  const team=getMyTeam();if(!team)return;
+  // Role transfer
+  if(UNIQUE_ROLES.includes(newRole)&&newRole!==m.role){
+    const oldHolder=MEMBERS.find(x=>x.teamId===team.id&&x.role===newRole&&x.id!==id);
+    if(oldHolder){oldHolder.role='Mitglied';showToast(`ℹ️ ${oldHolder.name} → Mitglied`,'info');}
+  }
+  m.name=newName;m.role=newRole;
+  rebuildCodes();saveData();
+  document.getElementById('ceoEditArea').style.display='none';
+  renderCeoManagement();renderMembersSection(team);
+  showToast(`✅ ${m.name} (${newRole}) ${state.lang==='en'?'updated':'aktualisiert'}`);
 }
 function removeMemberFromCeo(memberId){
   const m=MEMBERS.find(x=>x.id===memberId);if(!m)return;
@@ -3303,7 +3424,7 @@ function renderFaqDocs(container){
             <div style="font-size:11px;color:var(--gray-mid);margin-bottom:8px;">${doc.desc||t[lng?'en':'de']}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
               ${doc.url?`<a href="${doc.url}" target="_blank" class="btn btn-primary btn-xs">&#128196; ${lng?'Open':'Öffnen'}</a>`:''}
-              ${doc.data?`<button class="btn btn-primary btn-xs" onclick="openPdfDoc('${doc.id}')">&#128196; ${lng?'View PDF':'PDF anzeigen'}</button>`:''}
+              <button class="btn btn-primary btn-xs" onclick="openPdfDoc('${doc.id}')">&#128196; ${lng?'View':'Anzeigen'}</button>
               ${state.currentUser?.role==='superadmin'?`<button class="btn btn-danger btn-xs" onclick="removeFaqDoc('${doc.id}')">&#128465;</button>`:''}
             </div>
           </div>
@@ -3315,9 +3436,15 @@ function renderFaqDocs(container){
   container.insertAdjacentHTML('afterbegin', html2);
 }
 function openPdfDoc(docId){
-  const doc=FAQ_DOCS.find(d=>d.id===docId);if(!doc||!doc.data)return;
-  const w=window.open();
-  w.document.write('<iframe src="'+doc.data+'" style="width:100%;height:100vh;border:none;"></iframe>');
+  const doc=FAQ_DOCS.find(d=>d.id===docId);if(!doc)return;
+  const src=doc.data||doc.url||'';
+  document.getElementById('pdfViewerTitle').textContent='📄 '+doc.title;
+  document.getElementById('pdfViewerFrame').src=src;
+  const dl=document.getElementById('pdfViewerDownload');
+  dl.href=src; dl.download=doc.title+'.pdf';
+  document.getElementById('pdfViewerOpen').href=src;
+  openModal('modalPdfViewer');
+  logEvent('doc_view',{docId,title:doc.title});
 }
 function removeFaqDoc(docId){
   if(!confirm('Dokument wirklich entfernen?'))return;
@@ -3541,6 +3668,191 @@ function applyLang(){
   });
 }
 
+
+// ── ROLE SYSTEM HELPERS ───────────────────────────────────────────────────────
+const UNIQUE_ROLES=['CEO','CFO','CMO','COO','CTO']; // these can only appear once per team
+function getRoleTaken(teamId,role,excludeMemberId){
+  if(!UNIQUE_ROLES.includes(role)) return false;
+  return MEMBERS.some(m=>m.teamId===teamId&&m.role===role&&m.id!==excludeMemberId);
+}
+function checkRoleAvail(role){
+  const teamId=state.managingTeamId;
+  const taken=getRoleTaken(teamId,role,null);
+  const w=document.getElementById('nmRoleWarn');
+  if(w) w.style.display=taken?'block':'none';
+}
+function checkEditRoleAvail(role){
+  const id=document.getElementById('editMemberId')?.value;
+  const teamId=state.managingTeamId;
+  const taken=getRoleTaken(teamId,role,id);
+  const w=document.getElementById('editRoleWarn');
+  if(w) w.style.display=taken?'block':'none';
+}
+function openEditMember(memberId){
+  const m=MEMBERS.find(x=>x.id===memberId);if(!m)return;
+  document.getElementById('editMemberId').value=m.id;
+  document.getElementById('editMemberName').value=m.name;
+  document.getElementById('editMemberRole').value=m.role;
+  document.getElementById('editRoleWarn').style.display='none';
+  document.getElementById('editMemberInline').style.display='block';
+  document.getElementById('editMemberInline').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeEditMember(){
+  document.getElementById('editMemberInline').style.display='none';
+}
+function saveEditMember(){
+  const id=document.getElementById('editMemberId').value;
+  const m=MEMBERS.find(x=>x.id===id);if(!m)return;
+  const newName=document.getElementById('editMemberName').value.trim();
+  const newRole=document.getElementById('editMemberRole').value;
+  if(!newName){showToast('Name darf nicht leer sein','error');return;}
+  const teamId=state.managingTeamId;
+  // Role transfer: if new role is unique and already taken → transfer (demote old holder to Mitglied)
+  if(UNIQUE_ROLES.includes(newRole)&&newRole!==m.role){
+    const oldHolder=MEMBERS.find(x=>x.teamId===teamId&&x.role===newRole&&x.id!==id);
+    if(oldHolder){
+      oldHolder.role='Mitglied';
+      showToast(`ℹ️ ${oldHolder.name} wurde zu "Mitglied" (${newRole} übertragen)`,'info');
+    }
+  }
+  m.name=newName;
+  m.role=newRole;
+  m.title=m.title===m.role?newRole:m.title; // update title if it was same as role
+  rebuildCodes();saveData();
+  closeEditMember();
+  renderMemberMgmtList();
+  // Also update CEO tab if open
+  const team=TEAMS.find(t=>t.id===teamId);
+  if(team) renderMembersSection(team);
+  showToast(`✅ ${m.name} aktualisiert (${newRole})`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SESSION TRACKING
+// ═══════════════════════════════════════════════════════════════════════════
+let _sessionId = 'S-' + Date.now() + '-' + Math.random().toString(36).substr(2,6).toUpperCase();
+let _sessionStart = new Date().toISOString();
+let _trackBuffer = [];
+const TRACK_BATCH_SIZE = 10;
+const TRACK_KEY = '5euro_trackbuffer';
+
+function logEvent(action, data){
+  const u = state.currentUser;
+  if(!u) return;
+  const team = TEAMS.find(t => t.id === (u.teamId || (getMyTeam()?.id)));
+  const game = team ? GAMES.find(g => g.id === team.gameId) : (u.gameId ? GAMES.find(g => g.id === u.gameId) : null);
+  const evt = {
+    ts: new Date().toISOString(),
+    sid: _sessionId,
+    uid: u.code || '?',
+    uname: u.name || '?',
+    urole: u.role || '?',
+    tid: team?.id || u.teamId || '',
+    tname: team?.name || '',
+    gid: game?.id || u.gameId || '',
+    gname: game?.name || '',
+    action,
+    data: typeof data === 'object' ? JSON.stringify(data) : String(data||'')
+  };
+  _trackBuffer.push(evt);
+  if(_trackBuffer.length >= TRACK_BATCH_SIZE) flushTrackBuffer();
+}
+
+async function flushTrackBuffer(force){
+  if(_trackBuffer.length === 0) return;
+  const batch = [..._trackBuffer];
+  _trackBuffer = [];
+  if(!CONFIG.FEEDBACK_ENDPOINT || CONFIG.FEEDBACK_ENDPOINT.includes('DEINE')) return;
+  try {
+    await fetch(CONFIG.FEEDBACK_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type:'tracking', events: batch})
+    });
+  } catch(e) {
+    // Re-queue failed events (max 50 to prevent unbounded growth)
+    if(_trackBuffer.length < 50) _trackBuffer.unshift(...batch.slice(0,20));
+  }
+}
+
+// Auto-flush on page hide
+window.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) {
+    logEvent('session_pause', {page: state.currentPage});
+    flushTrackBuffer(true);
+  }
+});
+window.addEventListener('beforeunload', ()=>flushTrackBuffer(true));
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BACKUP SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+const BACKUP_KEY = '5euro_lastbackup';
+const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function exportDataJson(){
+  const d = {UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS};
+  return JSON.stringify(d, null, 2);
+}
+
+function downloadBackup(){
+  const json = exportDataJson();
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '5euro-backup-' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  logEvent('manual_backup', {size: json.length});
+}
+
+function importBackup(){
+  const input = document.createElement('input');
+  input.type='file'; input.accept='.json';
+  input.onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const d = JSON.parse(ev.target.result);
+        if(!d.GAMES || !d.TEAMS) { showToast('Ungültige Backup-Datei','error'); return; }
+        if(!confirm('Backup wiederherstellen? Alle aktuellen Daten werden ÜBERSCHRIEBEN!')) return;
+        const replace=(arr,data)=>{arr.length=0;(data||[]).forEach(x=>arr.push(x));};
+        replace(UNIVERSITIES,d.UNIVERSITIES); replace(GAMES,d.GAMES);
+        replace(TEAMS,d.TEAMS); replace(MEMBERS,d.MEMBERS);
+        replace(BLOGS,d.BLOGS); replace(TRANSACTIONS,d.TRANSACTIONS);
+        replace(REFLECTIONS,d.REFLECTIONS); replace(ADMINS,d.ADMINS);
+        replace(FEEDBACKS,d.FEEDBACKS||[]); replace(SUPERADMINS,d.SUPERADMINS||[]);
+        replace(FAQ_DOCS,d.FAQ_DOCS||[]);
+        rebuildCodes(); saveData();
+        showToast('✅ Backup wiederhergestellt!');
+        logEvent('backup_restore', {date: file.name});
+        location.reload();
+      } catch(err) { showToast('Fehler beim Lesen der Datei: '+err.message,'error'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+async function sendAutoBackup(){
+  const last = parseInt(localStorage.getItem(BACKUP_KEY)||'0');
+  if(Date.now() - last < BACKUP_INTERVAL_MS) return; // not yet
+  if(!CONFIG.FEEDBACK_ENDPOINT || CONFIG.FEEDBACK_ENDPOINT.includes('DEINE')) return;
+  const json = exportDataJson();
+  try {
+    await fetch(CONFIG.FEEDBACK_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type:'backup', data: json, date: new Date().toISOString(), game: GAMES.map(g=>g.name).join(', ')})
+    });
+    localStorage.setItem(BACKUP_KEY, String(Date.now()));
+    console.log('Auto-backup sent:', new Date().toISOString());
+  } catch(e){ console.warn('Auto-backup failed:', e); }
+}
+
 </script>
 
 <!-- MODAL: Mitglieder verwalten -->
@@ -3558,11 +3870,14 @@ function applyLang(){
     <div class="form-group"><label class="form-label">Name <span class="req">*</span></label>
      <input type="text" class="form-control" id="nmName" placeholder="Vorname Nachname"
        oninput="const t=TEAMS.find(x=>x.id===state.managingTeamId);if(t){const n=MEMBERS.filter(m=>m.teamId===t.id).length;document.getElementById('nmCode').value=makeMemberCode(t,n);}"></div>
-    <div class="form-group"><label class="form-label">Rolle</label>
-     <select class="form-control" id="nmRole">
+    <div class="form-group"><label class="form-label">Rolle <span class="req">*</span></label>
+     <select class="form-control" id="nmRole" onchange="checkRoleAvail(this.value)">
       <option>CEO</option><option>CFO</option><option>CMO</option>
       <option>COO</option><option>CTO</option><option>Gr&#252;nder</option><option>Mitglied</option>
-     </select></div>
+     </select>
+     <div id="nmRoleWarn" style="font-size:11px;color:var(--red);margin-top:3px;display:none;">
+      &#9888; Diese Rolle ist bereits vergeben. Bitte w&#228;hle eine andere oder &#228;ndere zuerst die bestehende Rolle.
+     </div></div>
     <div class="form-group"><label class="form-label">Code (auto)</label>
      <input type="text" class="form-control" id="nmCode" readonly
        style="font-family:'Courier New',monospace;font-weight:700;letter-spacing:1px;background:var(--blue-xlt);">
@@ -3658,6 +3973,22 @@ function applyLang(){
   <div class="modal-footer">
    <button class="btn btn-secondary" onclick="closeModal('modalUploadDoc')">Abbrechen</button>
    <button class="btn btn-primary" onclick="saveDocUpload()">&#128190; Speichern</button>
+  </div>
+ </div>
+</div>
+<!-- MODAL: PDF Viewer -->
+<div class="modal-overlay" id="modalPdfViewer" style="z-index:9999;">
+ <div class="modal" style="width:95vw;max-width:1100px;height:90vh;display:flex;flex-direction:column;">
+  <div class="modal-header" style="flex-shrink:0;">
+   <h3 id="pdfViewerTitle">📄 Dokument</h3>
+   <div style="display:flex;gap:8px;">
+    <a id="pdfViewerDownload" class="btn btn-outline btn-sm" download>⬇️ Download</a>
+    <a id="pdfViewerOpen" class="btn btn-outline btn-sm" target="_blank">↗️ Neuer Tab</a>
+    <button class="modal-close" onclick="closeModal('modalPdfViewer')">✕</button>
+   </div>
+  </div>
+  <div style="flex:1;overflow:hidden;border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+   <iframe id="pdfViewerFrame" style="width:100%;height:100%;border:none;" src="about:blank"></iframe>
   </div>
  </div>
 </div>
