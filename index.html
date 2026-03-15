@@ -521,7 +521,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
    <div id="regInviteStep">
     <div style="margin-bottom:12px;">
      <label style="font-size:11px;font-weight:700;color:#888;display:block;margin-bottom:6px;letter-spacing:1px;">TEAM-EINLADUNGSCODE *</label>
-     <input type="text" id="regInviteCode" placeholder="z.B. TEAM-IDEA1"
+     <input type="text" id="regInviteCode" placeholder="Setup-Code (SETUP-...) oder Einladungscode (TEAM-...)"
       style="width:100%;padding:11px 14px;border:2px solid #E0E7F0;border-radius:10px;font-size:14px;outline:none;font-family:monospace;font-weight:700;letter-spacing:2px;box-sizing:border-box;"
       oninput="this.value=this.value.toUpperCase()" onkeypress="if(event.key==='Enter')checkInviteCode()">
     </div>
@@ -533,7 +533,43 @@ textarea.form-control{resize:vertical;min-height:70px;}
     </div>
    </div>
 
-   <!-- Step 2: Role + Profile -->
+   <!-- Step 2: Team Setup (only for setup codes) -->
+   <div id="regSetupStep" style="display:none;">
+    <div id="regSetupBadge" style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;font-weight:700;color:#92400E;text-align:center;"></div>
+    <div style="margin-bottom:8px;">
+     <label style="font-size:11px;font-weight:700;color:#888;display:block;margin-bottom:4px;">TEAM-NAME *</label>
+     <input type="text" id="setupTeamName" placeholder="z.B. Die Ideenschmiede"
+      style="width:100%;padding:10px 12px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;">
+    </div>
+    <div style="margin-bottom:8px;">
+     <label style="font-size:11px;font-weight:700;color:#888;display:block;margin-bottom:4px;">UNTERNEHMENSIDEE *</label>
+     <input type="text" id="setupTeamBiz" placeholder="z.B. Fahrrad-Reparatur am Campus"
+      style="width:100%;padding:10px 12px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;">
+    </div>
+    <div style="margin-bottom:8px;">
+     <label style="font-size:11px;font-weight:700;color:#888;display:block;margin-bottom:4px;">HERANGEHENSWEISE</label>
+     <input type="text" id="setupTeamApproach" placeholder="z.B. Direktvertrieb, Social Media, ..."
+      style="width:100%;padding:10px 12px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;">
+    </div>
+    <div style="margin-bottom:10px;">
+     <label style="font-size:11px;font-weight:700;color:#888;display:block;margin-bottom:4px;">STRATEGIE</label>
+     <input type="text" id="setupTeamStrategy" placeholder="z.B. Kostenführerschaft, Nischenmarkt, ..."
+      style="width:100%;padding:10px 12px;border:2px solid #E0E7F0;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;">
+    </div>
+    <div style="margin-bottom:14px;">
+     <label style="font-size:11px;font-weight:700;color:#888;display:block;margin-bottom:6px;">TEAM-EMOJI</label>
+     <div id="setupEmojiPicker" style="display:flex;flex-wrap:wrap;gap:6px;">
+      ${['🚀','💡','🔧','🌱','⚡','🎯','💎','🔥','🌊','🦁','🐉','🦅','🌟','🎪','🏆'].map(e=>`<span onclick="selectSetupEmoji(this,'${e}')" data-emoji="${e}" style="font-size:24px;cursor:pointer;padding:4px;border-radius:8px;border:2px solid transparent;line-height:1;">${e}</span>`).join('')}
+     </div>
+    </div>
+    <div id="regSetupError" style="display:none;color:#C00000;font-size:12px;margin-bottom:6px;"></div>
+    <button onclick="submitTeamSetup()" class="login-btn" style="margin-bottom:10px;">Weiter → Mein Account</button>
+    <div style="text-align:center;">
+     <button onclick="showRegisterMode()" style="background:none;border:none;color:#999;font-size:12px;cursor:pointer;">← Zurück</button>
+    </div>
+   </div>
+
+   <!-- Step 2b: Role + Profile -->
    <div id="regProfileStep" style="display:none;">
     <div id="regTeamBadge" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;font-weight:700;color:#1e3a5f;text-align:center;"></div>
 
@@ -1050,8 +1086,14 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <div class="form-group"><label class="form-label">Startkapital (&#8364;)</label><input type="number" class="form-control" id="ngCapital" value="5.00" step="0.01"></div>
     <div class="form-group"><label class="form-label">Max. Teamgr&#246;&#223;e</label><input type="number" class="form-control" id="ngTeamSize" value="4"></div>
    </div>
-   <div class="form-group"><label class="form-label">Modus</label>
-    <select class="form-control" id="ngMode"><option value="internal">Einzelne Hochschule</option><option value="multi">Multi-Hochschul</option></select></div>
+   <div class="form-row">
+    <div class="form-group"><label class="form-label">Modus</label>
+     <select class="form-control" id="ngMode"><option value="internal">Einzelne Hochschule</option><option value="multi">Multi-Hochschul</option></select></div>
+    <div class="form-group"><label class="form-label">Anzahl Teams <span class="req">*</span></label>
+     <input type="number" class="form-control" id="ngNumTeams" value="5" min="1" max="30" placeholder="z.B. 5">
+     <div style="font-size:11px;color:#888;margin-top:3px;">System generiert automatisch Setup-Codes für jeden Team-Slot</div>
+    </div>
+   </div>
   </div>
   <div class="modal-footer">
    <button class="btn btn-secondary" onclick="closeModal('modalNewGame')">Abbrechen</button>
@@ -1290,7 +1332,7 @@ function showRegisterMode(){
   document.getElementById('loginMode').style.display='none';
   document.getElementById('registerMode').style.display='block';
   const tp=document.getElementById('testModePanel');if(tp) tp.style.display='none';
-  ['regProfileStep','regPasswordStep','regSuccessStep'].forEach(id=>{
+  ['regSetupStep','regProfileStep','regPasswordStep','regSuccessStep'].forEach(id=>{
     const el=document.getElementById(id);if(el) el.style.display='none';
   });
   const inv=document.getElementById('regInviteStep');if(inv) inv.style.display='block';
@@ -1304,13 +1346,76 @@ let _regInviteGame=null;
 let _regSelectedRole=null;
 let _regNewCode=null;
 let _profileLoginCode=null;
+function selectSetupEmoji(el,emoji){
+  window._setupSelectedEmoji=emoji;
+  document.querySelectorAll('#setupEmojiPicker [data-emoji]').forEach(e=>{
+    e.style.border=e.dataset.emoji===emoji?'2px solid #2563EB':'2px solid transparent';
+  });
+}
+function submitTeamSetup(){
+  const errEl=document.getElementById('regSetupError');
+  errEl.style.display='none';
+  const tname=document.getElementById('setupTeamName').value.trim();
+  const tbiz=document.getElementById('setupTeamBiz').value.trim();
+  if(!tname){errEl.textContent='Bitte Team-Namen eingeben.';errEl.style.display='block';return;}
+  if(!tbiz){errEl.textContent='Bitte Unternehmensidee eingeben.';errEl.style.display='block';return;}
+  const game=_regInviteGame;
+  if(TEAMS.find(t=>t.gameId===game.id&&t.status!=='pending'&&t.name.toLowerCase()===tname.toLowerCase())){
+    errEl.textContent='Dieser Team-Name ist bereits vergeben.';errEl.style.display='block';return;
+  }
+  // Update the pending team slot
+  const team=_regInviteTeam;
+  team.name=tname;
+  team.biz=tbiz;
+  team.approach=document.getElementById('setupTeamApproach').value.trim();
+  team.strategy=document.getElementById('setupTeamStrategy').value.trim();
+  team.logo=window._setupSelectedEmoji||team.logo||'🚀';
+  team.code=makeUniqueTeamCode(tname);
+  team.status='active';
+  // Move to profile step (CEO role fixed)
+  _regSelectedRole='CEO';
+  document.getElementById('regSetupStep').style.display='none';
+  document.getElementById('regProfileStep').style.display='block';
+  document.getElementById('regTeamBadge').innerHTML=team.logo+' <strong>'+team.name+'</strong> &mdash; '+game.name+' <span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:6px;">CEO</span>';
+  document.getElementById('regFirstName').value='';
+  document.getElementById('regLastName').value='';
+  document.getElementById('regEmail').value='';
+  document.getElementById('regMobile').value='';
+  // Hide role grid (CEO is fixed for team founder)
+  const grid=document.getElementById('regRoleGrid');
+  if(grid) grid.innerHTML='<div style="grid-column:1/-1;padding:10px;background:#EFF6FF;border-radius:8px;font-size:12px;font-weight:700;color:#1e3a5f;">👑 Du gründest dieses Team als CEO. Andere Rollen können deine Mitglieder wählen, wenn sie mit dem Einladungscode beitreten.</div>';
+}
 function checkInviteCode(){
   const code=document.getElementById('regInviteCode').value.trim().toUpperCase();
   const errEl=document.getElementById('regInviteError');
   errEl.style.display='none';
-  if(!code){errEl.textContent='Bitte Einladungscode eingeben.';errEl.style.display='block';return;}
-  const team=TEAMS.find(t=>t.code&&t.code.toUpperCase()===code);
-  if(!team){errEl.textContent='Ungültiger Einladungscode. Bitte frag deinen Dozenten oder Team-Gründer.';errEl.style.display='block';return;}
+  if(!code){errEl.textContent='Bitte Code eingeben.';errEl.style.display='block';return;}
+
+  // ── Check for SETUP CODE (team slot not yet set up)
+  const pendingTeam=TEAMS.find(t=>t.setupCode&&t.setupCode.toUpperCase()===code&&t.status==='pending');
+  if(pendingTeam){
+    const game=GAMES.find(g=>g.id===pendingTeam.gameId);
+    if(!game||game.status==='closed'){errEl.textContent='Dieses Spiel ist nicht mehr aktiv.';errEl.style.display='block';return;}
+    _regInviteTeam=pendingTeam; _regInviteGame=game; _regSelectedRole='CEO';
+    document.getElementById('regInvitePreview').innerHTML='🆕 <strong>Setup-Code erkannt</strong> &middot; '+game.name+' &middot; Team-Slot wird eingerichtet';
+    document.getElementById('regInvitePreview').style.display='block';
+    document.getElementById('regInviteStep').style.display='none';
+    document.getElementById('regSetupStep').style.display='block';
+    document.getElementById('regSetupBadge').innerHTML='🎮 '+game.name+' &mdash; Richte dein Team ein';
+    document.getElementById('setupTeamName').value='';
+    document.getElementById('setupTeamBiz').value='';
+    document.getElementById('setupTeamApproach').value='';
+    document.getElementById('setupTeamStrategy').value='';
+    window._setupSelectedEmoji=pendingTeam.logo||'🚀';
+    document.querySelectorAll('#setupEmojiPicker [data-emoji]').forEach(el=>{
+      el.style.border=el.dataset.emoji===window._setupSelectedEmoji?'2px solid #2563EB':'2px solid transparent';
+    });
+    return;
+  }
+
+  // ── Check for INVITE CODE (join existing active team)
+  const team=TEAMS.find(t=>t.code&&t.code.toUpperCase()===code&&t.status!=='pending');
+  if(!team){errEl.textContent='Ungültiger Code. Prüfe ob du einen Setup-Code (von deinem Dozenten) oder einen Einladungscode (von deinem Teamleiter) hast.';errEl.style.display='block';return;}
   const game=GAMES.find(g=>g.id===team.gameId);
   if(!game||game.status==='closed'){errEl.textContent='Dieses Spiel ist nicht mehr aktiv.';errEl.style.display='block';return;}
   _regInviteTeam=team; _regInviteGame=game; _regSelectedRole=null;
@@ -1389,7 +1494,14 @@ function submitRegPassword(){
   document.getElementById('regPasswordStep').style.display='none';
   document.getElementById('regSuccessStep').style.display='block';
   document.getElementById('regSuccessCode').textContent=code;
-  document.getElementById('regSuccessInfo').innerHTML='<b>Name:</b> '+fn+' '+ln+'<br><b>E-Mail:</b> '+email+'<br><b>Rolle:</b> '+_regSelectedRole+'<br><b>Team:</b> '+team.logo+' '+team.name+'<br><b>Spiel:</b> '+game.name;
+  const wasSetup=team.code&&team.setupCode; // team had a setupCode = was a pending slot
+  document.getElementById('regSuccessInfo').innerHTML=
+    '<b>Name:</b> '+fn+' '+ln+'<br><b>E-Mail:</b> '+email+'<br><b>Rolle:</b> '+_regSelectedRole+'<br><b>Team:</b> '+team.logo+' '+team.name+'<br><b>Spiel:</b> '+game.name
+    +(wasSetup?'<hr style="margin:10px 0;"><div style="background:#EFF6FF;border-radius:8px;padding:10px;"><div style="font-size:11px;font-weight:700;color:#888;margin-bottom:4px;">📨 EINLADUNGSCODE FÜR DEIN TEAM</div>'
+      +'<div style="font-family:monospace;font-size:16px;font-weight:900;letter-spacing:2px;color:#1e3a5f;">'+team.code+'</div>'
+      +'<div style="font-size:11px;color:#666;margin-top:4px;">Gib diesen Code an deine Teammitglieder weiter, damit sie sich registrieren können.</div>'
+      +'<button onclick="navigator.clipboard?.writeText(this.dataset.code);showToast(\'Kopiert!\')" data-code="'+team.code+'" style="margin-top:6px;background:none;border:1px solid #2563EB;color:#2563EB;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;">📋 Kopieren</button>'
+    +'</div>':'');
 }
 function copyRegCode(){
   const code=_regNewCode||document.getElementById('regSuccessCode')?.textContent;
@@ -3170,18 +3282,52 @@ function renderReflectionsAdmin(){
     </div>`;}).join('');
 }
 function renderAdminTeamsTable(){
-  const teams=TEAMS.filter(t=>t.gameId==='g1');
-  document.getElementById('adminTeamsTable').innerHTML=`<table class="data-table" style="width:100%">
-    <thead><tr><th>Team</th><th>Slogan</th><th>Mitglieder</th><th>Umsatz</th><th>Gewinn</th><th>Code</th><th>Aktionen</th></tr></thead>
-    <tbody>${teams.map(team=>{const profit=team.revenue-team.expenses;
-      return `<tr><td><div style="display:flex;gap:7px;align-items:center;"><div style="width:26px;height:26px;border-radius:6px;background:${team.color};color:white;font-size:12px;display:flex;align-items:center;justify-content:center;">${team.logo}</div><div><strong>${team.name}</strong><div style="font-size:10px;color:var(--gray-mid);">${team.biz}</div></div></div></td>
-        <td style="font-size:11px;font-style:italic;">${team.slogan||'—'}</td>
-        <td style="font-size:11px;">${MEMBERS.filter(m=>m.teamId===team.id).length} Pers.</td>
-        <td style="font-weight:700;">${fmtEur(team.revenue)}</td>
-        <td style="font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmtEur(profit)}</td>
-        <td><code style="font-size:11px;background:var(--blue-xlt);padding:1px 7px;border-radius:4px;">${team.code}</code></td>
-        <td><div style="display:flex;gap:3px;"><button class="btn btn-outline btn-xs" onclick="openMemberMgmt('${team.id}')" title="Mitglieder verwalten">👤 ${MEMBERS.filter(m=>m.teamId===team.id).length}</button><button class="btn btn-primary btn-xs" onclick="openMemberMgmt('${team.id}')" title="Mitglied hinzufügen">+ Mitglied</button><button class="btn btn-danger btn-xs" onclick="deleteTeam('${team.id}')" title="Team löschen">🗑️</button></div></td>
-      </tr>`;}).join('')}</tbody></table>`;
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u?.gameId;
+  const allTeams=TEAMS.filter(t=>t.gameId===effectiveGameId);
+  const pending=allTeams.filter(t=>t.status==='pending');
+  const active=allTeams.filter(t=>t.status!=='pending');
+  let html='';
+  // Pending team slots — show setup codes prominently
+  if(pending.length>0){
+    html+='<div class="info-box" style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:12px 16px;margin-bottom:16px;">'
+      +'<strong>⏳ '+pending.length+' Team-Slot(s) warten auf Setup</strong>'
+      +'<p style="font-size:12px;margin:6px 0 10px;">Gib jedem Teamleiter seinen Setup-Code. Er öffnet die App → „Neues Spiel" → gibt den Code ein → richtet sein Team ein.</p>'
+      +'<table class="data-table" style="width:100%;margin:0;">'
+      +'<thead><tr><th>Slot</th><th>Setup-Code (für Teamleiter)</th><th>Status</th><th></th></tr></thead>'
+      +'<tbody>'
+      +pending.map((t,i)=>'<tr>'
+        +'<td style="font-weight:700;color:var(--blue-dark);">Team-Slot '+(i+1)+'</td>'
+        +'<td><code style="font-size:14px;background:var(--blue-xlt);padding:3px 10px;border-radius:6px;font-weight:900;letter-spacing:2px;color:var(--blue-dark);">'+t.setupCode+'</code></td>'
+        +'<td><span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">⏳ Ausstehend</span></td>'
+        +'<td><button class="btn btn-outline btn-xs" onclick="copyCode(this.dataset.code)" data-code="'+t.setupCode+'">📋 Kopieren</button></td>'
+        +'</tr>').join('')
+      +'</tbody></table></div>';
+  }
+  // Active teams
+  if(active.length>0){
+    html+='<table class="data-table" style="width:100%">'
+      +'<thead><tr><th>Team</th><th>Idee</th><th>Mitglieder</th><th>Umsatz</th><th>Gewinn</th><th>Einladungscode</th><th>Aktionen</th></tr></thead>'
+      +'<tbody>'+active.map(team=>{const profit=team.revenue-team.expenses;
+        return '<tr><td><div style="display:flex;gap:7px;align-items:center;">'
+          +'<div style="width:26px;height:26px;border-radius:6px;background:'+team.color+';color:white;font-size:12px;display:flex;align-items:center;justify-content:center;">'+team.logo+'</div>'
+          +'<div><strong>'+team.name+'</strong><div style="font-size:10px;color:var(--gray-mid);">'+( team.biz||'')+'</div></div></div></td>'
+          +'<td style="font-size:11px;font-style:italic;">'+(team.slogan||'—')+'</td>'
+          +'<td style="font-size:11px;">'+MEMBERS.filter(m=>m.teamId===team.id).length+' Pers.</td>'
+          +'<td style="font-weight:700;">'+fmtEur(team.revenue)+'</td>'
+          +'<td style="font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtEur(profit)+'</td>'
+          +'<td><code style="font-size:11px;background:var(--blue-xlt);padding:1px 7px;border-radius:4px;">'+team.code+'</code>'
+          +' <button class="btn btn-outline btn-xs" onclick="copyCode(this.dataset.code)" data-code="'+team.code+'">📋</button></td>'
+          +'<td><div style="display:flex;gap:3px;">'
+          +'<button class="btn btn-outline btn-xs" onclick="openMemberMgmt(this.dataset.id)" data-id="'+team.id+'" title="Mitglieder verwalten">👤 '+MEMBERS.filter(m=>m.teamId===team.id).length+'</button>'
+          +'<button class="btn btn-danger btn-xs" onclick="deleteTeam(this.dataset.id)" data-id="'+team.id+'" title="Team löschen">🗑️</button>'
+          +'</div></td></tr>';}).join('')
+      +'</tbody></table>';
+  }
+  if(!active.length&&!pending.length){
+    html='<div class="empty-state"><div class="empty-icon">👥</div><h3>Noch keine Teams</h3><p>Lege ein neues Spiel mit Team-Slots an.</p></div>';
+  }
+  document.getElementById('adminTeamsTable').innerHTML=html;
 }
 function renderAdminTxTable(){
   const txs=[...TRANSACTIONS].sort((a,b)=>b.date.localeCompare(a.date));
@@ -3195,11 +3341,25 @@ function renderAdminTxTable(){
     </div>`;}).join('');
 }
 function renderCodesPanel(){
-  const teams=TEAMS.filter(t=>t.gameId==='g1');
-  const memberCodes=MEMBERS.filter(m=>teams.some(t=>t.id===m.teamId));
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u?.gameId;
+  const allTeamsForCodes=TEAMS.filter(t=>t.gameId===effectiveGameId);
+  const pendingTeams=allTeamsForCodes.filter(t=>t.status==='pending');
+  const teams=allTeamsForCodes.filter(t=>t.status!=='pending');
+  const memberCodes=MEMBERS.filter(m=>allTeamsForCodes.some(t=>t.id===m.teamId));
   document.getElementById('codesPanel').innerHTML=`
     <div class="info-box green"><span class="info-box-icon">🔑</span>Team-Codes für Login als komplettes Team, Mitglieds-Codes für individuellen Login.</div>
-    <div class="form-section-title">Team-Codes</div>
+    ${pendingTeams.length?`<div class="form-section-title">Setup-Codes (für Teamleiter — noch nicht eingerichtet)</div>
+    <table class="data-table" style="width:100%;margin-bottom:20px;">
+      <thead><tr><th>Slot</th><th>Setup-Code</th><th>Status</th><th>Aktion</th></tr></thead>
+      <tbody>${pendingTeams.map((t,i)=>`<tr>
+        <td>Team-Slot ${i+1}</td>
+        <td><code style="font-size:13px;background:var(--blue-xlt);padding:2px 9px;border-radius:4px;font-weight:900;letter-spacing:2px;">${t.setupCode}</code></td>
+        <td><span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:12px;font-size:11px;">⏳ Ausstehend</span></td>
+        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${t.setupCode}')" title="Kopieren">📋 Kopieren</button></td>
+      </tr>`).join('')}</tbody>
+    </table>`:''}
+    <div class="form-section-title">Einladungscodes (für Teammitglieder)</div>
     <table class="data-table" style="width:100%;margin-bottom:20px;">
       <thead><tr><th>Team</th><th>Code</th><th>Status</th><th>Aktion</th></tr></thead>
       <tbody>${teams.map(t=>`<tr>
@@ -4012,9 +4172,28 @@ function createGame(){
   };
   GAMES.push(newGame);
   if(admin){admin.gameId=gameId;}
+  // Auto-generate pending team slots with setup codes
+  const numTeams=parseInt(document.getElementById('ngNumTeams')?.value)||0;
+  const COLORS_T=['#2E75B6','#375623','#C55A11','#5B2C8D','#C00000','#1F6B75','#7B3F00','#2D6A4F','#8B4513','#006064'];
+  const EMOJIS_T=['🚀','💡','🔧','🌱','⚡','🎯','💎','🔥','🌊','🦁'];
+  for(let i=0;i<numTeams;i++){
+    const setupCode=makeSetupCode(gameId,i+1);
+    const slotId=nextId(TEAMS,'t');
+    TEAMS.push({
+      id:slotId, gameId, name:'', slogan:'', biz:'', approach:'', strategy:'',
+      setupCode, code:'',
+      status:'pending',
+      logo:EMOJIS_T[i%EMOJIS_T.length], color:COLORS_T[i%COLORS_T.length],
+      logoDataUrl:null,
+      revenue:0, expenses:0, capital:0, transactions:0,
+      currentWeek:1, weekStatus:'open', weekGoal:50,
+      mvps:[], mvpOverride:{}, desc:'', email:'', notif:{blog:true,week:true,reflect:true}, lang:'de'
+    });
+  }
+  newGame.teamCount=numTeams;
   rebuildCodes(); saveData();
   closeModal('modalNewGame');
-  showToast('🎮 Spiel "'+name+'" angelegt!');
+  showToast('🎮 Spiel "'+name+'" angelegt! '+numTeams+' Team-Slots mit Setup-Codes erstellt.');
   renderSuperPage();
 }
 function createAdmin(){
@@ -4118,6 +4297,15 @@ function makeAdminCode(){
   let code;
   do{ code='ADMIN-'+Array.from({length:4},()=>chars[Math.floor(Math.random()*chars.length)]).join(''); }
   while(CODES[code]);
+  return code;
+}
+function makeSetupCode(gameId, slotNum){
+  // generates e.g. SETUP-G1-001
+  const gshort=(gameId||'G').replace(/[^A-Z0-9]/gi,'').toUpperCase().slice(-4);
+  const base='SETUP-'+gshort+'-'+String(slotNum).padStart(3,'0');
+  // ensure uniqueness
+  let code=base, n=1;
+  while(TEAMS.find(t=>t.setupCode===code)) code=base+'-'+n++;
   return code;
 }
 function nextId(arr, prefix){
