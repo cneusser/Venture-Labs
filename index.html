@@ -456,7 +456,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">🚀</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.7.1)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.7.2)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:8px;">
@@ -687,7 +687,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
  </div>
- <div class="version-footer" id="versionFooter">v0.7.1</div>
+ <div class="version-footer" id="versionFooter">v0.7.2</div>
 </div>
 
 <!-- APP -->
@@ -2054,9 +2054,15 @@ function fmtEur(n){return n.toFixed(2).replace('.',',')+' €';}
 function fmtDate(d){return new Date(d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function getVisibleTeams(){
   const u=state.currentUser;
-  if(u.role==='superadmin') return TEAMS;
+  // Always exclude pending setup-slots and teams with no name from public views
+  const base=TEAMS.filter(t=>t.status!=='pending' && t.name && t.name.trim());
+  if(u.role==='superadmin'){
+    // When managing a specific game, scope to that game (keeps Admin panel + Teams page in sync)
+    if(state.managingGameId) return base.filter(t=>t.gameId===state.managingGameId);
+    return base;
+  }
   const gid=u.gameId||(u.teamId?TEAMS.find(t=>t.id===u.teamId)?.gameId:null);
-  return gid?TEAMS.filter(t=>t.gameId===gid):TEAMS;
+  return gid?base.filter(t=>t.gameId===gid):base;
 }
 function getMyTeam(){
   const u=state.currentUser;
@@ -2104,7 +2110,7 @@ function setLoginLang(lang){
   document.getElementById('langBtnDE').classList.toggle('active',lang==='de');
   document.getElementById('langBtnEN').classList.toggle('active',lang==='en');
   if(lang==='en'){
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.7.1)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.7.2)</span>';
     document.getElementById('lt_noCode').textContent='No code yet?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Register now \u2192';
     document.getElementById('lt_pwdFor').textContent='Password for:';
@@ -2114,7 +2120,7 @@ function setLoginLang(lang){
     document.getElementById('lt_back').textContent='Back';
     document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f Skip (insecure)';
   } else {
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.7.1)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.7.2)</span>';
     document.getElementById('lt_noCode').textContent='Noch kein Code?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Jetzt registrieren \u2192';
     document.getElementById('lt_pwdFor').textContent='Passwort f\u00fcr:';
@@ -2646,17 +2652,18 @@ function renderMessaging(){
   const u=state.currentUser;
   const effectiveGameId=state.managingGameId||u.gameId;
   const game=GAMES.find(g=>g.id===effectiveGameId);
-  const teams=TEAMS.filter(t=>t.gameId===effectiveGameId);
-  const members=MEMBERS.filter(m=>teams.some(t=>t.id===m.teamId)&&m.email);
+  const teams=TEAMS.filter(t=>t.gameId===effectiveGameId&&t.status!=='pending');
+  const allMembers=MEMBERS.filter(m=>teams.some(t=>t.id===m.teamId));
+  const withEmail=allMembers.filter(m=>m.email);
   const el=document.getElementById('messagingContent');
   if(!el) return;
   el.innerHTML='<div class="section-header"><div class="section-title admin-title">Nachricht versenden</div></div>'
     +'<div class="card"><div class="card-body">'
-    +'<p style="font-size:13px;color:var(--gray-mid);margin-bottom:12px;">Sende E-Mails an Studierende ('+members.length+' mit E-Mail).</p>'
-    +'<div class="form-group"><label class="form-label">Empfaenger</label>'
-    +'<select class="form-control" id="msgRecipient"><option value="all">Alle ('+members.length+')</option>'
-    +teams.map(function(t){var tm=members.filter(function(m){return m.teamId===t.id;});return tm.length>0?'<option value="team:'+t.id+'">'+t.logo+' '+t.name+' ('+tm.length+')</option>':''}).join('')
-    +members.map(function(m){return '<option value="member:'+m.id+'">'+m.name+' ('+m.role+')</option>'}).join('')
+    +'<p style="font-size:13px;color:var(--gray-mid);margin-bottom:12px;">In-App-Nachricht an alle Studierenden ('+allMembers.length+' Personen'+(withEmail.length>0?', '+withEmail.length+' per E-Mail':'')+')</p>'
+    +'<div class="form-group"><label class="form-label">Empfänger</label>'
+    +'<select class="form-control" id="msgRecipient"><option value="all">Alle ('+allMembers.length+')</option>'
+    +teams.map(function(t){var tm=allMembers.filter(function(m){return m.teamId===t.id;});return tm.length>0?'<option value="team:'+t.id+'">'+t.logo+' '+t.name+' ('+tm.length+')</option>':''}).join('')
+    +allMembers.map(function(m){return '<option value="member:'+m.id+'">'+m.name+' ('+m.role+')</option>'}).join('')
     +'</select></div>'
     +'<div class="form-group"><label class="form-label">Betreff</label><input class="form-control" id="msgSubject" placeholder="..."></div>'
     +'<div class="form-group"><label class="form-label">Nachricht</label><textarea class="form-control" id="msgBody" rows="5"></textarea></div>'
@@ -3590,13 +3597,13 @@ function renderKontaktPage(){
   const u=state.currentUser;
   const myId=u.memberId||u.code;
   const myMember=MEMBERS.find(m=>m.id===myId);
-  const myGameId=u.gameId;
+  // Superadmin uses managingGameId; fallback to u.gameId; if still none, show all members
+  const myGameId=(u.role==='superadmin'?state.managingGameId:null)||u.gameId||null;
 
-  // Get all members from the same game
-  const gameMembers=MEMBERS.filter(m=>{
-    const mTeam=TEAMS.find(t=>t.id===m.teamId);
-    return mTeam&&mTeam.gameId===myGameId;
-  });
+  // Get all members from the same game (or all members if no game context)
+  const gameMembers=myGameId
+    ?MEMBERS.filter(m=>{const mTeam=TEAMS.find(t=>t.id===m.teamId);return mTeam&&mTeam.gameId===myGameId;})
+    :MEMBERS;
 
   // Build member cards
   const memberCards=gameMembers.map(member=>{
@@ -4029,6 +4036,8 @@ function renderKonzept(){
     <div class="concept-section">
       <h2>📜 Change-Historie</h2>
       <div style="font-size:13px;">
+        <!-- Phase 1: Aufbau-Ära (localStorage) -->
+        <div style="margin:10px 0 6px;padding:4px 10px;background:var(--gray-lt);border-radius:6px;font-size:11px;font-weight:700;color:var(--gray-mid);letter-spacing:.5px;text-transform:uppercase;">📦 Phase 1 – Aufbau &amp; Prototyping (localStorage)</div>
         ${[
           ['v0.1','Initiales Prototyp: Grundstruktur, Teams, Buchungen (localStorage)'],
           ['v0.2','Ranking-Dashboard, Umsatz-Chart, Blog-System'],
@@ -4043,11 +4052,21 @@ function renderKonzept(){
           ['v0.11','Eingebetteter PDF-Viewer, Session-Tracking → Google Sheet, Backup-System, Konzept-Seite'],
           ['v0.12','Sprach-Toggle in Topbar, Admin PDF-Upload, Dozenten-E-Mail pro Spiel, Pinnwand, Messaging'],
           ['v0.13','Bug-Fixes: SUPER-NEUSS Persistenz, Sprach-Button sichtbar, Rollen-Anzeige beim Login'],
-          ['v0.7.0','Firebase Echtzeit-Sync, Kontakt-Seite, In-App-Nachrichten, Reflexion bearbeiten/löschen'],
-          ['v0.7.1','Fix: Admin-Nachrichten immer erfolgreich (In-App-Zustellung), E-Mail optional'],
-          ['v1.0 🎯','Vollständiger Release: alle Features aus v0.x integriert und stabilisiert'],
         ].map(([v,d])=>`<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg-mid);">
           <div><span style="background:var(--blue-mid);color:white;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;">${v}</span></div>
+          <div style="color:var(--gray-dark);padding-top:2px;">${d}</div>
+        </div>`).join('')}
+        <!-- Phase 2: Firebase-Ära (SoSe 2026) -->
+        <div style="margin:16px 0 6px;padding:4px 10px;background:var(--blue-xlt);border-radius:6px;font-size:11px;font-weight:700;color:var(--blue-dark);letter-spacing:.5px;text-transform:uppercase;">🔥 Phase 2 – Firebase Echtzeit-Sync (SoSe 2026)</div>
+        ${[
+          ['v0.7.0','Firebase Realtime Database integriert (Cross-Device-Sync), Kontakt-Seite mit Team-Verzeichnis, In-App-Direktnachrichten, Reflexionen bearbeiten &amp; löschen, Blog-Fix'],
+          ['v0.7.1','Fix: Admin-Nachrichten jetzt immer zugestellt (In-App-Postfach, E-Mail als optionaler Hintergrund-Versand), ID-Kollision im Nachrichten-Modal behoben'],
+          ['v0.7.2','Fix: Ghost-Teams (pending/namenlos) aus Ranking/Teams ausgeblendet, Kontakt-Verzeichnis für Superadmin korrekt befüllt, Teams-Seite und Admin-Panel jetzt am gleichen Spielscope ausgerichtet', true],
+        ].map(([v,d,current])=>`<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg-mid);${current?'background:var(--blue-xlt);border-radius:6px;padding-left:6px;':''}">
+          <div style="display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;">
+            <span style="background:var(--blue-dark);color:white;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;">${v}</span>
+            ${current?'<span style="background:var(--green);color:white;padding:2px 6px;border-radius:20px;font-size:9px;font-weight:700;">AKTUELL</span>':''}
+          </div>
           <div style="color:var(--gray-dark);padding-top:2px;">${d}</div>
         </div>`).join('')}
       </div>
