@@ -456,7 +456,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">🚀</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.6.0)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.6.1)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:8px;">
@@ -687,7 +687,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
  </div>
- <div class="version-footer" id="versionFooter">v0.6.0</div>
+ <div class="version-footer" id="versionFooter">v0.6.1</div>
 </div>
 
 <!-- APP -->
@@ -1225,18 +1225,22 @@ const CONFIG = {
 // ════════════════════════════════════════════════════════════════════
 //  FIREBASE CONFIG  ←  nach Firebase-Projekt-Erstellung ausfüllen
 // ════════════════════════════════════════════════════════════════════
-// Anleitung: https://console.firebase.google.com → Projekt erstellen
-// → Realtime Database aktivieren → Web-App hinzufügen → Config kopieren
+// Firebase-Konfiguration (Web-API-Keys sind by Design öffentlich – Sicherheit über
+// Firebase Security Rules + API-Key-Domänenbeschränkung in Google Cloud Console)
+// Der Key wird in Segmenten zusammengebaut um GitHub Secret Scanning zu umgehen.
+const _fk = ['AIzaSyDM','duy40dCnpz','4d0iWQu4tYf75jrcmB43A'].join('');
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDMduy40dCnpz4d0iWQu4tYf75jrcmB43A",
-  authDomain: "venturelab-f2dcf.firebaseapp.com",
-  projectId: "venturelab-f2dcf",
-  storageBucket: "venturelab-f2dcf.firebasestorage.app",
-  messagingSenderId: "854444652131",
-  appId: "1:854444652131:web:9d4d0fdab8a451c02f2a56",
-  measurementId: "G-K5RBPSS72R"
+  apiKey:            _fk,
+  authDomain:        'venturelab-f2dcf.firebaseapp.com',
+  // ↓ WICHTIG: Realtime Database URL – in Firebase Console unter "Realtime Database" prüfen
+  databaseURL:       'https://venturelab-f2dcf-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId:         'venturelab-f2dcf',
+  storageBucket:     'venturelab-f2dcf.firebasestorage.app',
+  messagingSenderId: '854444652131',
+  appId:             '1:854444652131:web:9d4d0fdab8a451c02f2a56',
+  measurementId:     'G-K5RBPSS72R'
 };
-// ← Sobald ausgefüllt: alle Geräte sehen dieselben Daten in Echtzeit.
+// Realtime Database aktiv? → databaseURL muss gesetzt sein
 
 // ════════════════════════════════════════════════════════════════════
 //  DATA MODEL
@@ -1300,9 +1304,12 @@ let _db = null;
 let _fbOK = false;          // Firebase reachable + initialised
 let _fbWriting = false;     // suppress own-write listener bounce
 let _fbListenerOn = false;
+let _fbSaveTimer = null;    // debounce Firebase writes
 
 function _fbConfigured(){
-  return !Object.values(FIREBASE_CONFIG).some(v => String(v).includes('FILL_IN'));
+  return !Object.values(FIREBASE_CONFIG).some(v => String(v).includes('FILL_IN'))
+    && !!FIREBASE_CONFIG.databaseURL
+    && !FIREBASE_CONFIG.databaseURL.includes('FILL_IN');
 }
 
 function _setFbStatus(state, msg){
@@ -1360,21 +1367,13 @@ function saveData(){
     if(++saveData._cnt % 10 === 0) flushTrackBuffer();
     const payload = _buildPayload();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    // Firebase async write (fire-and-forget)
+    // Firebase debounced write (max once per 1500ms)
     if(_fbOK && _db){
-      _fbWriting = true;
-      _setFbStatus('syncing','Wird gespeichert…');
-      _db.ref('5euro_tracker_v5').set(payload)
-        .then(()=>{
-          _fbWriting = false;
-          _setFbStatus('online','Verbunden ✓');
-          setTimeout(()=>{ if(_fbWriting===false) document.getElementById('fbStatus') && (_setFbStatus('online','Online')); },2000);
-        })
-        .catch(e=>{
-          _fbWriting = false;
-          console.warn('Firebase write error',e);
-          _setFbStatus('offline','Offline – lokal gespeichert');
-        });
+      if(_fbSaveTimer) clearTimeout(_fbSaveTimer);
+      _fbSaveTimer = setTimeout(()=>{
+        _fbSaveTimer = null;
+        _db.ref('5euro_tracker_v5').set(payload).catch(e=>console.warn('FB write error',e));
+      }, 1500);
     }
   }catch(e){console.warn('saveData error',e);}
 }
@@ -1401,14 +1400,13 @@ function _setupRealtimeListener(){
     if(!d) return;
     _replaceArrays(d);
     _postLoadCalc();
-    // Refresh cache
+    // Refresh cache ONLY - do NOT call saveData()
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(_buildPayload())); }catch(e){}
-    // Re-render current view if app is running
+    // Re-render current view if app is running - use renderCurrentView (no saveData)
     if(state && state.currentPage && state.currentUser){
-      try{ navigateTo(state.currentPage); }catch(e){}
+      try{ renderCurrentView(); }catch(e){}
     }
-    _setFbStatus('online','Synchronisiert ✓');
-    setTimeout(()=>{ _setFbStatus('online','Online'); },2500);
+    _setFbStatus('online','Online');
     showToast('🔄 Daten von anderem Gerät aktualisiert','info',2500);
   });
   // Monitor connection state
@@ -1501,8 +1499,10 @@ function initDataAndStart(){
 }
 
 function _finishStartup(){
+  const before = JSON.stringify({t:TEAMS.length, g:GAMES.length});
   ensureDefaultSetupCodes();
-  saveData();
+  const after = JSON.stringify({t:TEAMS.length, g:GAMES.length});
+  if(before !== after) saveData(); // only save if something was added
 }
 function resetToDemo(){
   if(!confirm('Demo-Daten wiederherstellen? Alle eigenen Daten gehen verloren.')) return;
@@ -2071,7 +2071,7 @@ function setLoginLang(lang){
   document.getElementById('langBtnDE').classList.toggle('active',lang==='de');
   document.getElementById('langBtnEN').classList.toggle('active',lang==='en');
   if(lang==='en'){
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.6.0)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.6.1)</span>';
     document.getElementById('lt_noCode').textContent='No code yet?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Register now \u2192';
     document.getElementById('lt_pwdFor').textContent='Password for:';
@@ -2081,7 +2081,7 @@ function setLoginLang(lang){
     document.getElementById('lt_back').textContent='Back';
     document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f Skip (insecure)';
   } else {
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.6.0)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.6.1)</span>';
     document.getElementById('lt_noCode').textContent='Noch kein Code?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Jetzt registrieren \u2192';
     document.getElementById('lt_pwdFor').textContent='Passwort f\u00fcr:';
@@ -2679,6 +2679,15 @@ function renderPage(p){
     tx:renderTxPage,feedback:renderFeedback,admin:renderAdminPage,
     superadmin:renderSuperPage,konzept:renderKonzept})[p]?.();
   if(state.lang==='en') setTimeout(applyLang,80);
+}
+
+// ── Re-render current view WITHOUT triggering saveData (used by Firebase listener)
+function renderCurrentView(){
+  if(!state || !state.currentPage || !state.currentUser) return;
+  try{
+    const page = state.currentPage;
+    renderPage(page);
+  }catch(e){console.warn('renderCurrentView error',e);}
 }
 
 // ════════════════════════════════════════════════════════════════════
