@@ -8,6 +8,9 @@
 <meta http-equiv="Expires" content="0">
 <title>VentureLab Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Firebase SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -412,9 +415,33 @@ textarea.form-control{resize:vertical;min-height:70px;}
 
 /* VERSION FOOTER */
 .version-footer{position:fixed;bottom:8px;right:12px;font-size:10px;color:var(--gray-mid);background:rgba(255,255,255,.85);padding:4px 8px;border-radius:4px;z-index:50;font-weight:600;letter-spacing:.3px;}
+
+/* FIREBASE LOADING OVERLAY */
+#fbLoadingOverlay{position:fixed;inset:0;background:#1F3864;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff;}
+#fbLoadingOverlay .fb-spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:fbspin .8s linear infinite;margin-bottom:16px;}
+@keyframes fbspin{to{transform:rotate(360deg);}}
+#fbLoadingOverlay p{font-size:14px;opacity:.85;margin-top:6px;}
+#fbLoadingOverlay .fb-logo{font-size:40px;margin-bottom:8px;}
+
+/* FIREBASE CONNECTION STATUS */
+#fbStatus{position:fixed;bottom:8px;left:12px;font-size:10px;padding:4px 8px;border-radius:4px;z-index:50;font-weight:600;letter-spacing:.3px;display:none;background:rgba(255,255,255,.85);}
+#fbStatus.online{color:#375623;}
+#fbStatus.offline{color:#C00000;}
+#fbStatus.syncing{color:#C55A11;}
 </style>
 </head>
 <body>
+
+<!-- FIREBASE LOADING OVERLAY -->
+<div id="fbLoadingOverlay">
+  <div class="fb-logo">🚀</div>
+  <div class="fb-spinner"></div>
+  <strong>VentureLab wird geladen…</strong>
+  <p id="fbLoadingMsg">Verbinde mit Datenbank…</p>
+</div>
+
+<!-- CONNECTION STATUS -->
+<div id="fbStatus"></div>
 
 <!-- LOGIN -->
 <div id="loginScreen">
@@ -429,7 +456,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">🚀</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.5.1)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.6.0)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:8px;">
@@ -660,7 +687,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
  </div>
- <div class="version-footer" id="versionFooter">v0.5.1</div>
+ <div class="version-footer" id="versionFooter">v0.6.0</div>
 </div>
 
 <!-- APP -->
@@ -1196,6 +1223,22 @@ const CONFIG = {
 };
 
 // ════════════════════════════════════════════════════════════════════
+//  FIREBASE CONFIG  ←  nach Firebase-Projekt-Erstellung ausfüllen
+// ════════════════════════════════════════════════════════════════════
+// Anleitung: https://console.firebase.google.com → Projekt erstellen
+// → Realtime Database aktivieren → Web-App hinzufügen → Config kopieren
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDMduy40dCnpz4d0iWQu4tYf75jrcmB43A",
+  authDomain: "venturelab-f2dcf.firebaseapp.com",
+  projectId: "venturelab-f2dcf",
+  storageBucket: "venturelab-f2dcf.firebasestorage.app",
+  messagingSenderId: "854444652131",
+  appId: "1:854444652131:web:9d4d0fdab8a451c02f2a56",
+  measurementId: "G-K5RBPSS72R"
+};
+// ← Sobald ausgefüllt: alle Geräte sehen dieselben Daten in Echtzeit.
+
+// ════════════════════════════════════════════════════════════════════
 //  DATA MODEL
 // ════════════════════════════════════════════════════════════════════
 
@@ -1220,6 +1263,7 @@ let FEEDBACKS = [];
 let SUPERADMINS = []; // zusätzliche Superadmins
 let FAQ_DOCS   = []; // PDFs/Docs in FAQ
 let ANNOUNCEMENTS = [];
+let PASSWORDS  = {}; // {code: sha256hash} – shared via Firebase
 
 // ════════════════════════════════════════════════════════════════════
 //  AUTH / CODES
@@ -1247,52 +1291,218 @@ function rebuildCodes(){
 }
 rebuildCodes();
 // ════════════════════════════════════════════════════════════════════
-//  PERSISTENZ (localStorage)
+//  PERSISTENZ (Firebase + localStorage Fallback)
 // ════════════════════════════════════════════════════════════════════
 const STORAGE_KEY = '5euro_tracker_v5';
+
+// ── Firebase state ──────────────────────────────────────────────────
+let _db = null;
+let _fbOK = false;          // Firebase reachable + initialised
+let _fbWriting = false;     // suppress own-write listener bounce
+let _fbListenerOn = false;
+
+function _fbConfigured(){
+  return !Object.values(FIREBASE_CONFIG).some(v => String(v).includes('FILL_IN'));
+}
+
+function _setFbStatus(state, msg){
+  const el = document.getElementById('fbStatus');
+  if(!el) return;
+  el.className = state; // 'online' | 'offline' | 'syncing'
+  const icons = {online:'🟢', offline:'🔴', syncing:'🔄'};
+  el.textContent = icons[state] + ' ' + msg;
+  el.style.display = 'block';
+}
+
+// ── Core data helpers ───────────────────────────────────────────────
+function _replaceArrays(d){
+  const replace=(arr,data)=>{arr.length=0;(data||[]).forEach(x=>arr.push(x));};
+  replace(UNIVERSITIES,d.UNIVERSITIES); replace(GAMES,d.GAMES);
+  replace(TEAMS,d.TEAMS);              replace(MEMBERS,d.MEMBERS);
+  replace(BLOGS,d.BLOGS);              replace(TRANSACTIONS,d.TRANSACTIONS);
+  replace(REFLECTIONS,d.REFLECTIONS);  replace(ADMINS,d.ADMINS);
+  replace(FEEDBACKS,d.FEEDBACKS||[]);  replace(SUPERADMINS,d.SUPERADMINS||[]);
+  replace(FAQ_DOCS,d.FAQ_DOCS||[]);    replace(ANNOUNCEMENTS,d.ANNOUNCEMENTS||[]);
+  // Merge PASSWORDS dict
+  if(d.PASSWORDS && typeof d.PASSWORDS==='object') Object.assign(PASSWORDS, d.PASSWORDS);
+  // Migrate legacy localStorage passwords
+  try{const lp=JSON.parse(localStorage.getItem(PWD_KEY)||'{}');Object.assign(PASSWORDS,lp);localStorage.removeItem(PWD_KEY);}catch(e){}
+}
+
+function _postLoadCalc(){
+  // Recalculate team financials from TRANSACTIONS (ensures Kapital excluded)
+  TEAMS.forEach(function(team){
+    const txs=TRANSACTIONS.filter(function(t){return t.teamId===team.id;});
+    team.revenue=txs.filter(function(t){return t.type==='income'&&t.cat!=='Kapital';}).reduce(function(s,t){return s+t.amount;},0);
+    team.expenses=txs.filter(function(t){return t.type==='expense'&&t.cat!=='Kapital';}).reduce(function(s,t){return s+t.amount;},0);
+    team.capital=txs.filter(function(t){return t.cat==='Kapital';}).reduce(function(s,t){return s+t.amount;},0);
+    team.transactions=txs.length;
+  });
+  // Migrate single-PDF fields to faqPdfs array
+  GAMES.forEach(g=>{
+    if(!g.faqPdfs) g.faqPdfs=[];
+    if(g.faqPdf&&g.faqPdfName&&!g.faqPdfs.some(p=>p.name===g.faqPdfName)){
+      g.faqPdfs.push({id:'pdf-migrated',name:g.faqPdfName,data:g.faqPdf,uploadedAt:new Date().toISOString()});
+      delete g.faqPdf; delete g.faqPdfName;
+    }
+  });
+  rebuildCodes();
+}
+
+function _buildPayload(){
+  return {UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS,ANNOUNCEMENTS,PASSWORDS};
+}
+
+// ── saveData (localStorage + Firebase async) ─────────────────────────
 function saveData(){
   try{
-  // Throttled tracking buffer flush
-  if(!saveData._cnt) saveData._cnt=0;
-  if(++saveData._cnt % 10 === 0) flushTrackBuffer();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS,ANNOUNCEMENTS
-    }));
+    if(!saveData._cnt) saveData._cnt=0;
+    if(++saveData._cnt % 10 === 0) flushTrackBuffer();
+    const payload = _buildPayload();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    // Firebase async write (fire-and-forget)
+    if(_fbOK && _db){
+      _fbWriting = true;
+      _setFbStatus('syncing','Wird gespeichert…');
+      _db.ref('5euro_tracker_v5').set(payload)
+        .then(()=>{
+          _fbWriting = false;
+          _setFbStatus('online','Verbunden ✓');
+          setTimeout(()=>{ if(_fbWriting===false) document.getElementById('fbStatus') && (_setFbStatus('online','Online')); },2000);
+        })
+        .catch(e=>{
+          _fbWriting = false;
+          console.warn('Firebase write error',e);
+          _setFbStatus('offline','Offline – lokal gespeichert');
+        });
+    }
   }catch(e){console.warn('saveData error',e);}
 }
+
+// ── loadData (localStorage only – used as fallback) ──────────────────
 function loadData(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
-    const replace=(arr,data)=>{arr.length=0;(data||[]).forEach(x=>arr.push(x));};
-    replace(UNIVERSITIES,d.UNIVERSITIES); replace(GAMES,d.GAMES);
-    replace(TEAMS,d.TEAMS); replace(MEMBERS,d.MEMBERS);
-    replace(BLOGS,d.BLOGS); replace(TRANSACTIONS,d.TRANSACTIONS);
-    replace(REFLECTIONS,d.REFLECTIONS); replace(ADMINS,d.ADMINS);
-    replace(FEEDBACKS,d.FEEDBACKS);
-    replace(SUPERADMINS,d.SUPERADMINS||[]);
-    replace(FAQ_DOCS,d.FAQ_DOCS||[]);
-    replace(ANNOUNCEMENTS,d.ANNOUNCEMENTS||[]);
-    // ── Recalculate team financials from TRANSACTIONS (ensures Kapital excluded) ──
-    TEAMS.forEach(function(team){
-      const txs=TRANSACTIONS.filter(function(t){return t.teamId===team.id;});
-      team.revenue=txs.filter(function(t){return t.type==='income'&&t.cat!=='Kapital';}).reduce(function(s,t){return s+t.amount;},0);
-      team.expenses=txs.filter(function(t){return t.type==='expense'&&t.cat!=='Kapital';}).reduce(function(s,t){return s+t.amount;},0);
-      team.capital=txs.filter(function(t){return t.cat==='Kapital';}).reduce(function(s,t){return s+t.amount;},0);
-      team.transactions=txs.length;
-    });
-    // Migrate single-PDF fields to faqPdfs array
-    GAMES.forEach(g=>{
-      if(!g.faqPdfs) g.faqPdfs=[];
-      if(g.faqPdf&&g.faqPdfName&&!g.faqPdfs.some(p=>p.name===g.faqPdfName)){
-        g.faqPdfs.push({id:'pdf-migrated',name:g.faqPdfName,data:g.faqPdf,uploadedAt:new Date().toISOString()});
-        delete g.faqPdf; delete g.faqPdfName;
-      }
-    });
-    rebuildCodes();
+    _replaceArrays(d);
+    _postLoadCalc();
     return true;
   }catch(e){console.warn('loadData error',e);return false;}
+}
+
+// ── Real-time listener ───────────────────────────────────────────────
+function _setupRealtimeListener(){
+  if(!_fbOK || !_db || _fbListenerOn) return;
+  _fbListenerOn = true;
+  _db.ref('5euro_tracker_v5').on('value', snapshot => {
+    if(_fbWriting) return; // own write, skip
+    const d = snapshot.val();
+    if(!d) return;
+    _replaceArrays(d);
+    _postLoadCalc();
+    // Refresh cache
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(_buildPayload())); }catch(e){}
+    // Re-render current view if app is running
+    if(state && state.currentPage && state.currentUser){
+      try{ navigateTo(state.currentPage); }catch(e){}
+    }
+    _setFbStatus('online','Synchronisiert ✓');
+    setTimeout(()=>{ _setFbStatus('online','Online'); },2500);
+    showToast('🔄 Daten von anderem Gerät aktualisiert','info',2500);
+  });
+  // Monitor connection state
+  _db.ref('.info/connected').on('value', snap=>{
+    if(snap.val()===true){ _setFbStatus('online','Online'); }
+    else { _setFbStatus('offline','Keine Verbindung'); }
+  });
+}
+
+// ── Async startup: Firebase first, localStorage fallback ──────────────
+function _hideLoadingOverlay(){
+  const el = document.getElementById('fbLoadingOverlay');
+  if(el) el.style.display='none';
+}
+function _setLoadingMsg(msg){
+  const el = document.getElementById('fbLoadingMsg');
+  if(el) el.textContent = msg;
+}
+
+function initDataAndStart(){
+  if(!_fbConfigured()){
+    // No Firebase config → use localStorage only
+    _setLoadingMsg('Lade lokale Daten…');
+    setTimeout(()=>{
+      loadData();
+      _hideLoadingOverlay();
+      _setFbStatus('offline','Nur lokal (kein Firebase)');
+      _finishStartup();
+    }, 300);
+    return;
+  }
+
+  // Init Firebase
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database();
+    _fbOK = true;
+  }catch(e){
+    console.warn('Firebase init failed:', e);
+    _setLoadingMsg('Firebase Fehler – lade lokal…');
+    setTimeout(()=>{ loadData(); _hideLoadingOverlay(); _finishStartup(); }, 800);
+    return;
+  }
+
+  _setLoadingMsg('Lade Daten aus Firebase…');
+
+  // Set timeout fallback (5 seconds)
+  const fbTimeout = setTimeout(()=>{
+    console.warn('Firebase load timeout – falling back to localStorage');
+    _setLoadingMsg('Timeout – lade lokal…');
+    loadData();
+    _hideLoadingOverlay();
+    _setFbStatus('offline','Offline – lokale Daten');
+    _finishStartup();
+  }, 5000);
+
+  _db.ref('5euro_tracker_v5').once('value')
+    .then(snapshot => {
+      clearTimeout(fbTimeout);
+      const d = snapshot.val();
+      if(d){
+        _replaceArrays(d);
+        _postLoadCalc();
+        // Cache locally
+        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(_buildPayload())); }catch(e){}
+        console.log('✅ Loaded from Firebase');
+      } else {
+        // Firebase empty → push localStorage data up
+        _setLoadingMsg('Synchronisiere lokale Daten…');
+        loadData();
+        if(GAMES.length || TEAMS.length){
+          const p = _buildPayload();
+          _db.ref('5euro_tracker_v5').set(p).catch(e=>console.warn('Initial push failed',e));
+          console.log('📤 Pushed local data to Firebase');
+        }
+      }
+      _hideLoadingOverlay();
+      _setFbStatus('online','Online');
+      _setupRealtimeListener();
+      _finishStartup();
+    })
+    .catch(err => {
+      clearTimeout(fbTimeout);
+      console.warn('Firebase load error:', err);
+      loadData();
+      _hideLoadingOverlay();
+      _setFbStatus('offline','Offline – lokale Daten');
+      _finishStartup();
+    });
+}
+
+function _finishStartup(){
+  ensureDefaultSetupCodes();
+  saveData();
 }
 function resetToDemo(){
   if(!confirm('Demo-Daten wiederherstellen? Alle eigenen Daten gehen verloren.')) return;
@@ -1306,8 +1516,9 @@ function clearAllData(){
   TEAMS.forEach(t=>{t.revenue=0;t.expenses=0;t.transactions=0;t.currentWeek=1;t.weekStatus='open';t.mvps=[];t.mvpOverride={};});
   saveData(); location.reload();
 }
-// Beim Start: gespeicherte Daten laden
-const dataLoaded = loadData();
+// Beim Start: Daten laden (Firebase zuerst, localStorage als Fallback)
+// Wird nach dem Laden des DOM ausgeführt
+const dataLoaded = false; // wird durch initDataAndStart() gesetzt
 
 // Function to ensure default setup codes exist
 function ensureDefaultSetupCodes(){
@@ -1371,66 +1582,8 @@ function ensureDefaultSetupCodes(){
   }
 }
 
-// Initialize default setup codes if app is empty (for professor to use)
-if(!dataLoaded){
-  // Create a default game with setup codes when app starts for first time
-  const defaultGameId='g-default';
-  const defaultUni={id:'uni-default',name:'Deine Universität',short:'UNIV',slug:'univ',city:'',adminCount:1,gameCount:1};
-  UNIVERSITIES.push(defaultUni);
-
-  const defaultGame={
-    id:defaultGameId,name:'VentureLab Tracker Spielsession',universityId:'uni-default',uni:'UNIV',
-    status:'active',isLive:true,currentWeek:1,teamCount:12,start:new Date().toISOString().split('T')[0],
-    end:new Date(Date.now()+180*24*60*60*1000).toISOString().split('T')[0],
-    mode:'intern',capital:5,teamSize:5,weeklyDeadline:'Sonntag 23:59',autoApprove:0,rounds:1,currentRound:1,
-    adminEmail:'',faqs:[],faqPdfs:[]
-  };
-  GAMES.push(defaultGame);
-
-  // Create 12 pending team slots with setup codes (SETUP-DFLT-001 through SETUP-DFLT-012)
-  for(let i=0;i<12;i++){
-    const setupCode='SETUP-DFLT-'+String(i+1).padStart(3,'0');
-    const EMOJIS=['🚀','💡','🔧','🌱','⚡','🎯','💎','🔥','🌊','🐯','🐉','🦅'];
-    const COLORS=['#2E75B6','#375623','#C55A11','#5B2C8D','#C00000','#1F6B75','#7B3F00','#2D6A4F','#8B4513','#006064','#2c5f7c','#5a3a7c'];
-    const pendingTeam={
-      id:'t-pending-'+(i+1),
-      gameId:defaultGameId,
-      name:'',
-      slogan:'',
-      biz:'',
-      approach:'',
-      strategy:'',
-      setupCode:setupCode,
-      code:'',
-      status:'pending',
-      logo:EMOJIS[i%EMOJIS.length],
-      color:COLORS[i%COLORS.length],
-      logoDataUrl:null,
-      revenue:0,
-      expenses:0,
-      capital:0,
-      transactions:0,
-      currentWeek:1,
-      weekStatus:'open',
-      mvps:[],
-      mvpOverride:{},
-      desc:'',
-      email:'',
-      notif:{blog:true,week:true,reflect:true},
-      lang:'de',
-      weekGoal:50
-    };
-    TEAMS.push(pendingTeam);
-  }
-
-  saveData();
-  rebuildCodes();
-} else {
-  // If data was loaded from localStorage, ensure default setup codes are present
-  ensureDefaultSetupCodes();
-  rebuildCodes();
-  saveData();
-}
+// Startup is now handled asynchronously by initDataAndStart()
+// which is called from window.onload (see bottom of script)
 
 // ════════════════════════════════════════════════════════════════════
 //  STATE
@@ -1905,8 +2058,8 @@ function countChars(el,counterId,max){
 
 // ── PASSWORD & LANGUAGE SYSTEM ───────────────────────────────────────────────
 const PWD_KEY='5euro_passwords';
-function getPwds(){try{return JSON.parse(localStorage.getItem(PWD_KEY)||'{}')}catch{return {};}}
-function savePwd(code,hash){const p=getPwds();p[code]=hash;localStorage.setItem(PWD_KEY,JSON.stringify(p));}
+function getPwds(){return PASSWORDS;}
+function savePwd(code,hash){PASSWORDS[code]=hash;saveData();}
 async function hashPwd(str){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -1918,7 +2071,7 @@ function setLoginLang(lang){
   document.getElementById('langBtnDE').classList.toggle('active',lang==='de');
   document.getElementById('langBtnEN').classList.toggle('active',lang==='en');
   if(lang==='en'){
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.5.1)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.6.0)</span>';
     document.getElementById('lt_noCode').textContent='No code yet?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Register now \u2192';
     document.getElementById('lt_pwdFor').textContent='Password for:';
@@ -1928,7 +2081,7 @@ function setLoginLang(lang){
     document.getElementById('lt_back').textContent='Back';
     document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f Skip (insecure)';
   } else {
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.5.1)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.6.0)</span>';
     document.getElementById('lt_noCode').textContent='Noch kein Code?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Jetzt registrieren \u2192';
     document.getElementById('lt_pwdFor').textContent='Passwort f\u00fcr:';
@@ -4039,18 +4192,7 @@ function handleAvatarUpload(e){
   reader.readAsDataURL(file);
 }
 
-// Storage-Status anzeigen
-function updateStorageStatus(){
-  const el = document.getElementById('storageStatusText');
-  if(!el) return;
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if(saved){
-    const d = JSON.parse(saved);
-    el.innerHTML = `<strong>💾 Gespeicherte Daten aktiv</strong> – ${d.TEAMS?.length||0} Teams, ${d.MEMBERS?.length||0} Mitglieder, ${d.BLOGS?.length||0} Berichte. Letzter Stand: aus deinem Browser-Speicher geladen.`;
-  } else {
-    el.innerHTML = '<strong>📋 Demo-Daten aktiv</strong> – keine eigenen Daten gespeichert. Erstelle Teams und Mitglieder um zu starten.';
-  }
-}
+// Storage-Status anzeigen (wird von updateStorageStatus() weiter unten überschrieben)
 
 // Pre-populate modals when opened
 const origOpenModal=openModal;
@@ -5204,7 +5346,7 @@ const BACKUP_KEY = '5euro_lastbackup';
 const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function exportDataJson(){
-  const d = {UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS,ANNOUNCEMENTS};
+  const d = {UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS,ANNOUNCEMENTS,PASSWORDS};
   return JSON.stringify(d, null, 2);
 }
 
@@ -5254,8 +5396,9 @@ function updateStorageStatus(){
   if(u.role!=='superadmin') return;
   const last=parseInt(localStorage.getItem(BACKUP_KEY)||'0');
   const lastBackupDate=last?new Date(last).toLocaleDateString('de-DE')+' '+new Date(last).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'Noch nie';
-  const totalSize=(JSON.stringify({UNIVERSITIES,GAMES,TEAMS,MEMBERS,BLOGS,TRANSACTIONS,REFLECTIONS,ADMINS,FEEDBACKS,SUPERADMINS,FAQ_DOCS,ANNOUNCEMENTS}).length/1024).toFixed(0);
-  const msg=`Zuletzt gesichert: ${lastBackupDate} | Speicher: ${totalSize} KB (${TEAMS.length} Teams, ${TRANSACTIONS.length} Buchungen, ${BLOGS.length} Berichte)`;
+  const totalSize=(JSON.stringify(_buildPayload()).length/1024).toFixed(0);
+  const fbState=_fbOK?'🟢 Firebase aktiv (Echtzeit-Sync)':'🔴 Kein Firebase – nur lokal';
+  const msg=`${fbState} | Zuletzt gesichert: ${lastBackupDate} | Speicher: ${totalSize} KB (${TEAMS.length} Teams, ${TRANSACTIONS.length} Buchungen, ${BLOGS.length} Berichte)`;
   const el=document.getElementById('storageStatusText');
   if(el) el.textContent=msg;
 }
@@ -5275,6 +5418,13 @@ async function sendAutoBackup(){
     console.log('Auto-backup sent:', new Date().toISOString());
   } catch(e){ console.warn('Auto-backup failed:', e); }
 }
+
+// ════════════════════════════════════════════════════════════════════
+//  APP START  –  Async Firebase load, then show login screen
+// ════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', function(){
+  initDataAndStart();
+});
 
 </script>
 
