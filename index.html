@@ -456,7 +456,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">🚀</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.7.6)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.7.7)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:8px;">
@@ -692,7 +692,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
  </div>
- <div class="version-footer" id="versionFooter">v0.7.6</div>
+ <div class="version-footer" id="versionFooter">v0.7.7</div>
 </div>
 
 <!-- APP -->
@@ -2001,24 +2001,7 @@ function showLoginStep1(){
   document.getElementById('loginStep1').style.display='block';
   setTimeout(()=>document.getElementById('loginCode')?.focus(),50);
 }
-function showRegister(){
-  document.getElementById('loginMode').style.display='none';
-  document.getElementById('registerMode').style.display='block';
-  document.getElementById('regStep1').style.display='block';
-  document.getElementById('regStep2').style.display='none';
-  // Populate game dropdown
-  const sel = document.getElementById('regGame');
-  const active = GAMES.filter(g=>g.status==='active');
-  sel.innerHTML = '<option value="">-- Semester/Spiel wählen --</option>'
-    + active.map(g=>`<option value="${g.id}">${g.name} · ${g.uni}</option>`).join('');
-  if(active.length===0){
-    document.getElementById('regNoGames').style.display='block';
-  } else {
-    document.getElementById('regNoGames').style.display='none';
-    if(active.length===1){ sel.value=active[0].id; updateRegTeamList(); }
-  }
-  regState = { type: null, selectedTeamId: null, newCode: null };
-}
+// NOTE: showRegister() is defined above as alias for showRegisterMode() – do not redefine here
 function updateRegTeamList(){
   const gameId = document.getElementById('regGame').value;
   if(!gameId){ document.getElementById('regTeamSection').style.display='none'; return; }
@@ -2129,12 +2112,7 @@ function registerUser(){
   document.getElementById('regStep1').style.display='none';
   document.getElementById('regStep2').style.display='block';
 }
-function copyRegCode(){
-  const code = regState.newCode;
-  if(code) navigator.clipboard?.writeText(code);
-  document.getElementById('regResultCode').style.background='linear-gradient(135deg,#375623,#52873a)';
-  setTimeout(()=>{document.getElementById('regResultCode').style.background='linear-gradient(135deg,#1F3864,#2E75B6)';},800);
-}
+// NOTE: copyRegCode() is defined above (uses _regNewCode for invite-code flow)
 
 // ════════════════════════════════════════════════════════════════════
 //  HELPERS
@@ -2228,7 +2206,7 @@ function setLoginLang(lang){
   document.getElementById('langBtnDE').classList.toggle('active',lang==='de');
   document.getElementById('langBtnEN').classList.toggle('active',lang==='en');
   if(lang==='en'){
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.7.6)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.7.7)</span>';
     document.getElementById('lt_noCode').textContent='No code yet?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Register now \u2192';
     document.getElementById('lt_pwdFor').textContent='Password for:';
@@ -2238,7 +2216,7 @@ function setLoginLang(lang){
     document.getElementById('lt_back').textContent='Back';
     document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f Skip (insecure)';
   } else {
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.7.6)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.7.7)</span>';
     document.getElementById('lt_noCode').textContent='Noch kein Code?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Jetzt registrieren \u2192';
     document.getElementById('lt_pwdFor').textContent='Passwort f\u00fcr:';
@@ -4497,6 +4475,7 @@ function changTeamEmoji(){
 //  SUPERADMIN PAGE
 // ════════════════════════════════════════════════════════════════════
 function renderSuperPage(){
+  const _su=state.currentUser;if(!_su||_su.role!=='superadmin'){navigateTo('dashboard');return;}
   updateStorageStatus();
   const activeTeams=TEAMS.filter(t=>t.status!=='pending'&&t.name&&t.name.trim());
   const totalRev=activeTeams.reduce((s,t)=>s+t.revenue,0);
@@ -4650,7 +4629,8 @@ function renderKonzept(){
           ['v0.7.3','Kassenbuch (Soll/Haben/Saldo), Reflexion-Detail-Modal, Stimmungsbarometer-Chart, Bugfixes: Ghost-Teams, Testumgebung, Kontakt'],
           ['v0.7.4','Session-Persistenz (Auto-Login nach Refresh), MVP-Ticker, Passwort-Reset via Admin, ⚡ Team-Aktivierung, Gruppe der Woche, Aktivitätslog (CSV-Export), Reflexions-Status in Blog-Freigabe, Stimmungsbarometer ans Ende, Team-Emoji änderbar, Nachrichten-Sendenfix, Support-Button'],
           ['v0.7.5','Soft-Delete mit Undo: 10-Sekunden Rückgängig-Toast bei Löschen von Mitglied/Team/Buchung/Reflexion/Nachricht; Papierkorb-Tab im Admin-Panel mit Wiederherstellung und endgültigem Löschen'],
-          ['v0.7.6','🔒 Kritischer Bugfix: Firebase-Timeout auf 10s erhöht; verhindert Datenverlust durch Überschreiben von Firebase bei langsamer Verbindung; Retry-Logik in Einladungscode-Prüfung; Realtime-Listener auch im Fehler-Pfad aktiv', true],
+          ['v0.7.6','🔒 Kritischer Bugfix: Firebase-Timeout auf 10s erhöht; verhindert Datenverlust durch Überschreiben von Firebase bei langsamer Verbindung; Retry-Logik in Einladungscode-Prüfung; Realtime-Listener auch im Fehler-Pfad aktiv'],
+          ['v0.7.7','🐛 Vollständiger Code-Audit (6 Bugs): copyRegCode()-Shadowing (Copy-Button defekt), showRegister()-Shadowing (alte Funktion überschrieb aktive), openAddMemberModal()-Crash (fehlende DOM-Elemente), addMemberToTeam()-fehlende Felder (firstName/lastName/email/mobile), Superadmin-Zugriffsgate, E-Mail-Feld im Mitglied-Modal', true],
         ].map(([v,d,current])=>`<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg-mid);${current?'background:var(--blue-xlt);border-radius:6px;padding-left:6px;':''}">
           <div style="display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;">
             <span style="background:var(--blue-dark);color:white;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;">${v}</span>
@@ -5304,12 +5284,12 @@ function renderMemberMgmtList(){
   </div>`;
 }
 function addMemberToTeam(){
-  logEvent('admin_member_add', {teamId, role, name});
   const teamId = state.managingTeamId;
   const team = TEAMS.find(t=>t.id===teamId);
   const name = document.getElementById('nmName').value.trim();
   if(!name){showToast('Bitte Name eingeben','error');return;}
   const role = document.getElementById('nmRole').value;
+  logEvent('admin_member_add', {teamId, role, name});
   // Role uniqueness check
   if(getRoleTaken(teamId,role,null)){
     showToast(`Rolle "${role}" ist bereits vergeben. Bitte zuerst die bestehende Rolle ändern.`,'error');
@@ -5318,10 +5298,16 @@ function addMemberToTeam(){
   const existingCount = MEMBERS.filter(m=>m.teamId===teamId).length;
   const code = makeMemberCode(team, existingCount);
   const memberId = nextId(MEMBERS,'mb');
-  MEMBERS.push({id:memberId, teamId, name, role, title:role, bio:'', code, avatarDataUrl:null, email:'', notif:{blog:true,week:true,reflect:true}, lang:'de'});
+  // Split name into firstName/lastName for contact page and profile display
+  const nameParts = name.trim().split(/\s+/);
+  const firstName = nameParts[0]||'';
+  const lastName = nameParts.slice(1).join(' ')||'';
+  const email = (document.getElementById('nmEmail')?.value||'').trim().toLowerCase();
+  MEMBERS.push({id:memberId, teamId, name, firstName, lastName, role, title:role, bio:'', code, avatarDataUrl:null, email, mobile:'', notif:{blog:true,week:true,reflect:true}, lang:'de'});
   rebuildCodes(); saveData();
   showToast('✅ '+name+' hinzugefügt – Code: '+code);
   document.getElementById('nmName').value='';
+  const nmEmail=document.getElementById('nmEmail');if(nmEmail) nmEmail.value='';
   const newCount = MEMBERS.filter(m=>m.teamId===teamId).length;
   document.getElementById('nmCode').value = makeMemberCode(team, newCount);
   renderMemberMgmtList();
@@ -5860,10 +5846,8 @@ function copyCeoCode(code){
   navigator.clipboard?.writeText(code).then(()=>showToast((state.lang==='en'?'Code copied: ':'Code kopiert: ')+code,'info'));
 }
 function openAddMemberModal(teamId){
-  document.getElementById('nmTeamId').value=teamId;
-  document.getElementById('nmName').value='';
-  document.getElementById('nmRole').value='CFO';
-  openModal('modalNewMember');
+  // Delegate to the working admin member management modal
+  openMemberMgmt(teamId);
 }
 function editMemberFromCeo(memberId){
   // Use the same edit form as admin (set managingTeamId to current team)
@@ -6566,6 +6550,9 @@ window.addEventListener('DOMContentLoaded', function(){
      <div id="nmRoleWarn" style="font-size:11px;color:var(--red);margin-top:3px;display:none;">
       &#9888; Diese Rolle ist bereits vergeben. Bitte w&#228;hle eine andere oder &#228;ndere zuerst die bestehende Rolle.
      </div></div>
+    <div class="form-group"><label class="form-label">E-Mail <span style="font-size:10px;color:#888;">(optional)</span></label>
+     <input type="email" class="form-control" id="nmEmail" placeholder="vorname@beispiel.de">
+    </div>
     <div class="form-group"><label class="form-label">Code (auto)</label>
      <input type="text" class="form-control" id="nmCode" readonly
        style="font-family:'Courier New',monospace;font-weight:700;letter-spacing:1px;background:var(--blue-xlt);">
