@@ -38,7 +38,7 @@ a{color:var(--blue-mid);text-decoration:none;}
 /* LOGIN */
 #loginScreen{min-height:100vh;background:linear-gradient(135deg,var(--blue-dark) 0%,#2a5298 50%,var(--blue-mid) 100%);display:flex;align-items:center;justify-content:center;padding:24px;}
 .login-card{background:white;border-radius:20px;padding:40px 36px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-.test-mode-banner{position:fixed;top:0;left:0;right:0;background:#B35A00;color:white;text-align:center;padding:6px;font-size:13px;font-weight:700;z-index:9999;letter-spacing:1px;}
+.test-mode-banner{position:fixed;bottom:0;left:0;right:0;background:rgba(179,90,0,0.92);color:white;text-align:center;padding:3px 8px;font-size:11px;font-weight:600;z-index:9999;letter-spacing:.5px;}
 .login-logo{width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,var(--blue-dark),var(--blue-mid));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:white;margin:0 auto 16px;}
 .login-title{text-align:center;font-size:24px;font-weight:800;color:var(--blue-dark);margin-bottom:4px;}
 .login-sub{text-align:center;font-size:13px;color:var(--gray-mid);margin-bottom:28px;}
@@ -456,7 +456,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">🚀</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.7.2)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.7.3)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:8px;">
@@ -687,7 +687,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
  </div>
- <div class="version-footer" id="versionFooter">v0.7.2</div>
+ <div class="version-footer" id="versionFooter">v0.7.3</div>
 </div>
 
 <!-- APP -->
@@ -705,7 +705,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
  </div>
  <div class="ticker" id="tickerBar">
-  <div class="ticker-label" id="liveIndicator">&#128308; LIVE</div>
+  <div class="ticker-label" id="liveIndicator" style="display:none">&#128308; LIVE</div>
   <div class="ticker-track" id="tickerTrack"></div>
  </div>
 
@@ -742,6 +742,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
      <button class="profile-tab" onclick="switchMyTeamTab('members')">&#128101; Mitglieder</button>
      <button class="profile-tab" id="ceomgmtTab" style="display:none;" onclick="switchMyTeamTab('ceomgmt')">&#128081; Verwaltung</button>
      <button class="profile-tab" onclick="switchMyTeamTab('transactions')">&#128179; Buchungen</button>
+     <button class="profile-tab" id="kassenbuchTab" style="display:none;" onclick="switchMyTeamTab('kassenbuch')">&#128210; Kassenbuch</button>
      <button class="profile-tab" onclick="switchMyTeamTab('blogs')">&#128221; Berichte</button>
     </div>
     <div class="profile-panel active" id="myteamPanel-overview">
@@ -771,6 +772,9 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <button class="btn btn-primary btn-sm" onclick="openModal('modalBooking')">+ Buchung</button>
      </div>
      <div class="tx-table" id="myTxTable"></div>
+    </div>
+    <div class="profile-panel" id="myteamPanel-kassenbuch">
+     <div id="myTeamContent"></div>
     </div>
     <div class="profile-panel" id="myteamPanel-blogs">
      <div class="section-header">
@@ -1413,6 +1417,7 @@ function _setupRealtimeListener(){
   if(!_fbOK || !_db || _fbListenerOn) return;
   _fbListenerOn = true;
   _db.ref('5euro_tracker_v5').on('value', snapshot => {
+    if(window._testMode) return;
     if(_fbWriting) return; // own write, skip
     const d = snapshot.val();
     if(!d) return;
@@ -1864,6 +1869,7 @@ const TEST_DATA={UNIVERSITIES:[{id:'test-uni',name:'DHBW Stuttgart',short:'DHBW'
 const TEST_PWDS={'TEST-CEO':'test','TEST-CFO':'test','TEST-CMO':'test','TEST-CEO2':'test','TEST-ADMIN':'test'};
 function loadTestData(){
   window._testModeActive=true;
+  window._testMode=true;
   const orig=localStorage.getItem('5euro_tracker_v5');
   window._testModeOrigData=orig;
   localStorage.setItem('5euro_tracker_v5',JSON.stringify(TEST_DATA));
@@ -2110,7 +2116,7 @@ function setLoginLang(lang){
   document.getElementById('langBtnDE').classList.toggle('active',lang==='de');
   document.getElementById('langBtnEN').classList.toggle('active',lang==='en');
   if(lang==='en'){
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.7.2)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.7.3)</span>';
     document.getElementById('lt_noCode').textContent='No code yet?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Register now \u2192';
     document.getElementById('lt_pwdFor').textContent='Password for:';
@@ -2120,7 +2126,7 @@ function setLoginLang(lang){
     document.getElementById('lt_back').textContent='Back';
     document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f Skip (insecure)';
   } else {
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.7.2)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.7.3)</span>';
     document.getElementById('lt_noCode').textContent='Noch kein Code?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Jetzt registrieren \u2192';
     document.getElementById('lt_pwdFor').textContent='Passwort f\u00fcr:';
@@ -2279,6 +2285,7 @@ function finishLogin(code){
 
 function doLogout(){  logEvent('logout', {duration: Math.round((Date.now() - new Date(_sessionStart).getTime())/1000)+'s'});
   flushTrackBuffer(true);
+  window._testMode=false;
 
   state.currentUser=null;state.prevUser=null;
   document.getElementById('appShell').style.display='none';
@@ -2986,6 +2993,7 @@ function renderMyTeamPanel(tab){
   else if(tab==='profil') renderTeamProfileForm(team);
   else if(tab==='members') renderMembersSection(team);
   else if(tab==='transactions') renderMyTransactions(team);
+  else if(tab==='kassenbuch') renderKassenbuch(team);
   else if(tab==='blogs') renderMyBlogs(team);
 }
 
@@ -3079,6 +3087,9 @@ function renderMembersSection(team){
   const cusr=state.currentUser;
   const myMem=MEMBERS.find(mb=>mb.code===cusr.code);
   if(ceotab) ceotab.style.display=(myMem?.role==='CEO'||cusr.role==='admin'||cusr.role==='superadmin')?'':'none';
+  // Kassenbuch tab visibility (for CEO and CFO)
+  const kassenbuchTab=document.getElementById('kassenbuchTab');
+  if(kassenbuchTab) kassenbuchTab.style.display=(myMem?.role==='CFO'||myMem?.role==='CEO'||cusr.role==='admin'||cusr.role==='superadmin')?'':'none';
 }
 
 function renderMyTransactions(team){
@@ -3163,6 +3174,75 @@ function deleteTransaction(txId){
   if(state.currentPage==='myteam') renderMyTeamPanel('transactions');
   else if(state.currentPage==='tx') renderTxPage();
   else if(state.currentPage==='admin') renderAdminPage();
+}
+
+function renderKassenbuch(team){
+  const txs=TRANSACTIONS.filter(t=>t.teamId===team.id).sort((a,b)=>a.date.localeCompare(b.date));
+  let saldo=0;
+  const rows=txs.map(tx=>{
+    const soll=tx.type==='expense'?tx.amount:0;
+    const haben=tx.type==='income'?tx.amount:0;
+    saldo+=(haben-soll);
+    return {tx,soll,haben,saldo};
+  });
+  const el=document.getElementById('myTeamContent');
+  if(!el) return;
+  el.innerHTML=`
+    <div class="section-header"><div class="section-title">📒 Kassenbuch</div></div>
+    <div style="overflow-x:auto;">
+    <table class="data-table" style="width:100%;min-width:550px;">
+      <thead><tr>
+        <th>Datum</th><th>Beschreibung</th><th>Kategorie</th>
+        <th style="text-align:right;color:var(--red);">Soll (−)</th>
+        <th style="text-align:right;color:var(--green);">Haben (+)</th>
+        <th style="text-align:right;font-weight:800;">Saldo</th>
+      </tr></thead>
+      <tbody>
+      ${rows.length===0?'<tr><td colspan="6" style="text-align:center;color:var(--gray-mid);padding:20px;">Keine Buchungen vorhanden</td></tr>':
+        rows.map(({tx,soll,haben,saldo:s})=>`<tr>
+          <td style="white-space:nowrap;color:var(--gray-mid);">${fmtDate(tx.date)}</td>
+          <td>${tx.desc}</td>
+          <td style="font-size:11px;color:var(--gray-mid);">${tx.cat}</td>
+          <td style="text-align:right;color:var(--red);font-weight:600;">${soll>0?fmtEur(soll):'—'}</td>
+          <td style="text-align:right;color:var(--green);font-weight:600;">${haben>0?fmtEur(haben):'—'}</td>
+          <td style="text-align:right;font-weight:700;color:${s>=0?'var(--green)':'var(--red)'};">${s>=0?'+':''}${fmtEur(s)}</td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot><tr style="background:var(--gray-lt);font-weight:700;">
+        <td colspan="3" style="padding:8px 10px;">Summe</td>
+        <td style="text-align:right;color:var(--red);">${fmtEur(rows.reduce((s,r)=>s+r.soll,0))}</td>
+        <td style="text-align:right;color:var(--green);">${fmtEur(rows.reduce((s,r)=>s+r.haben,0))}</td>
+        <td style="text-align:right;color:${saldo>=0?'var(--green)':'var(--red)'};">${saldo>=0?'+':''}${fmtEur(saldo)}</td>
+      </tr></tfoot>
+    </table></div>
+    <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      <div class="stat-card green"><div class="stat-label">Einnahmen (Haben)</div><div class="stat-value">${fmtEur(rows.reduce((s,r)=>s+r.haben,0))}</div></div>
+      <div class="stat-card" style="border-left:4px solid var(--red);"><div class="stat-label">Ausgaben (Soll)</div><div class="stat-value" style="color:var(--red);">${fmtEur(rows.reduce((s,r)=>s+r.soll,0))}</div></div>
+      <div class="stat-card ${saldo>=0?'green':''}"><div class="stat-label">Kassensaldo</div><div class="stat-value" style="color:${saldo>=0?'var(--green)':'var(--red)'};">${saldo>=0?'+':''}${fmtEur(saldo)}</div></div>
+    </div>`;
+}
+
+function openAdminKassenbuch(teamId){
+  const team=TEAMS.find(t=>t.id===teamId);
+  if(!team) return;
+  const txs=TRANSACTIONS.filter(t=>t.teamId===teamId).sort((a,b)=>a.date.localeCompare(b.date));
+  let saldo=0;
+  const rows=txs.map(tx=>{
+    const soll=tx.type==='expense'?tx.amount:0;
+    const haben=tx.type==='income'?tx.amount:0;
+    saldo+=(haben-soll);
+    return {tx,soll,haben,saldo};
+  });
+  const modal=document.getElementById('modalAdminKassenbuch');
+  document.getElementById('adminKassenbuchTitle').textContent=team.logo+' '+team.name+' – Kassenbuch';
+  document.getElementById('adminKassenbuchBody').innerHTML=`
+    <div style="overflow-x:auto;">
+    <table class="data-table" style="width:100%;min-width:500px;">
+      <thead><tr><th>Datum</th><th>Beschreibung</th><th>Kat.</th><th style="text-align:right;color:var(--red);">Soll</th><th style="text-align:right;color:var(--green);">Haben</th><th style="text-align:right;">Saldo</th></tr></thead>
+      <tbody>${rows.length===0?'<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--gray-mid);">Keine Buchungen</td></tr>':rows.map(({tx,soll,haben,saldo:s})=>`<tr><td style="color:var(--gray-mid);white-space:nowrap;">${fmtDate(tx.date)}</td><td>${tx.desc}</td><td style="font-size:11px;">${tx.cat}</td><td style="text-align:right;color:var(--red);font-weight:600;">${soll>0?fmtEur(soll):'—'}</td><td style="text-align:right;color:var(--green);font-weight:600;">${haben>0?fmtEur(haben):'—'}</td><td style="text-align:right;font-weight:700;color:${s>=0?'var(--green)':'var(--red)'};">${s>=0?'+':''}${fmtEur(s)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr style="background:var(--gray-lt);font-weight:700;"><td colspan="3">Summe</td><td style="text-align:right;color:var(--red);">${fmtEur(rows.reduce((s,r)=>s+r.soll,0))}</td><td style="text-align:right;color:var(--green);">${fmtEur(rows.reduce((s,r)=>s+r.haben,0))}</td><td style="text-align:right;color:${saldo>=0?'var(--green)':'var(--red)'};">${saldo>=0?'+':''}${fmtEur(saldo)}</td></tr></tfoot>
+    </table></div>`;
+  openModal('modalAdminKassenbuch');
 }
 
 function renderMyBlogs(team){
@@ -3534,16 +3614,7 @@ function openDraftForEdit(blogId){
   },100);
 }
 function updateLiveIndicator(){
-  const u=state.currentUser;
-  const el=document.getElementById('liveIndicator');
-  if(!el) return;
-  let isLive=false;
-  if(u){
-    if(u.role==='superadmin') isLive=GAMES.some(g=>g.isLive);
-    else if(u.gameId) {const g=GAMES.find(x=>x.id===u.gameId);isLive=!!(g&&g.isLive);}
-  }
-  if(isLive){el.innerHTML='&#128994; LIVE';el.style.background='var(--green)';el.style.color='white';}
-  else{el.innerHTML='&#128308; LIVE';el.style.background='';el.style.color='';}
+  return;
 }
 function selectFeedbackType(type,el){
   document.querySelectorAll('.feedback-type-card').forEach(c=>c.classList.remove('selected'));
@@ -3602,8 +3673,8 @@ function renderKontaktPage(){
 
   // Get all members from the same game (or all members if no game context)
   const gameMembers=myGameId
-    ?MEMBERS.filter(m=>{const mTeam=TEAMS.find(t=>t.id===m.teamId);return mTeam&&mTeam.gameId===myGameId;})
-    :MEMBERS;
+    ?MEMBERS.filter(m=>{const mTeam=TEAMS.find(t=>t.id===m.teamId);return mTeam&&mTeam.gameId===myGameId&&mTeam.status!=='pending'&&mTeam.name&&mTeam.name.trim();})
+    :MEMBERS.filter(m=>{const mTeam=TEAMS.find(t=>t.id===m.teamId);return mTeam&&mTeam.status!=='pending'&&mTeam.name&&mTeam.name.trim();});
 
   // Build member cards
   const memberCards=gameMembers.map(member=>{
@@ -3785,9 +3856,17 @@ function renderWeeksAdmin(){
 function renderReflectionsAdmin(){
   const el=document.getElementById('reflectionsAdminPanel');
   if(REFLECTIONS.length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><h3>Keine Reflexionen</h3></div>';return;}
+  // Add mood chart section
+  let chartHtml=`<div class="card" style="margin-bottom:20px;">
+  <div class="card-header"><h3>📊 Stimmungsbarometer</h3></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;" id="moodByWeek"></div>
+    <canvas id="moodChartAdmin" height="120"></canvas>
+  </div>
+</div>`;
   const grouped={};
   REFLECTIONS.forEach(r=>{if(!grouped[r.teamId])grouped[r.teamId]=[];grouped[r.teamId].push(r);});
-  el.innerHTML=Object.entries(grouped).map(([teamId,refs])=>{
+  el.innerHTML=chartHtml+Object.entries(grouped).map(([teamId,refs])=>{
     const team=TEAMS.find(t=>t.id===teamId);
     return `<div class="card" style="margin-bottom:14px;">
       <div class="card-header"><h3>${team?.logo} ${team?.name}</h3></div>
@@ -3802,10 +3881,12 @@ function renderReflectionsAdmin(){
           ${r.liked?`<div style="font-size:12px;color:var(--green);margin-bottom:4px;">👍 ${r.liked}</div>`:''}
           ${r.improved?`<div style="font-size:12px;color:var(--orange);margin-bottom:6px;">💡 ${r.improved}</div>`:''}
           <div style="text-align:right;">
+            <button class="btn btn-outline btn-xs" onclick="openReflectionDetail('${r.id}')" title="Vollständig lesen">👁️ Lesen</button>
             <button class="btn btn-danger btn-xs" onclick="deleteReflection('${r.id}')" title="Reflexion löschen">🗑️ Löschen</button>
           </div>
         </div>`;}).join('')}</div>
     </div>`;}).join('');
+  renderMoodChart();
 }
 function renderAdminTeamsTable(){
   const u=state.currentUser;
@@ -3849,6 +3930,7 @@ function renderAdminTeamsTable(){
           +' <button class="btn btn-outline btn-xs" onclick="copyCode(this.dataset.code)" data-code="'+team.code+'">📋</button></td>'
           +'<td><div style="display:flex;gap:3px;">'
           +'<button class="btn btn-outline btn-xs" onclick="openMemberMgmt(this.dataset.id)" data-id="'+team.id+'" title="Mitglieder verwalten">👤 '+MEMBERS.filter(m=>m.teamId===team.id).length+'</button>'
+          +'<button class="btn btn-outline btn-xs" onclick="openAdminKassenbuch(this.dataset.id)" data-id="'+team.id+'" title="Kassenbuch anzeigen">📒</button>'
           +'<button class="btn btn-danger btn-xs" onclick="deleteTeam(this.dataset.id)" data-id="'+team.id+'" title="Team löschen">🗑️</button>'
           +'</div></td></tr>';}).join('')
       +'</tbody></table>';
@@ -3914,15 +3996,16 @@ function renderCodesPanel(){
 // ════════════════════════════════════════════════════════════════════
 function renderSuperPage(){
   updateStorageStatus();
-  const totalRev=TEAMS.reduce((s,t)=>s+t.revenue,0);
-  const totalP=TEAMS.reduce((s,t)=>s+(t.revenue-t.expenses),0);
+  const activeTeams=TEAMS.filter(t=>t.status!=='pending'&&t.name&&t.name.trim());
+  const totalRev=activeTeams.reduce((s,t)=>s+t.revenue,0);
+  const totalP=activeTeams.reduce((s,t)=>s+(t.revenue-t.expenses),0);
   document.getElementById('superStats').innerHTML=`
     <div class="stat-card purple"><div class="stat-label">Aktive Spiele</div><div class="stat-value">${GAMES.filter(g=>g.status==='active').length}</div><div class="stat-sub">${GAMES.length} gesamt</div></div>
-    <div class="stat-card"><div class="stat-label">Teams gesamt</div><div class="stat-value">${TEAMS.length}</div><div class="stat-sub">${UNIVERSITIES.length} Hochschulen</div></div>
+    <div class="stat-card"><div class="stat-label">Teams gesamt</div><div class="stat-value">${activeTeams.length}</div><div class="stat-sub">${UNIVERSITIES.length} Hochschulen</div></div>
     <div class="stat-card green"><div class="stat-label">Plattform-Umsatz</div><div class="stat-value">${fmtEur(totalRev)}</div><div class="stat-sub">${fmtEur(totalP)} Gewinn</div></div>
     <div class="stat-card orange"><div class="stat-label">Reflexionen</div><div class="stat-value">${REFLECTIONS.length}</div><div class="stat-sub">${BLOGS.filter(b=>b.status==='pending').length} Blogs pend.</div></div>
     <div class="stat-card gold"><div class="stat-label">Admins</div><div class="stat-value">${ADMINS.length}</div><div class="stat-sub">aktiv</div></div>`;
-  renderLeaderboard('superLeaderboard',TEAMS);
+  renderLeaderboard('superLeaderboard',TEAMS.filter(t=>t.status!=='pending'&&t.name&&t.name.trim()));
   if(state.superChart) state.superChart.destroy();
   const ctx=document.getElementById('superGameChart')?.getContext('2d');
   if(ctx) state.superChart=new Chart(ctx,{type:'bar',data:{labels:GAMES.map(g=>g.name.substring(0,18)+'…'),datasets:[{label:'Teams',data:GAMES.map(g=>g.teamCount),backgroundColor:'#2E75B6'},{label:'Blogs',data:GAMES.map(g=>BLOGS.filter(b=>TEAMS.some(t=>t.id===b.teamId&&t.gameId===g.id)).length),backgroundColor:'#375623'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}},scales:{y:{beginAtZero:true},x:{grid:{display:false}}}}});
@@ -4061,7 +4144,8 @@ function renderKonzept(){
         ${[
           ['v0.7.0','Firebase Realtime Database integriert (Cross-Device-Sync), Kontakt-Seite mit Team-Verzeichnis, In-App-Direktnachrichten, Reflexionen bearbeiten &amp; löschen, Blog-Fix'],
           ['v0.7.1','Fix: Admin-Nachrichten jetzt immer zugestellt (In-App-Postfach, E-Mail als optionaler Hintergrund-Versand), ID-Kollision im Nachrichten-Modal behoben'],
-          ['v0.7.2','Fix: Ghost-Teams (pending/namenlos) aus Ranking/Teams ausgeblendet, Kontakt-Verzeichnis für Superadmin korrekt befüllt, Teams-Seite und Admin-Panel jetzt am gleichen Spielscope ausgerichtet', true],
+          ['v0.7.2','Fix: Ghost-Teams (pending/namenlos) aus Ranking/Teams ausgeblendet, Kontakt-Verzeichnis für Superadmin korrekt befüllt, Teams-Seite und Admin-Panel jetzt am gleichen Spielscope ausgerichtet'],
+          ['v0.7.3','Kassenbuch (Soll/Haben/Saldo), Reflexion-Detail-Modal, Stimmungsbarometer-Chart, Bugfixes: Ghost-Teams, Testumgebung, Kontakt', true],
         ].map(([v,d,current])=>`<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg-mid);${current?'background:var(--blue-xlt);border-radius:6px;padding-left:6px;':''}">
           <div style="display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;">
             <span style="background:var(--blue-dark);color:white;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;">${v}</span>
@@ -4073,24 +4157,44 @@ function renderKonzept(){
     </div>
 
     <div class="concept-section">
-      <h2>🚀 Roadmap v2.0</h2>
-      <p>Geplante Features für die nächste Hauptversion (Firebase-Backend erforderlich für Echtzeit-Features):</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+      <h2>🚀 Roadmap – Nächste Schritte</h2>
+      <p>Was als nächstes kommt – geordnet nach Priorität für den laufenden SoSe 2026-Betrieb:</p>
+
+      <!-- Kurzfristig (v0.7.x) -->
+      <div style="margin:14px 0 6px;padding:4px 10px;background:var(--green-lt);border-radius:6px;font-size:11px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;">🟢 Kurzfristig – laufende Verbesserungen (v0.7.x)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
         ${[
-          ['🔥 Echtzeit-Chat','Team-Chat-Fenster mit Firebase Realtime Database, Nachrichtenverlauf, Lesebestätigung'],
-          ['📱 Mobile App','Progressive Web App (PWA), Push-Notifications, Offline-Fähigkeit'],
-          ['🤖 KI-Assistent','ChatGPT-Integration als Unternehmensberater für Teams, Reflexions-Analyse'],
-          ['📈 Advanced Analytics','Heatmaps, Verweildauer-Analyse, Engagement-Scores, Export als PDF-Report'],
-          ['🎮 Gamification','Achievements, Badges, Level-System, Team-Challenges zwischen Hochschulen'],
-          ['📅 Kalender-Integration','Deadlines in Google Calendar, iCal-Export, automatische Erinnerungen'],
-          ['🔗 LMS-Integration','ILIAS / Moodle / Canvas SSO, automatische Notenübergabe'],
-          ['🏦 Simuliertes Banking','Virtuelle Bank-API, Kredit-Simulation, Investitions-Tracking'],
-        ].map(([t,d])=>`<div style="background:var(--bg-light);padding:10px 14px;border-radius:var(--radius);border-left:3px solid #FF9FF3;opacity:.9;">
+          ['📝 Admin-Zusatzfragen','Pro Woche individuelle Reflexions- und Berichtsfragen ergänzen (z. B. „Wie war die Kundenkommunikation?")'],
+          ['📊 Export / Reporting','PDF- oder Excel-Export aller Reflexionen und Buchungen pro Gruppe für Benotung und Forschung'],
+          ['🔔 Erinnerungen','Automatische In-App-Benachrichtigungen vor Abgabe-Deadline per In-App-Nachricht'],
+          ['🔒 Superadmin je Spiel','Superadmin kann pro Spiel eine Gast-Admin-Rolle vergeben (z. B. für Co-Dozenten)'],
+        ].map(([t,d])=>`<div style="background:var(--bg-light);padding:10px 14px;border-radius:var(--radius);border-left:3px solid var(--green);">
           <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${t}</div>
           <div style="font-size:12px;color:var(--gray-dark);">${d}</div>
         </div>`).join('')}
       </div>
-      <div class="info-box blue" style="margin-top:16px;"><span class="info-box-icon">💡</span>v2.0 erfordert ein serverbasiertes Backend (Firebase/Supabase) für Echtzeit-Features. Die aktuelle v1.x-Architektur (localStorage + GitHub Pages) bleibt parallel verfügbar als Offline-Variante.</div>
+
+      <!-- Mittelfristig (v1.0) -->
+      <div style="margin:14px 0 6px;padding:4px 10px;background:var(--blue-xlt);border-radius:6px;font-size:11px;font-weight:700;color:var(--blue-dark);letter-spacing:.5px;text-transform:uppercase;">🔵 Mittelfristig – Release v1.0</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        ${[
+          ['📱 PWA / Mobile','Progressive Web App: App-Icon auf Homescreen, Offline-Fähigkeit, Mobile-optimiertes Layout'],
+          ['🤖 KI-Feedback','Automatisches KI-Feedback auf Reflexionen und Wochenberichte (Claude/GPT-Integration)'],
+          ['🎮 Gamification','Achievements, Badges und Level-System für aktive Teams und Mitglieder'],
+          ['📅 Kalender','Deadlines in Google Calendar / iCal-Export, automatische Wochen-Erinnerungen'],
+          ['🔗 LMS-Integration','ILIAS / Moodle SSO, automatische Rückmeldung von Benotungen'],
+          ['🏦 Erweitertes Banking','Kredit-Simulation, Investitionsrechnung, Break-Even-Analyse im Kassenbuch'],
+        ].map(([t,d])=>`<div style="background:var(--bg-light);padding:10px 14px;border-radius:var(--radius);border-left:3px solid var(--blue-mid);">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${t}</div>
+          <div style="font-size:12px;color:var(--gray-dark);">${d}</div>
+        </div>`).join('')}
+      </div>
+
+      <!-- Was bereits erledigt ist -->
+      <div class="info-box green" style="margin-top:4px;">
+        <span class="info-box-icon">✅</span>
+        <strong>Firebase Echtzeit-Sync ist bereits integriert</strong> (seit v0.7.0). Alle Geräte sehen die gleichen Daten in Echtzeit. Die alte localStorage-Architektur dient weiterhin als Fallback bei fehlender Internetverbindung.
+      </div>
     </div>
   `;
 }
@@ -4403,6 +4507,73 @@ function deleteReflection(id){
   if(state.currentPage==='admin') renderAdminPage();
   else if(state.currentPage==='superadmin') renderSuperPage();
   else if(state.currentPage==='reflection') renderReflectionPage();
+}
+
+function openReflectionDetail(id){
+  const r=REFLECTIONS.find(x=>x.id===id);
+  if(!r) return;
+  const m=MEMBERS.find(x=>x.id===r.memberId);
+  const team=TEAMS.find(t=>t.id===r.teamId);
+  const moodLabel=['','😩 Sehr schlecht','😟 Eher schlecht','😐 Neutral','😊 Gut','🚀 Sehr gut'][r.mood]||r.mood;
+  document.getElementById('refDetailTitle').textContent=(m?.name||'Unbekannt')+' · Woche '+r.week+' · '+team?.name;
+  document.getElementById('refDetailBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div><span style="font-size:11px;color:var(--gray-mid);">Stimmung</span><div style="font-size:18px;margin-top:4px;">${moodLabel}</div></div>
+      <div><span style="font-size:11px;color:var(--gray-mid);">Datum</span><div style="margin-top:4px;font-size:13px;">${r.date||'—'}</div></div>
+    </div>
+    ${r.experience?`<div style="margin-bottom:14px;"><div style="font-weight:700;font-size:12px;color:var(--gray-mid);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">📝 Erfahrungen dieser Woche</div><div style="font-size:14px;line-height:1.6;color:var(--gray-dark);">${r.experience}</div></div>`:''}
+    ${r.liked?`<div style="margin-bottom:14px;padding:10px 14px;background:var(--green-lt);border-radius:8px;border-left:3px solid var(--green);"><div style="font-weight:700;font-size:12px;color:var(--green);margin-bottom:6px;">👍 Das war gut</div><div style="font-size:14px;line-height:1.6;">${r.liked}</div></div>`:''}
+    ${r.improved?`<div style="margin-bottom:14px;padding:10px 14px;background:var(--orange-lt);border-radius:8px;border-left:3px solid var(--orange);"><div style="font-weight:700;font-size:12px;color:var(--orange);margin-bottom:6px;">💡 Das würde ich anders machen</div><div style="font-size:14px;line-height:1.6;">${r.improved}</div></div>`:''}
+    ${r.role?`<div style="margin-bottom:10px;"><span style="font-size:11px;color:var(--gray-mid);">Meine Rolle</span><div style="margin-top:4px;font-size:13px;font-weight:600;">${r.role}</div></div>`:''}
+    ${r.mvpVote?`<div><span style="font-size:11px;color:var(--gray-mid);">MVP-Votum für</span><div style="margin-top:4px;font-size:13px;font-weight:600;">${MEMBERS.find(x=>x.id===r.mvpVote)?.name||r.mvpVote}</div></div>`:''}
+  `;
+  openModal('modalReflectionDetail');
+}
+
+function renderMoodChart(){
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u?.gameId;
+  const gameTeams=TEAMS.filter(t=>t.gameId===effectiveGameId&&t.status!=='pending');
+  const refs=REFLECTIONS.filter(r=>gameTeams.some(t=>t.id===r.teamId));
+  if(refs.length===0) return;
+
+  // Per-week average mood cards
+  const weeks=[...new Set(refs.map(r=>r.week))].sort((a,b)=>a-b);
+  const moodEl=document.getElementById('moodByWeek');
+  if(moodEl) moodEl.innerHTML=weeks.map(w=>{
+    const wRefs=refs.filter(r=>r.week===w);
+    const avg=(wRefs.reduce((s,r)=>s+(r.mood||3),0)/wRefs.length).toFixed(1);
+    const emoji=['','😩','😟','😐','😊','🚀'][Math.round(parseFloat(avg))]||'😐';
+    return `<div class="stat-card" style="padding:12px;text-align:center;">
+      <div style="font-size:11px;color:var(--gray-mid);margin-bottom:4px;">Woche ${w}</div>
+      <div style="font-size:24px;">${emoji}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--blue-dark);">${avg}<span style="font-size:11px;color:var(--gray-mid);">/5</span></div>
+      <div style="font-size:10px;color:var(--gray-mid);">${wRefs.length} Reflexionen</div>
+    </div>`;
+  }).join('');
+
+  // Chart per team per week
+  const ctx=document.getElementById('moodChartAdmin')?.getContext('2d');
+  if(!ctx||weeks.length===0) return;
+  if(state._moodChart) state._moodChart.destroy();
+  const colors=['#2E75B6','#375623','#C55A11','#7030A0','#C00000','#1F497D'];
+  state._moodChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:weeks.map(w=>'W'+w),
+      datasets:gameTeams.map((team,i)=>({
+        label:team.logo+' '+team.name,
+        data:weeks.map(w=>{
+          const tr=refs.filter(r=>r.teamId===team.id&&r.week===w);
+          return tr.length>0?(tr.reduce((s,r)=>s+(r.mood||3),0)/tr.length).toFixed(1):null;
+        }),
+        borderColor:team.color||colors[i%colors.length],
+        backgroundColor:(team.color||colors[i%colors.length])+'33',
+        tension:.3,fill:false,pointRadius:5
+      }))
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}},scales:{y:{min:1,max:5,ticks:{stepSize:1,callback:(v)=>['','😩','😟','😐','😊','🚀'][v]||v},grid:{color:'rgba(0,0,0,.06)'}},x:{grid:{display:false}}}}
+  });
 }
 
 function saveTeamProfile(){
@@ -5889,6 +6060,32 @@ window.addEventListener('DOMContentLoaded', function(){
   <div class="modal-footer">
    <button class="btn btn-secondary" onclick="closeModal('modalSendMessage')">Abbrechen</button>
    <button class="btn btn-primary" onclick="sendMessage()">📤 Senden</button>
+  </div>
+ </div>
+</div>
+
+<div class="modal-overlay" id="modalReflectionDetail">
+ <div class="modal" style="max-width:600px;">
+  <div class="modal-header">
+   <h3 id="refDetailTitle">Reflexion</h3>
+   <button class="modal-close" onclick="closeModal('modalReflectionDetail')">✕</button>
+  </div>
+  <div class="modal-body" id="refDetailBody"></div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalReflectionDetail')">Schließen</button>
+  </div>
+ </div>
+</div>
+
+<div class="modal-overlay" id="modalAdminKassenbuch">
+ <div class="modal" style="max-width:700px;">
+  <div class="modal-header">
+   <h3 id="adminKassenbuchTitle">Kassenbuch</h3>
+   <button class="modal-close" onclick="closeModal('modalAdminKassenbuch')">✕</button>
+  </div>
+  <div class="modal-body" id="adminKassenbuchBody"></div>
+  <div class="modal-footer">
+   <button class="btn btn-secondary" onclick="closeModal('modalAdminKassenbuch')">Schließen</button>
   </div>
  </div>
 </div>
