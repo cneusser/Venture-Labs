@@ -456,7 +456,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">🚀</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.7.3)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.7.4)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:8px;">
@@ -687,7 +687,12 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
  </div>
- <div class="version-footer" id="versionFooter">v0.7.3</div>
+ <div class="version-footer" id="versionFooter">v0.7.4</div>
+</div>
+
+<!-- Buy Me a Coffee – shown only on login screen -->
+<div id="bmcWidget" style="position:fixed;bottom:12px;left:12px;z-index:100;display:block;">
+  <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="cneusser" data-color="#5F7FFF" data-emoji="" data-font="Cookie" data-text="Support VentureLab" data-outline-color="#000000" data-font-color="#ffffff" data-coffee-color="#FFDD00"></script>
 </div>
 
 <!-- APP -->
@@ -1541,6 +1546,28 @@ function _finishStartup(){
   ensureDefaultSetupCodes();
   const after = JSON.stringify({t:TEAMS.length, g:GAMES.length});
   if(before !== after) saveData(); // only save if something was added
+  // Restore session from sessionStorage (auto-login on page refresh)
+  if(!state.currentUser && !window._testMode){
+    try{
+      const saved = sessionStorage.getItem('venturelab_session');
+      if(saved){
+        const sess = JSON.parse(saved);
+        const code = sess.code;
+        if(code && CODES[code]){
+          state.currentUser={...CODES[code], code};
+          if(sess.lang) state.lang=sess.lang;
+          if(sess.managingGameId) state.managingGameId=sess.managingGameId;
+          document.getElementById('loginScreen').style.display='none';
+          document.getElementById('appShell').style.display='block';
+          initApp();
+          if(state.lang==='en') setTimeout(applyLang,150);
+          return;
+        } else {
+          sessionStorage.removeItem('venturelab_session');
+        }
+      }
+    }catch(e){ sessionStorage.removeItem('venturelab_session'); }
+  }
 }
 function resetToDemo(){
   if(!confirm('Demo-Daten wiederherstellen? Alle eigenen Daten gehen verloren.')) return;
@@ -2116,7 +2143,7 @@ function setLoginLang(lang){
   document.getElementById('langBtnDE').classList.toggle('active',lang==='de');
   document.getElementById('langBtnEN').classList.toggle('active',lang==='en');
   if(lang==='en'){
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.7.3)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.7.4)</span>';
     document.getElementById('lt_noCode').textContent='No code yet?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Register now \u2192';
     document.getElementById('lt_pwdFor').textContent='Password for:';
@@ -2126,7 +2153,7 @@ function setLoginLang(lang){
     document.getElementById('lt_back').textContent='Back';
     document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f Skip (insecure)';
   } else {
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.7.3)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.7.4)</span>';
     document.getElementById('lt_noCode').textContent='Noch kein Code?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Jetzt registrieren \u2192';
     document.getElementById('lt_pwdFor').textContent='Passwort f\u00fcr:';
@@ -2247,6 +2274,10 @@ function saveProfileAndLogin(){
   }
   document.getElementById('loginStep4').style.display='none';
   _profileLoginCode=null;
+  // Save session so refresh doesn't require re-login
+  if(!window._testMode && state.currentUser){
+    try{ sessionStorage.setItem('venturelab_session', JSON.stringify({code:state.currentUser.code, lang:state.lang||'de'})); }catch(e){}
+  }
   initApp();
 }
 function loginBack(){
@@ -2279,6 +2310,14 @@ function finishLogin(code){
   }
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
+  if(!window._testMode){
+    try{
+      sessionStorage.setItem('venturelab_session', JSON.stringify({
+        code: code,
+        lang: state.lang||'de'
+      }));
+    }catch(e){}
+  }
   initApp();
   if(state.lang==='en') setTimeout(applyLang,150);
 }
@@ -2286,10 +2325,11 @@ function finishLogin(code){
 function doLogout(){  logEvent('logout', {duration: Math.round((Date.now() - new Date(_sessionStart).getTime())/1000)+'s'});
   flushTrackBuffer(true);
   window._testMode=false;
-
+  sessionStorage.removeItem('venturelab_session');
   state.currentUser=null;state.prevUser=null;
   document.getElementById('appShell').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
+  const bmc=document.getElementById('bmcWidget'); if(bmc) bmc.style.display='block';
   const vf=document.getElementById('versionFooter');if(vf)vf.style.display='block';
   document.getElementById('loginCode').value='';
   // Reset to step 1 (code entry), hide password/setup steps
@@ -2310,6 +2350,8 @@ function doLogout(){  logEvent('logout', {duration: Math.round((Date.now() - new
 function initApp(){
   if(!_sessionStart) _sessionStart=new Date().toISOString();
   const u=state.currentUser;
+  // Hide support button while inside the app
+  const bmc=document.getElementById('bmcWidget'); if(bmc) bmc.style.display='none';
   buildNavigation();updateTopbar();updateLiveIndicator();
   buildTicker();
   const def=u.role==='superadmin'?'superadmin':u.role==='admin'?'admin':'dashboard';
@@ -2732,19 +2774,35 @@ async function sendAdminMessage(){
 }
 
 function buildTicker(){
-  if(TEAMS.length===0){
-    const tt=document.getElementById('tickerTrack');
-    if(tt) tt.innerHTML='<span>Willkommen beim VentureLab Tracker 🎓</span><span>Registriere dein Team um loszulegen 🚀</span>';
+  const track=document.getElementById('tickerTrack');
+  if(!track) return;
+  // Only show non-pending named teams
+  const visibleTeams=TEAMS.filter(t=>t.status!=='pending'&&t.name&&t.name.trim());
+  if(visibleTeams.length===0){
+    track.innerHTML='<span>Willkommen beim VentureLab Tracker 🎓</span><span>Registriere dein Team um loszulegen 🚀</span>';
     return;
   }
-  const track=document.getElementById('tickerTrack');
-  const items=[...TRANSACTIONS]
-    .filter(tx=>TEAMS.find(t=>t.id===tx.teamId)) // skip orphaned/undefined transactions
-    .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10).map(tx=>{
-      const team=TEAMS.find(t=>t.id===tx.teamId);
+  // MVP items — one per team per completed week (newest first)
+  const mvpItems=[];
+  visibleTeams.forEach(team=>{
+    const mvps=[...(team.mvps||[])].sort((a,b)=>b.week-a.week);
+    mvps.forEach(mv=>{
+      const member=MEMBERS.find(m=>m.id===mv.memberId);
+      if(member) mvpItems.push(`<span>🏆 MVP Woche ${mv.week}: <strong>${member.name}</strong> — ${team.logo} ${team.name}</span>`);
+    });
+  });
+  // Transaction items (last 8, most recent first)
+  const txItems=[...TRANSACTIONS]
+    .filter(tx=>visibleTeams.find(t=>t.id===tx.teamId))
+    .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(tx=>{
+      const team=visibleTeams.find(t=>t.id===tx.teamId);
       return `<span>${team.logo+' '+team.name}: ${tx.type==='income'?'+':'-'}${fmtEur(tx.amount)} – ${tx.desc}</span>`;
-    }).join('');
-  track.innerHTML=(items||'<span>Noch keine Buchungen 🚀</span>')+items;
+    });
+  const allItems=[...mvpItems,...txItems];
+  if(allItems.length===0){track.innerHTML='<span>Noch keine Aktivitäten 🚀</span>';return;}
+  // Duplicate for seamless loop
+  const html=allItems.join('');
+  track.innerHTML=html+html;
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -3967,7 +4025,10 @@ function renderCodesPanel(){
         <td>Team-Slot ${i+1}</td>
         <td><code style="font-size:13px;background:var(--blue-xlt);padding:2px 9px;border-radius:4px;font-weight:900;letter-spacing:2px;">${t.setupCode}</code></td>
         <td><span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:12px;font-size:11px;">⏳ Ausstehend</span></td>
-        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${t.setupCode}')" title="Kopieren">📋 Kopieren</button></td>
+        <td style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-xs" onclick="copyCode('${t.setupCode}')" title="Kopieren">📋 Kopieren</button>
+          <button class="btn btn-xs" style="background:#EFF6FF;color:#1e3a5f;border:1px solid #93C5FD;" onclick="activatePendingTeamAdmin('${t.id}')" title="Team direkt aktivieren">⚡ Aktivieren</button>
+        </td>
       </tr>`).join('')}</tbody>
     </table>`:''}
     <div class="form-section-title">Einladungscodes (für Teammitglieder)</div>
@@ -3983,10 +4044,13 @@ function renderCodesPanel(){
     <div class="form-section-title">Mitglieds-Codes</div>
     <table class="data-table" style="width:100%">
       <thead><tr><th>Name</th><th>Team</th><th>Rolle</th><th>Code</th><th>Aktion</th></tr></thead>
-      <tbody>${memberCodes.map(m=>{const team=TEAMS.find(t=>t.id===m.teamId);return `<tr>
+      <tbody>${memberCodes.map(m=>{const team=TEAMS.find(t=>t.id===m.teamId);const hasPwd=!!PASSWORDS[m.code];return `<tr>
         <td><strong>${m.name}</strong></td><td>${team?.name}</td><td><span class="tag tag-blue">${m.role}</span></td>
         <td><code style="font-size:12px;background:var(--blue-xlt);padding:2px 9px;border-radius:4px;font-weight:700;">${m.code}</code></td>
-        <td><button class="btn btn-outline btn-xs" onclick="copyCode('${m.code}')" title="Kopieren">📋 Kopieren</button></td>
+        <td style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-xs" onclick="copyCode('${m.code}')" title="Kopieren">📋 Kopieren</button>
+          ${hasPwd?`<button class="btn btn-xs" style="background:#FEF9EC;color:#92400E;border:1px solid #F59E0B;" onclick="resetMemberPassword('${m.code}')" title="Passwort zurücksetzen">🔑 Reset</button>`:'<span style="font-size:10px;color:#888;align-self:center;">kein Passwort</span>'}
+        </td>
       </tr>`;}).join('')}</tbody>
     </table>`;
 }
@@ -4145,7 +4209,8 @@ function renderKonzept(){
           ['v0.7.0','Firebase Realtime Database integriert (Cross-Device-Sync), Kontakt-Seite mit Team-Verzeichnis, In-App-Direktnachrichten, Reflexionen bearbeiten &amp; löschen, Blog-Fix'],
           ['v0.7.1','Fix: Admin-Nachrichten jetzt immer zugestellt (In-App-Postfach, E-Mail als optionaler Hintergrund-Versand), ID-Kollision im Nachrichten-Modal behoben'],
           ['v0.7.2','Fix: Ghost-Teams (pending/namenlos) aus Ranking/Teams ausgeblendet, Kontakt-Verzeichnis für Superadmin korrekt befüllt, Teams-Seite und Admin-Panel jetzt am gleichen Spielscope ausgerichtet'],
-          ['v0.7.3','Kassenbuch (Soll/Haben/Saldo), Reflexion-Detail-Modal, Stimmungsbarometer-Chart, Bugfixes: Ghost-Teams, Testumgebung, Kontakt', true],
+          ['v0.7.3','Kassenbuch (Soll/Haben/Saldo), Reflexion-Detail-Modal, Stimmungsbarometer-Chart, Bugfixes: Ghost-Teams, Testumgebung, Kontakt'],
+          ['v0.7.4','Session-Persistenz (kein Re-Login nach Seiten-Refresh), MVP-Ticker nach Wochenabschluss, Change-Historie automatisch aktualisiert', true],
         ].map(([v,d,current])=>`<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg-mid);${current?'background:var(--blue-xlt);border-radius:6px;padding-left:6px;':''}">
           <div style="display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;">
             <span style="background:var(--blue-dark);color:white;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;">${v}</span>
@@ -4759,6 +4824,7 @@ function renderMemberMgmtList(){
           <button class="btn btn-xs btn-outline" onclick="copyCode('${m.code}')" style="margin-left:4px;" title="Kopieren">📋</button></td>
       <td style="text-align:right;">
         <button class="btn btn-outline btn-xs" onclick="openEditMember('${m.id}')" title="Bearbeiten">✏️</button>
+        <button class="btn btn-xs" style="margin-left:3px;background:#FEF9EC;color:#92400E;border:1px solid #F59E0B;" onclick="resetMemberPassword('${m.code}')" title="Passwort zurücksetzen">🔑</button>
         <button class="btn btn-danger btn-xs" onclick="deleteMemberFromTeam('${m.id}')" title="Entfernen" style="margin-left:3px;">🗑️</button>
       </td>
     </tr>`).join('')}</tbody>
@@ -4817,6 +4883,31 @@ function deleteMemberFromTeam(memberId){
   rebuildCodes(); saveData();
   showToast('🗑️ '+m.name+' entfernt');
   renderMemberMgmtList();
+}
+function resetMemberPassword(code){
+  const m=MEMBERS.find(x=>x.code===code)||ADMINS.find(a=>a.code===code);
+  const name=m?m.name:code;
+  if(!confirm('Passwort von "'+name+'" zurücksetzen?\nBeim nächsten Login wird ein neues Passwort verlangt.')) return;
+  delete PASSWORDS[code];
+  saveData();
+  showToast('🔑 Passwort von '+name+' zurückgesetzt – neue Vergabe beim nächsten Login','success');
+  if(document.getElementById('codesPanel')) renderCodesPanel();
+}
+function activatePendingTeamAdmin(teamId){
+  const team=TEAMS.find(t=>t.id===teamId&&t.status==='pending');
+  if(!team){showToast('Team nicht gefunden','error');return;}
+  const tname=prompt('Team-Name für diesen Slot eingeben:','');
+  if(!tname||!tname.trim()){showToast('Kein Name eingegeben','error');return;}
+  const tbiz=prompt('Unternehmensidee (kurz):','');
+  team.name=tname.trim();
+  team.biz=(tbiz||'').trim();
+  team.logo='🚀';
+  team.code=makeUniqueTeamCode(tname.trim());
+  team.status='active';
+  rebuildCodes(); saveData();
+  showToast('✅ Team "'+team.name+'" aktiviert – Einladungscode: '+team.code,'success');
+  renderCodesPanel();
+  if(state.currentPage==='admin') renderAdminTeamsTable();
 }
 function deleteTeam(teamId){
   const team = TEAMS.find(t=>t.id===teamId);
@@ -5095,6 +5186,15 @@ function copyCodeFallback(c){
 // ════════════════════════════════════════════════════════════════════
 function manageGameAsSuperAdmin(gameId){
   state.managingGameId = gameId;
+  // Persist managingGameId in session so it survives page refresh
+  try{
+    const saved = sessionStorage.getItem('venturelab_session');
+    if(saved){
+      const d = JSON.parse(saved);
+      d.managingGameId = gameId;
+      sessionStorage.setItem('venturelab_session', JSON.stringify(d));
+    }
+  }catch(e){}
   navigateTo('admin');
 }
 function impersonateAdmin(adminCode){
