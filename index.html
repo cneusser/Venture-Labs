@@ -472,7 +472,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">🚀</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.8.1.1)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.8.2)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:8px;">
@@ -747,7 +747,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
  </div>
- <div class="version-footer" id="versionFooter">v0.8.1.1</div>
+ <div class="version-footer" id="versionFooter">v0.8.2</div>
 </div>
 
 <!-- APP -->
@@ -785,6 +785,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="activity-feed" id="activityFeed"></div>
      </div>
     </div>
+    <div id="weekWinnerSection"></div>
     <div class="section-header"><div class="section-title">&#128200; Umsatzentwicklung</div></div>
     <div class="card" style="padding:18px;margin-bottom:20px;"><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></div>
    </div>
@@ -3295,14 +3296,23 @@ function renderDashboard(){
   const allTx=TRANSACTIONS.filter(tx=>teams.some(t=>t.id===tx.teamId));
   const totalRev=allTx.filter(t=>t.type==='income'&&t.cat!=='Kapital').reduce((s,t)=>s+t.amount,0);
   const totalExp=allTx.filter(t=>t.type==='expense'&&t.cat!=='Kapital').reduce((s,t)=>s+t.amount,0);
+  const u=state.currentUser;
+  const effectiveGameId_dash=state.managingGameId||u?.gameId;
+  const game=effectiveGameId_dash?GAMES.find(g=>g.id===effectiveGameId_dash):null;
+  const minWeek=teams.length?Math.min(...teams.map(t=>t.currentWeek||1)):1;
+  const maxWeek=teams.length?Math.max(...teams.map(t=>t.currentWeek||1)):1;
+  const weekLabel=minWeek===maxWeek?`W${minWeek}`:`W${minWeek}–${maxWeek}`;
   document.getElementById('dashStats').innerHTML=`
+    <div class="stat-card" style="border-top:3px solid var(--blue-mid);">
+      <div class="stat-label">🗓️ Laufende Woche</div>
+      <div class="stat-value" style="color:var(--blue-mid);">${weekLabel}</div>
+      <div class="stat-sub">von ${game?.weeks||6} Wochen</div>
+    </div>
     <div class="stat-card"><div class="stat-label">Gesamtumsatz</div><div class="stat-value">${fmtEur(totalRev)}</div><div class="stat-sub">${teams.length} Teams</div></div>
     <div class="stat-card green"><div class="stat-label">Gewinn gesamt</div><div class="stat-value" style="color:${totalRev-totalExp>=0?'var(--green)':'var(--red)'}">${fmtEur(totalRev-totalExp)}</div><div class="stat-sub">nach Kosten</div></div>
     <div class="stat-card orange"><div class="stat-label">Transaktionen</div><div class="stat-value">${allTx.length}</div><div class="stat-sub">gesamt</div></div>
     <div class="stat-card gold"><div class="stat-label">Ø ROI</div><div class="stat-value">${(((totalRev-totalExp)/Math.max(teams.length*5,1))*100).toFixed(0)}%</div><div class="stat-sub">auf 5€ Start</div></div>
   `;
-  const u=state.currentUser;
-  const game=u.gameId?GAMES.find(g=>g.id===u.gameId):null;
   document.getElementById('rankingGameLabel').textContent=game?game.name:'';
   renderLeaderboard('leaderboard',teams);
   // Activity
@@ -3315,11 +3325,52 @@ function renderDashboard(){
         <div class="act-body"><div class="act-text"><strong>${team?.name}</strong>: ${tx.desc} <strong style="color:${tx.type==='income'?'var(--green)':'var(--red)'}">${tx.type==='income'?'+':'-'}${fmtEur(tx.amount)}</strong></div>
         <div class="act-time">${fmtDate(tx.date)}</div></div></div>`;
     }).join('');
+  // ── Wochengewinner-Sektion (#3) ──
+  const winnerEl=document.getElementById('weekWinnerSection');
+  if(winnerEl){
+    const awards=(game?.teamAwards||[]);
+    const myTeam=(u.role==='member'||u.role==='team')?getMyTeam():null;
+    // Filter awards relevant for current user
+    const visibleAwards=myTeam?awards.filter(a=>a.teamId===myTeam.id):awards;
+    const prevWeek=minWeek>1?minWeek-1:null;
+    const prevWinner=prevWeek?awards.find(a=>a.week===prevWeek):null;
+    const prevTeam=prevWinner?TEAMS.find(t=>t.id===prevWinner.teamId):null;
+    // Sort awards descending
+    const sortedAwards=[...visibleAwards].sort((a,b)=>b.week-a.week);
+    const hasAwards=sortedAwards.length>0;
+    if(prevWinner&&prevTeam){
+      // Prominent last-week winner banner
+      const bannerHtml=`<div style="background:linear-gradient(135deg,${prevTeam.color}22,${prevTeam.color}11);border:2px solid ${prevTeam.color}55;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:36px;">🏅</div>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-mid);margin-bottom:2px;">Gruppe der Woche ${prevWeek}</div>
+          <div style="font-size:18px;font-weight:800;color:var(--blue-dark);">${prevTeam.logo} ${prevTeam.name}</div>
+          ${prevWinner.reason?`<div style="font-size:12px;color:var(--gray-dark);margin-top:2px;">„${prevWinner.reason}"</div>`:''}
+        </div>
+        <span style="background:${prevTeam.color};color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;">W${prevWeek} Sieger</span>
+      </div>`;
+      winnerEl.innerHTML=bannerHtml+(hasAwards&&sortedAwards.length>1?`
+        <div class="section-header" style="margin-top:8px;"><div class="section-title">🏆 Alle Wochensieger</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">${sortedAwards.map(a=>{const t=TEAMS.find(x=>x.id===a.teamId);return `<div style="display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--border);border-left:4px solid ${t?.color||'var(--blue-mid)'};border-radius:8px;padding:8px 12px;min-width:180px;">
+          <span style="font-size:20px;">${t?.logo||'🏅'}</span>
+          <div><div style="font-weight:700;font-size:13px;">${t?.name||'—'}</div><div style="font-size:11px;color:var(--gray-mid);">Woche ${a.week}${a.reason?' · '+a.reason:''}</div></div>
+        </div>`;}).join('')}</div>`:hasAwards?'':'');
+    } else if(hasAwards){
+      winnerEl.innerHTML=`
+        <div class="section-header"><div class="section-title">🏆 Wochensieger</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">${sortedAwards.map(a=>{const t=TEAMS.find(x=>x.id===a.teamId);return `<div style="display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--border);border-left:4px solid ${t?.color||'var(--blue-mid)'};border-radius:8px;padding:8px 12px;min-width:180px;">
+          <span style="font-size:20px;">${t?.logo||'🏅'}</span>
+          <div><div style="font-weight:700;font-size:13px;">${t?.name||'—'}</div><div style="font-size:11px;color:var(--gray-mid);">Woche ${a.week}${a.reason?' · '+a.reason:''}</div></div>
+        </div>`;}).join('')}</div>`;
+    } else {
+      winnerEl.innerHTML='';
+    }
+  }
   // Chart — echte Wochendaten
   try{
   if(state.revenueChart) state.revenueChart.destroy();
   const ctx=document.getElementById('revenueChart').getContext('2d');
-  const chartGame=u.gameId?GAMES.find(g=>g.id===u.gameId):GAMES[0];
+  const chartGame=effectiveGameId_dash?GAMES.find(g=>g.id===effectiveGameId_dash):GAMES[0];
   const maxWeek=teams.length?Math.max(...teams.map(t=>t.currentWeek)):1;
   const weekLabels=Array.from({length:maxWeek},(_,i)=>'W'+(i+1));
   // Für jedes Team: Umsatz kumuliert pro Woche
@@ -3962,26 +4013,34 @@ function renderBlogPage(){
   if(prevTf&&prevTf!=='all'&&teams.some(t=>t.id===prevTf)) tSel.value=prevTf;
   const tf=document.getElementById('blogTeamFilter').value;
   const wf=document.getElementById('blogWeekFilter').value;
+  const isAdmin=u.role==='admin'||u.role==='superadmin'||u.role==='guest';
   let blogs=BLOGS.filter(b=>{
     const teamOk=teams.some(t=>t.id===b.teamId);
     const fT=tf==='all'||b.teamId===tf;
-    const fW=wf==='all'||b.week==wf;
-    const statusOk=(u.role!=='team'&&u.role!=='member')||b.status==='approved';
+    const fW=wf==='all'||String(b.week)===String(wf);
+    // Members/team only see approved; admins see all
+    const statusOk=isAdmin||b.status==='approved';
     return teamOk&&fT&&fW&&statusOk;
-  });
+  }).sort((a,b)=>b.week-a.week||(a.teamId>b.teamId?1:-1));
   const grid=document.getElementById('blogGrid');
-  if(blogs.length===0){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📖</div><h3>Keine Berichte</h3><p>Noch keine freigegebenen Berichte.</p></div>';return;}
+  if(blogs.length===0){
+    const hint=isAdmin?'<p>Noch keine Wochenberichte eingereicht. Teams können ihren Bericht unter <strong>Mein Team → Wochenbericht</strong> einreichen.</p>':'<p>Noch keine freigegebenen Berichte. Sobald dein Dozent Berichte freigibt, erscheinen sie hier.</p>';
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📖</div><h3>Keine Berichte</h3>${hint}</div>`;
+    return;
+  }
   grid.innerHTML=blogs.map(b=>{
     const team=TEAMS.find(t=>t.id===b.teamId);
-    const moodEmoji=['','😩','😟','😐','😊','🚀'][b.mood];
+    const moodEmoji=['','😩','😟','😐','😊','🚀'][b.mood]||'';
+    const statusLabel=b.status==='approved'?'<span style="background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">✅ Freigegeben</span>':b.status==='pending'?'<span style="background:#fef9c3;color:#a16207;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">⏳ Ausstehend</span>':'<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">📄 Entwurf</span>';
     return `<div class="blog-card">
-      <div class="blog-header"><div class="blog-week">Woche ${b.week} · ${team?.name}</div>
-        <div class="blog-title">${b.title}</div>
-        <div class="blog-meta"><span>${b.status==='approved'?moodEmoji+' '+b.mood+'/5':'🔒 Stimmung n. Freigabe'}</span>·<span>${fmtDate(b.date)}</span>·<span class="blog-status status-${b.status}">${b.status==='approved'?'✅':b.status==='pending'?'⏳':'📄'}</span></div></div>
-      <div class="blog-body">${b.body}</div>
+      <div class="blog-header"><div class="blog-week">Woche ${b.week} · ${team?.name||'—'}</div>
+        <div class="blog-title">${b.title||'(kein Titel)'}</div>
+        <div class="blog-meta"><span>${b.status==='approved'&&moodEmoji?moodEmoji+' '+b.mood+'/5':'🔒 Stimmung n. Freigabe'}</span>·<span>${fmtDate(b.date)}</span>·${statusLabel}</div></div>
+      <div class="blog-body">${(b.body||'').substring(0,400)}${(b.body||'').length>400?'…':''}</div>
       ${b.highlight?`<div style="padding:0 16px 8px;"><div style="background:var(--green-lt);color:var(--green);padding:7px 10px;border-radius:7px;font-size:11px;font-weight:600;">⭐ ${b.highlight}</div></div>`:''}
-      <div class="blog-footer"><div style="display:flex;gap:5px;flex-wrap:wrap;">${b.tags.map(t=>`<span class="blog-tag">${t}</span>`).join('')}</div>
-        ${(u.role==='admin'||u.role==='superadmin')&&b.status==='pending'?`<button class="btn btn-success btn-xs" onclick="quickApprove('${b.id}')">✅</button>`:''}
+      <div class="blog-footer"><div style="display:flex;gap:5px;flex-wrap:wrap;">${(b.tags||[]).map(t=>`<span class="blog-tag">${t}</span>`).join('')}</div>
+        ${isAdmin&&b.status==='pending'?`<button class="btn btn-success btn-xs" onclick="quickApprove('${b.id}');renderBlogPage()">✅ Freigeben</button>`:''}
+        ${isAdmin?`<button class="btn btn-outline btn-xs" onclick="openBlogDetailAdmin('${b.id}')">📖 Lesen</button>`:''}
       </div>
     </div>`;}).join('');
 }
@@ -4324,7 +4383,19 @@ function renderAdminPage(){
   // notification dots
   const pending=BLOGS.filter(b=>b.status==='pending').length;
   document.getElementById('approvalCount').textContent=pending;
-  document.getElementById('reflectionCount').textContent=REFLECTIONS.length;
+  // Show submitted/total for current (minimum) week
+  const effectiveGameId_rc=state.managingGameId||u?.gameId;
+  const gameTeams_rc=TEAMS.filter(t=>t.gameId===effectiveGameId_rc&&t.status!=='pending'&&t.name&&t.name.trim());
+  if(gameTeams_rc.length>0){
+    const currentWeek_rc=Math.min(...gameTeams_rc.map(t=>t.currentWeek||1));
+    const totalMembers_rc=MEMBERS.filter(m=>gameTeams_rc.some(t=>t.id===m.teamId)).length;
+    const submitted_rc=REFLECTIONS.filter(r=>gameTeams_rc.some(t=>t.id===r.teamId)&&r.week===currentWeek_rc).length;
+    const badge=document.getElementById('reflectionCount');
+    if(badge){badge.textContent=submitted_rc+'/'+totalMembers_rc;badge.style.background=submitted_rc>=totalMembers_rc?'var(--green)':'var(--orange)';}
+  } else {
+    const badge=document.getElementById('reflectionCount');
+    if(badge) badge.textContent=REFLECTIONS.length;
+  }
   // Papierkorb badge
   const pkorBadge=document.getElementById('pkorCount');
   if(pkorBadge){ pkorBadge.textContent=DELETED_ITEMS.length; pkorBadge.style.display=DELETED_ITEMS.length>0?'inline-flex':'none'; }
@@ -5208,7 +5279,8 @@ function renderKonzept(){
           ['v0.7.7','🐛 Vollständiger Code-Audit (6 Bugs): copyRegCode()-Shadowing (Copy-Button defekt), showRegister()-Shadowing (alte Funktion überschrieb aktive), openAddMemberModal()-Crash (fehlende DOM-Elemente), addMemberToTeam()-fehlende Felder (firstName/lastName/email/mobile), Superadmin-Zugriffsgate, E-Mail-Feld im Mitglied-Modal'],
           ['v0.8.0','🚀 6 neue Features: (a) Admin-Zusatzfragen pro Woche für Reflexion &amp; Bericht, (b) Business Model Canvas für CMO mit CEO-Genehmigung &amp; Dozenten-Feedback, (c) Automatische In-App-Erinnerungen vor Abgabe-Deadlines, (d) CSV-Export für Reflexionen &amp; Buchungen, (e) Vollständiger Aktivitätslog aller Aktionen (alle Rollen), (f) Gastadmin-Rolle: Superadmin vergibt Co-Dozenten-Zugang pro Spiel'],
           ['v0.8.1','🛠️ 14 Bugfixes &amp; Features: (1) CSV-Export mit Team/Wochen-Filtern; (2) Admin-Berichte-Tab mit Filtern; (3) Testmodus-Datentrennung fix; (4) Gruppe der Woche: Balkendiagramm, konfigurierbare Gewichtung, Eigene Einschätzung; (5) Aktivitätslog trackt alle Aktionen; (6) Blog-Dropdown-Fix; (7) Passwort-Reset-Flow + Login via E-Mail; (8) E-Mail-Erinnerungen (Reflexion/Bericht/Buchung) mit Opt-Out; (9) Firebase Write-Nonce (Nachrichten-Fix); (10) Reflexions-Status-Badges klickbar; (11) Hochschulen bearbeiten/löschen; (12) Telefon/Büro im Dozenten-Profil; (13) Papierkorb-Wiederherstellung; (14) Live-Checkbox entfernt, Admin-Profil-Tab'],
-          ['v0.8.1.1','🐛 4 Bugfixes: (1) GdW Eigene Einschätzung: Expliziter Speichern-Button mit sofortiger Auswertungsaktualisierung; (2) Erinnerungssystem: 24h-Vorlauf – Reflexion freitags, Bericht+Buchungen samstags, auto-Trigger nach Login; (3) Reflexionen: Team-Filter jetzt auch für Karten aktiv (fix), CSV-Export robuster, PDF-Export hinzugefügt; (4) Berichte: Volltext-Leseansicht (Button + neues Fenster), CSV enthält alle Felder, PDF-Export hinzugefügt', true],
+          ['v0.8.1.1','🐛 4 Bugfixes: (1) GdW Eigene Einschätzung: Expliziter Speichern-Button mit sofortiger Auswertungsaktualisierung; (2) Erinnerungssystem: 24h-Vorlauf – Reflexion freitags, Bericht+Buchungen samstags, auto-Trigger nach Login; (3) Reflexionen: Team-Filter jetzt auch für Karten aktiv (fix), CSV-Export robuster, PDF-Export hinzugefügt; (4) Berichte: Volltext-Leseansicht (Button + neues Fenster), CSV enthält alle Felder, PDF-Export hinzugefügt'],
+          ['v0.8.2','✨ 5 neue Features: (1) Reflexionen-Badge zeigt eingereicht/gesamt für laufende Woche; (2) Dashboard: Laufende Woche als prominente Stat-Karte; (3) Dashboard: Wochengewinner-Banner (Vorwoche) + Verlaufsübersicht aller Sieger (Teams sehen nur sich selbst); (4) Stimmungsbarometer reagiert jetzt auf Team- und Wochenfilter; (5) Blog-Tab: b.tags-Crash behoben, informativere Leer-Zustand-Meldungen, Admin sieht alle Berichte inkl. ausstehende, Freigabe-Button direkt im Blog-Tab', true],
         ].map(([v,d,current])=>`<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg-mid);${current?'background:var(--blue-xlt);border-radius:6px;padding-left:6px;':''}">
           <div style="display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;">
             <span style="background:var(--blue-dark);color:white;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;">${v}</span>
@@ -5617,11 +5689,21 @@ function openReflectionDetail(id){
 function renderMoodChart(){
   const u=state.currentUser;
   const effectiveGameId=state.managingGameId||u?.gameId;
-  const gameTeams=TEAMS.filter(t=>t.gameId===effectiveGameId&&t.status!=='pending');
-  const refs=REFLECTIONS.filter(r=>gameTeams.some(t=>t.id===r.teamId));
-  if(refs.length===0) return;
+  const allGameTeams=TEAMS.filter(t=>t.gameId===effectiveGameId&&t.status!=='pending');
+  // Respect active filter selectors (team + week)
+  const tfVal=document.getElementById('adminRefTeamFilter')?.value||'all';
+  const wfVal=document.getElementById('adminRefWeekFilter')?.value||'all';
+  const filteredTeams=tfVal==='all'?allGameTeams:allGameTeams.filter(t=>t.id===tfVal);
+  let refs=REFLECTIONS.filter(r=>filteredTeams.some(t=>t.id===r.teamId));
+  if(wfVal!=='all') refs=refs.filter(r=>String(r.week)===String(wfVal));
+  if(refs.length===0){
+    const moodEl=document.getElementById('moodByWeek');
+    if(moodEl) moodEl.innerHTML='<div style="color:var(--gray-mid);font-size:12px;padding:8px;">Keine Reflexionen für den aktuellen Filter.</div>';
+    if(state._moodChart){state._moodChart.destroy();state._moodChart=null;}
+    return;
+  }
 
-  // Per-week average mood cards
+  // Per-week average mood cards (respects filter)
   const weeks=[...new Set(refs.map(r=>r.week))].sort((a,b)=>a-b);
   const moodEl=document.getElementById('moodByWeek');
   if(moodEl) moodEl.innerHTML=weeks.map(w=>{
@@ -5636,7 +5718,7 @@ function renderMoodChart(){
     </div>`;
   }).join('');
 
-  // Chart per team per week
+  // Chart per team per week (respects filter)
   const ctx=document.getElementById('moodChartAdmin')?.getContext('2d');
   if(!ctx||weeks.length===0) return;
   if(state._moodChart) state._moodChart.destroy();
@@ -5645,7 +5727,7 @@ function renderMoodChart(){
     type:'line',
     data:{
       labels:weeks.map(w=>'W'+w),
-      datasets:gameTeams.map((team,i)=>({
+      datasets:filteredTeams.map((team,i)=>({
         label:team.logo+' '+team.name,
         data:weeks.map(w=>{
           const tr=refs.filter(r=>r.teamId===team.id&&r.week===w);
