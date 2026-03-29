@@ -4446,12 +4446,13 @@ function renderApprovalQueue(){
   if(pending.length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><h3>Alle geprüft</h3><p>Keine ausstehenden Berichte.</p></div>';return;}
   el.innerHTML=pending.map(b=>{
     const team=TEAMS.find(t=>t.id===b.teamId);
-    const teamMembers=MEMBERS.filter(m=>m.teamId===b.teamId);
+    const teamMembersAll=MEMBERS.filter(m=>m.teamId===b.teamId);
+    const teamMembers=_deduplicateMembers(teamMembersAll,[]);
     const refsForWeek=REFLECTIONS.filter(r=>r.teamId===b.teamId&&r.week===b.week);
     const reflStatusHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:var(--bg-light);border-top:1px solid var(--border);font-size:11px;">
       <span style="color:var(--gray-mid);font-weight:600;">📝 Reflexionen W${b.week}:</span>
       ${teamMembers.map(m=>{
-        const hasRef=refsForWeek.find(r=>r.memberId===m.id);
+        const hasRef=_isMemberRefCovered(m,refsForWeek,teamMembersAll);
         return '<span style="padding:2px 8px;border-radius:12px;font-weight:600;background:'+(hasRef?team?.color+'33':'#F3F4F6')+';color:'+(hasRef?team?.color:'#9CA3AF')+';border:1px solid '+(hasRef?team?.color+'66':'#E5E7EB')+';">'+m.name+' ('+(hasRef?'✓':'fehlt')+')</span>';
       }).join('')}
     </div>`;
@@ -7553,8 +7554,9 @@ function renderAdminBlogsPanel(){
     const team=TEAMS.find(t=>t.id===b.teamId);
     const moodEmoji=['','😩','😟','😐','😊','🚀'][b.mood]||'';
     const refsForWeek=REFLECTIONS.filter(r=>r.teamId===b.teamId&&r.week===b.week);
-    const teamMembers=MEMBERS.filter(m=>m.teamId===b.teamId);
-    const refStatus=teamMembers.map(m=>{const r=refsForWeek.find(x=>x.memberId===m.id);const _fn=m.name.split(' ')[0];const _dup=teamMembers.filter(x=>x.name.split(' ')[0]===_fn).length>1;const _li=m.lastName?m.lastName[0]:(m.name.split(' ')[1]||'')[0]||'';const _dn=_dup&&_li?_fn+'\u00A0'+_li+'.':_fn;return `<span class="tag" style="background:${r?'#dcfce7':'#fee2e2'};color:${r?'#15803d':'#b91c1c'};">${_dn} ${r?'✓':'✗'}</span>`;}).join(' ');
+    const teamMembersAll=MEMBERS.filter(m=>m.teamId===b.teamId);
+    const teamMembers=_deduplicateMembers(teamMembersAll,[]);
+    const refStatus=teamMembers.map(m=>{const covered=_isMemberRefCovered(m,refsForWeek,teamMembersAll);return `<span class="tag" style="background:${covered?'#dcfce7':'#fee2e2'};color:${covered?'#15803d':'#b91c1c'};">${m.name.split(' ')[0]} ${covered?'✓':'✗'}</span>`;}).join(' ');
     return `<div class="card" id="blogcard-${b.id}" style="margin-bottom:12px;">
       <div class="card-header" style="flex-wrap:wrap;gap:6px;">
         <div>
