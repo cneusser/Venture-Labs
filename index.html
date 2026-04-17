@@ -991,6 +991,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
        <select class="form-control" style="width:auto;font-size:12px;" id="adminBlogWeekFilter" onchange="renderAdminBlogsPanel()"><option value="all">Alle Wochen</option><option value="1">W1</option><option value="2">W2</option><option value="3">W3</option><option value="4">W4</option><option value="5">W5</option><option value="6">W6</option></select>
        <button class="btn btn-outline btn-sm" onclick="exportBlogsCSV()">&#128229; CSV</button>
        <button class="btn btn-outline btn-sm" onclick="exportBlogsPDF()">&#128196; PDF</button>
+       <button class="btn btn-primary btn-sm" onclick="openAdminCreateBlog()">&#128203; Bericht anlegen / wiederherstellen</button>
       </div>
      </div>
      <div id="adminBlogsPanel"></div>
@@ -2152,7 +2153,12 @@ function loginWithNewCode(){
   setTimeout(()=>doLoginStep1(),100);
 }
 // ── TEST MODE ────────────────────────────────────────────────────────────
-const TEST_DATA={UNIVERSITIES:[{id:'test-uni',name:'DHBW Stuttgart',short:'DHBW',slug:'DHBW',city:'Stuttgart',adminCount:1,gameCount:1}],GAMES:[{id:'test-g1',name:'VentureLab Demo SoSe 2026',universityId:'test-uni',uni:'DHBW',status:'active',isLive:true,currentWeek:2,teamCount:3,start:'2026-03-01',end:'2026-07-31',mode:'intern',capital:5,teamSize:5,weeklyDeadline:'Sonntag 23:59',autoApprove:0,rounds:1,currentRound:1,adminEmail:'demo@dhbw.de',faqs:[],faqPdfs:[]}],TEAMS:[{id:'test-t1',gameId:'test-g1',name:'Die Ideenschmiede',logo:'💡',color:'#2563EB',code:'TEAM-DEMO1',approach:'Direktvertrieb',strategy:'Kostenführerschaft',biz:'Innovative Dienstleistungen',revenue:12.50,expenses:3.00,capital:5.00,transactions:4,currentWeek:2,weekStatus:'open',mvps:[],mvpOverride:{},slogan:'Ideen verwirklichen',desc:'',email:'',notif:{},lang:'de',weekGoal:50},{id:'test-t2',gameId:'test-g1',name:'GreenWheels',logo:'🌿',color:'#16A34A',code:'TEAM-DEMO2',approach:'Online-First',strategy:'Nachhaltigkeit',biz:'Fahrrad-Sharing',revenue:8.00,expenses:2.50,capital:5.00,transactions:3,currentWeek:2,weekStatus:'open',mvps:[],mvpOverride:{},slogan:'Grün und schnell',desc:'',email:'',notif:{},lang:'de',weekGoal:50},{id:'test-t3',gameId:'test-g1',name:'Prepify',logo:'📋',color:'#7C3AED',code:'TEAM-PREP1',approach:'B2B-Direktvertrieb',strategy:'Spezialisierung',biz:'Prüfungsvorbereitung für Studenten',revenue:6.00,expenses:1.50,capital:5.00,transactions:2,currentWeek:2,weekStatus:'open',mvps:[],mvpOverride:{},slogan:'Vorbereitet studieren',desc:'',email:'',notif:{},lang:'de',weekGoal:50}],MEMBERS:[{id:'test-mb1',teamId:'test-t1',name:'Anna Müller',firstName:'Anna',lastName:'Müller',email:'anna@test.de',mobile:'',role:'CEO',title:'CEO',bio:'',code:'TEST-CEO',avatarDataUrl:null},{id:'test-mb2',teamId:'test-t1',name:'Ben Schneider',firstName:'Ben',lastName:'Schneider',email:'ben@test.de',mobile:'',role:'CFO',title:'CFO',bio:'',code:'TEST-CFO',avatarDataUrl:null},{id:'test-mb3',teamId:'test-t1',name:'Lisa Weber',firstName:'Lisa',lastName:'Weber',email:'lisa@test.de',mobile:'',role:'CMO',title:'CMO',bio:'',code:'TEST-CMO',avatarDataUrl:null},{id:'test-mb4',teamId:'test-t2',name:'Tim Braun',firstName:'Tim',lastName:'Braun',email:'tim@test.de',mobile:'',role:'CEO',title:'CEO',bio:'',code:'TEST-CEO2',avatarDataUrl:null},{id:'test-mb5',teamId:'test-t3',name:'Tina Heckel',firstName:'Tina',lastName:'Heckel',email:'tina@test.de',mobile:'',role:'CEO',title:'CEO',bio:'',code:'TEST-PREP-CEO',avatarDataUrl:null}],TRANSACTIONS:[{id:'test-tx1',teamId:'test-t1',date:'2026-03-07',desc:'Startkapital',cat:'Kapital',type:'income',amount:5,receipt:false},{id:'test-tx2',teamId:'test-t1',date:'2026-03-08',desc:'Ersten Kunden gewonnen',cat:'Umsatz',type:'income',amount:8.50,receipt:false},{id:'test-tx3',teamId:'test-t1',date:'2026-03-10',desc:'Materialeinkauf',cat:'Kosten',type:'expense',amount:3.00,receipt:false},{id:'test-tx4',teamId:'test-t1',date:'2026-03-12',desc:'Beratungsservice',cat:'Umsatz',type:'income',amount:4.00,receipt:false},{id:'test-tx5',teamId:'test-t2',date:'2026-03-07',desc:'Startkapital',cat:'Kapital',type:'income',amount:5,receipt:false},{id:'test-tx6',teamId:'test-t2',date:'2026-03-09',desc:'Fahrrad-Verleih',cat:'Umsatz',type:'income',amount:8,receipt:false},{id:'test-tx7',teamId:'test-t2',date:'2026-03-11',desc:'Reparaturkosten',cat:'Kosten',type:'expense',amount:2.50,receipt:false},{id:'test-tx8',teamId:'test-t3',date:'2026-03-07',desc:'Startkapital',cat:'Kapital',type:'income',amount:5,receipt:false},{id:'test-tx9',teamId:'test-t3',date:'2026-03-10',desc:'Erste Nachhilfesession',cat:'Umsatz',type:'income',amount:6.00,receipt:false},{id:'test-tx10',teamId:'test-t3',date:'2026-03-12',desc:'Druckkosten Lernmaterial',cat:'Kosten',type:'expense',amount:1.50,receipt:false}],BLOGS:[],REFLECTIONS:[],ADMINS:[{id:'test-a1',gameId:'test-g1',name:'Dr. Neusser',code:'TEST-ADMIN',email:'neusser@dhbw.de',uni:'DHBW'}],FEEDBACKS:[],SUPERADMINS:[],FAQ_DOCS:[],ANNOUNCEMENTS:[{id:'test-ann1',gameId:'test-g1',text:'Willkommen in der Testumgebung! 🚀',date:'2026-03-01',pinned:true}]};
+const TEST_DATA={UNIVERSITIES:[{id:'test-uni',name:'DHBW Stuttgart',short:'DHBW',slug:'DHBW',city:'Stuttgart',adminCount:1,gameCount:1}],GAMES:[{id:'test-g1',name:'VentureLab Demo SoSe 2026',universityId:'test-uni',uni:'DHBW',status:'active',isLive:true,currentWeek:2,teamCount:3,start:'2026-03-01',end:'2026-07-31',mode:'intern',capital:5,teamSize:5,weeklyDeadline:'Sonntag 23:59',autoApprove:0,rounds:1,currentRound:1,adminEmail:'demo@dhbw.de',faqs:[],faqPdfs:[]}],TEAMS:[{id:'test-t1',gameId:'test-g1',name:'Die Ideenschmiede',logo:'💡',color:'#2563EB',code:'TEAM-DEMO1',approach:'Direktvertrieb',strategy:'Kostenführerschaft',biz:'Innovative Dienstleistungen',revenue:12.50,expenses:3.00,capital:5.00,transactions:4,currentWeek:2,weekStatus:'open',mvps:[],mvpOverride:{},slogan:'Ideen verwirklichen',desc:'',email:'',notif:{},lang:'de',weekGoal:50},{id:'test-t2',gameId:'test-g1',name:'GreenWheels',logo:'🌿',color:'#16A34A',code:'TEAM-DEMO2',approach:'Online-First',strategy:'Nachhaltigkeit',biz:'Fahrrad-Sharing',revenue:8.00,expenses:2.50,capital:5.00,transactions:3,currentWeek:2,weekStatus:'open',mvps:[],mvpOverride:{},slogan:'Grün und schnell',desc:'',email:'',notif:{},lang:'de',weekGoal:50},{id:'test-t3',gameId:'test-g1',name:'Prepify',logo:'📋',color:'#7C3AED',code:'TEAM-PREP1',approach:'B2B-Direktvertrieb',strategy:'Spezialisierung',biz:'Prüfungsvorbereitung für Studenten',revenue:6.00,expenses:1.50,capital:5.00,transactions:2,currentWeek:2,weekStatus:'open',mvps:[],mvpOverride:{},slogan:'Vorbereitet studieren',desc:'',email:'',notif:{},lang:'de',weekGoal:50}],MEMBERS:[{id:'test-mb1',teamId:'test-t1',name:'Anna Müller',firstName:'Anna',lastName:'Müller',email:'anna@test.de',mobile:'',role:'CEO',title:'CEO',bio:'',code:'TEST-CEO',avatarDataUrl:null},{id:'test-mb2',teamId:'test-t1',name:'Ben Schneider',firstName:'Ben',lastName:'Schneider',email:'ben@test.de',mobile:'',role:'CFO',title:'CFO',bio:'',code:'TEST-CFO',avatarDataUrl:null},{id:'test-mb3',teamId:'test-t1',name:'Lisa Weber',firstName:'Lisa',lastName:'Weber',email:'lisa@test.de',mobile:'',role:'CMO',title:'CMO',bio:'',code:'TEST-CMO',avatarDataUrl:null},{id:'test-mb4',teamId:'test-t2',name:'Tim Braun',firstName:'Tim',lastName:'Braun',email:'tim@test.de',mobile:'',role:'CEO',title:'CEO',bio:'',code:'TEST-CEO2',avatarDataUrl:null},{id:'test-mb5',teamId:'test-t3',name:'Tina Heckel',firstName:'Tina',lastName:'Heckel',email:'tina@test.de',mobile:'',role:'CEO',title:'CEO',bio:'',code:'TEST-PREP-CEO',avatarDataUrl:null}],TRANSACTIONS:[{id:'test-tx1',teamId:'test-t1',date:'2026-03-07',desc:'Startkapital',cat:'Kapital',type:'income',amount:5,receipt:false},{id:'test-tx2',teamId:'test-t1',date:'2026-03-08',desc:'Ersten Kunden gewonnen',cat:'Umsatz',type:'income',amount:8.50,receipt:false},{id:'test-tx3',teamId:'test-t1',date:'2026-03-10',desc:'Materialeinkauf',cat:'Kosten',type:'expense',amount:3.00,receipt:false},{id:'test-tx4',teamId:'test-t1',date:'2026-03-12',desc:'Beratungsservice',cat:'Umsatz',type:'income',amount:4.00,receipt:false},{id:'test-tx5',teamId:'test-t2',date:'2026-03-07',desc:'Startkapital',cat:'Kapital',type:'income',amount:5,receipt:false},{id:'test-tx6',teamId:'test-t2',date:'2026-03-09',desc:'Fahrrad-Verleih',cat:'Umsatz',type:'income',amount:8,receipt:false},{id:'test-tx7',teamId:'test-t2',date:'2026-03-11',desc:'Reparaturkosten',cat:'Kosten',type:'expense',amount:2.50,receipt:false},{id:'test-tx8',teamId:'test-t3',date:'2026-03-07',desc:'Startkapital',cat:'Kapital',type:'income',amount:5,receipt:false},{id:'test-tx9',teamId:'test-t3',date:'2026-03-10',desc:'Erste Nachhilfesession',cat:'Umsatz',type:'income',amount:6.00,receipt:false},{id:'test-tx10',teamId:'test-t3',date:'2026-03-12',desc:'Druckkosten Lernmaterial',cat:'Kosten',type:'expense',amount:1.50,receipt:false}],BLOGS:[
+  {id:'test-b1',teamId:'test-t1',week:1,title:'Ideenschmiede – Woche 1: Der erste Schritt',body:'Wir haben unsere Geschäftsidee konkretisiert und erste Gespräche mit potenziellen Kunden geführt. Drei Personen haben Interesse an unserem Beratungsservice bekundet. Ben hat die erste Finanztabelle aufgestellt und Lisa eine erste Social-Media-Präsenz aufgebaut.',highlight:'3 Interessenten in der ersten Woche!',challenges:'Das Targeting ist noch zu breit – wir sprechen zu viele Zielgruppen an.',nextSteps:'Fokus auf eine Kernzielgruppe, erste Preisgestaltung festlegen.',status:'approved',mood:4,tags:['Kundengewinnung','Finanzen'],date:'2026-03-10',adminFeedback:'Toller Start! Euer Highlight zeigt echten Unternehmergeist. Fokussiert euch tatsächlich auf eine klar definierte Zielgruppe – das ist der entscheidende Schritt von der Idee zum Business. Schaut euch das Value Proposition Canvas an.'},
+  {id:'test-b2',teamId:'test-t1',week:2,title:'Ideenschmiede – Woche 2: Erste Umsätze!',body:'Wir haben zwei zahlende Kunden gewonnen und 12,50 € Umsatz erzielt. Lisa hat einen Flyer erstellt, der gut ankommt. Ben hat die Kostenstruktur optimiert, wir sind profitabel!',highlight:'Erste 12,50 € Umsatz – wir verdienen Geld!',challenges:'Kapazitätsengpass: Alle drei machen alles. Wir brauchen klarere Rollenverteilung.',nextSteps:'CEO übernimmt Kundenakquise, CFO Buchhaltung, CMO Marketing-Kampagne für Woche 3.',status:'pending',mood:5,tags:['Umsatz','Skalierung'],date:'2026-03-17',adminFeedback:''},
+  {id:'test-b3',teamId:'test-t2',week:1,title:'GreenWheels – Woche 1: Nachhaltigkeit als USP',body:'Wir haben 5 Fahrräder für unser Sharing-Konzept identifiziert. Erste Nutzer aus dem Studierendenumfeld zeigen Interesse. Tim hat einen QR-Code-basierten Verleihprozess konzipiert.',highlight:'Unser nachhaltiges Konzept kommt bei Studierenden sehr gut an.',challenges:'Versicherungsfrage für die Fahrräder noch ungeklärt.',nextSteps:'Klärung der Haftungsfrage, Pilotbetrieb mit 2 Fahrrädern starten.',status:'approved',mood:3,tags:['Nachhaltigkeit','Pilotbetrieb'],date:'2026-03-10',adminFeedback:'Guter erster Ansatz! Die Versicherungsfrage ist absolut kritisch – das ist kein optionales Detail, sondern Voraussetzung für den Betrieb. Ich empfehle, das mit Priorität 1 in Woche 2 zu klären. Euer Nachhaltigkeitsfokus ist ein echter Differenziator im Wettbewerb.'},
+  {id:'test-b4',teamId:'test-t3',week:1,title:'Prepify – Woche 1: Marktforschung und erster Kurs',body:'Wir haben 15 Studis befragt – 80% würden für gute Prüfungsvorbereitung zahlen. Tina hat einen ersten Probetermin für Mathe-Vorbereitung angeboten. 4 Teilnehmer, Feedback sehr positiv.',highlight:'80% Zahlungsbereitschaft in der Umfrage bestätigt unseren Ansatz!',challenges:'Skalierung des Angebots ohne mehr Zeitressourcen ist schwierig.',nextSteps:'Lernmaterialien digitalisieren, Gruppenkurs für 8-10 Personen planen.',status:'approved',mood:4,tags:['Marktforschung','Pilotangebot'],date:'2026-03-10',adminFeedback:'Exzellente Marktforschung! Die 80% Zahlungsbereitschaft ist ein sehr starkes Signal. Achtet jedoch darauf, dass Befragungsverzerrungen vorliegen können (soziale Erwünschtheit). Die Digitalisierung eurer Materialien ist der richtige Schritt zur Skalierung. Denkt auch über ein Abonnement-Modell nach.'}
+],REFLECTIONS:[],ADMINS:[{id:'test-a1',gameId:'test-g1',name:'Dr. Neusser',code:'TEST-ADMIN',email:'neusser@dhbw.de',uni:'DHBW'}],FEEDBACKS:[],SUPERADMINS:[],FAQ_DOCS:[],ANNOUNCEMENTS:[{id:'test-ann1',gameId:'test-g1',text:'Willkommen in der Testumgebung! 🚀',date:'2026-03-01',pinned:true}]};
 const TEST_PWDS={'TEST-CEO':'test','TEST-CFO':'test','TEST-CMO':'test','TEST-CEO2':'test','TEST-PREP-CEO':'test','TEST-ADMIN':'test'};
 function loadTestData(){
   window._testModeActive=true;
@@ -6636,18 +6642,32 @@ function returnToSuperAdminFromImpersonation(){
 function renderUserViewPanel(){
   const sel=document.getElementById('impersonateSelect');
   if(!sel) return;
+  const adminGameId=state.currentUser.gameId;
+  // Members don't store gameId directly — resolve via their team
+  const gameMembers=MEMBERS.filter(m=>{
+    if(m.gameId===adminGameId) return true; // direct match if field exists
+    const t=TEAMS.find(tt=>tt.id===m.teamId);
+    return t&&t.gameId===adminGameId;
+  });
   const currentVal=sel.value;
   sel.innerHTML='<option value="">— Mitglied auswählen —</option>';
-  MEMBERS.filter(m=>m.gameId===state.currentUser.gameId).forEach(m=>{
-    const team=TEAMS.find(t=>t.id===m.teamId);
-    const opt=document.createElement('option');
-    opt.value=m.id;
-    opt.textContent=(m.name||m.id)+' ('+(team?team.name:'kein Team')+', '+(m.role||'member')+')';
-    sel.appendChild(opt);
+  // Group by team for readability
+  const teamsSorted=[...new Set(gameMembers.map(m=>m.teamId))];
+  teamsSorted.forEach(teamId=>{
+    const team=TEAMS.find(t=>t.id===teamId);
+    const grp=document.createElement('optgroup');
+    grp.label=(team?team.logo+' '+team.name:'kein Team');
+    gameMembers.filter(m=>m.teamId===teamId).forEach(m=>{
+      const opt=document.createElement('option');
+      opt.value=m.id;
+      opt.textContent=(m.name||m.id)+' ('+( m.role||'member')+')';
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
   });
   if(currentVal) sel.value=currentVal;
   const info=document.getElementById('userViewInfo');
-  if(info) info.textContent=MEMBERS.filter(m=>m.gameId===state.currentUser.gameId).length+' Mitglieder geladen.';
+  if(info) info.textContent=gameMembers.length+' Mitglieder in '+teamsSorted.length+' Teams geladen.';
 }
 function startMemberImpersonation(){
   const sel=document.getElementById('impersonateSelect');
@@ -7810,6 +7830,62 @@ function exportBlogsCSV(){
   _downloadCSV(header+'\n'+rows,'venturelab_berichte_'+new Date().toISOString().split('T')[0]+'.csv');
   showToast('&#128229; '+blogs.length+' Berichte exportiert','success');
 }
+// v0.8.4: Admin blog creation / restore tool
+function openAdminCreateBlog(){
+  const u=state.currentUser;
+  const effectiveGameId=state.managingGameId||u?.gameId;
+  const gameTeams=TEAMS.filter(t=>t.gameId===effectiveGameId&&t.status!=='pending'&&t.name&&t.name.trim());
+  const sel=document.getElementById('acbTeam');
+  if(sel){
+    sel.innerHTML='<option value="">— Team auswählen —</option>';
+    gameTeams.forEach(t=>{
+      const opt=document.createElement('option');
+      opt.value=t.id;
+      opt.textContent=(t.logo||'')+'  '+t.name;
+      sel.appendChild(opt);
+    });
+  }
+  const dateEl=document.getElementById('acbDate');
+  if(dateEl) dateEl.value=new Date().toISOString().split('T')[0];
+  openModal('modalAdminCreateBlog');
+}
+function adminCreateBlog(){
+  const teamId=document.getElementById('acbTeam').value;
+  const week=parseInt(document.getElementById('acbWeek').value)||1;
+  const title=document.getElementById('acbTitle').value.trim();
+  if(!teamId){showToast('Bitte ein Team auswählen','error');return;}
+  if(!title){showToast('Bitte einen Titel eingeben','error');return;}
+  const team=TEAMS.find(t=>t.id===teamId);
+  if(!team){showToast('Team nicht gefunden','error');return;}
+  // Check if a blog for this team+week already exists
+  const existing=BLOGS.find(b=>b.teamId===teamId&&b.week===week);
+  if(existing){
+    if(!confirm('Für '+team.name+' Woche '+week+' existiert bereits ein Bericht. Trotzdem einen neuen anlegen?')) return;
+  }
+  const blog={
+    id:'b'+Date.now(),
+    teamId,
+    week,
+    title,
+    body:document.getElementById('acbBody').value||'',
+    highlight:document.getElementById('acbHighlight').value||'',
+    challenges:document.getElementById('acbChallenges').value||'',
+    nextSteps:document.getElementById('acbNextSteps').value||'',
+    adminFeedback:document.getElementById('acbFeedback').value||'',
+    mood:parseInt(document.getElementById('acbMood').value)||3,
+    tags:[],
+    date:document.getElementById('acbDate').value||new Date().toISOString().split('T')[0],
+    status:'approved',
+    _restoredByAdmin:true,
+  };
+  BLOGS.push(blog);
+  saveData();
+  closeModal('modalAdminCreateBlog');
+  renderAdminBlogsPanel();
+  showToast('✅ Bericht für '+team.name+' Woche '+week+' gespeichert','success');
+  // Log activity
+  if(typeof logActivity==='function') logActivity('admin_blog_create','Bericht angelegt: '+team.name+' W'+week+' – '+title);
+}
 function exportBlogsPDF(){
   const u=state.currentUser;
   const effectiveGameId=state.managingGameId||u?.gameId;
@@ -8471,6 +8547,37 @@ window.addEventListener('DOMContentLoaded', function(){
   <div class="modal-body" id="refDetailBody"></div>
   <div class="modal-footer">
    <button class="btn btn-secondary" onclick="closeModal('modalReflectionDetail')">Schließen</button>
+  </div>
+ </div>
+</div>
+
+<!-- MODAL: Admin Bericht anlegen / wiederherstellen -->
+<div class="modal-overlay" id="modalAdminCreateBlog">
+ <div class="modal modal-lg">
+  <div class="modal-header"><h3>&#128203; Bericht anlegen / wiederherstellen</h3><button class="modal-close" onclick="closeModal('modalAdminCreateBlog')">&#215;</button></div>
+  <div class="modal-body">
+   <div class="info-box blue" style="margin-bottom:14px;"><span class="info-box-icon">&#128161;</span>Damit kannst Du einen verlorenen oder fehlenden Wochenbericht für ein Team manuell anlegen. Der Bericht wird direkt als <strong>freigegeben</strong> gespeichert.</div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+    <div class="form-group"><label class="form-label">Team *</label>
+     <select class="form-control" id="acbTeam"><option value="">— Team auswählen —</option></select></div>
+    <div class="form-group"><label class="form-label">Woche *</label>
+     <select class="form-control" id="acbWeek"><option value="1">Woche 1</option><option value="2">Woche 2</option><option value="3" selected>Woche 3</option><option value="4">Woche 4</option><option value="5">Woche 5</option><option value="6">Woche 6</option></select></div>
+   </div>
+   <div class="form-group"><label class="form-label">Titel *</label><input type="text" class="form-control" id="acbTitle" placeholder="Titel des Wochenberichts"></div>
+   <div class="form-group"><label class="form-label">Aktivitäten / Beschreibung</label><textarea class="form-control" id="acbBody" rows="3" placeholder="Was hat das Team diese Woche gemacht?"></textarea></div>
+   <div class="form-group"><label class="form-label">⭐ Highlight</label><input type="text" class="form-control" id="acbHighlight" placeholder="Das größte Highlight dieser Woche"></div>
+   <div class="form-group"><label class="form-label">⚠️ Herausforderungen</label><textarea class="form-control" id="acbChallenges" rows="2" placeholder="Was lief nicht gut?"></textarea></div>
+   <div class="form-group"><label class="form-label">▶️ Nächste Schritte</label><textarea class="form-control" id="acbNextSteps" rows="2" placeholder="Was plant das Team für nächste Woche?"></textarea></div>
+   <div class="form-group"><label class="form-label">💬 Dozenten-Feedback (optional)</label><textarea class="form-control" id="acbFeedback" rows="3" placeholder="Dein Feedback an das Team"></textarea></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div class="form-group"><label class="form-label">Datum</label><input type="date" class="form-control" id="acbDate"></div>
+    <div class="form-group"><label class="form-label">Stimmung (1–5)</label>
+     <select class="form-control" id="acbMood"><option value="1">1 – Sehr schlecht</option><option value="2">2 – Schlecht</option><option value="3">3 – Ok</option><option value="4" selected>4 – Gut</option><option value="5">5 – Ausgezeichnet</option></select></div>
+   </div>
+  </div>
+  <div class="modal-footer">
+   <button class="btn btn-outline" onclick="closeModal('modalAdminCreateBlog')">Abbrechen</button>
+   <button class="btn btn-primary" onclick="adminCreateBlog()">&#128190; Bericht speichern</button>
   </div>
  </div>
 </div>
