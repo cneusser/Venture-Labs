@@ -472,7 +472,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">🚀</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.8.4)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.8.5)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:8px;">
@@ -747,7 +747,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
  </div>
- <div class="version-footer" id="versionFooter">v0.8.4</div>
+ <div class="version-footer" id="versionFooter">v0.8.5</div>
 </div>
 
 <!-- APP -->
@@ -881,7 +881,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
    <div class="container">
     <div class="section-header">
      <div class="section-title reflect-title">&#128172; Pers&#246;nliche Wochenreflexion</div>
-     <button class="btn btn-success btn-sm" onclick="openModal('modalReflection')">+ Neue Reflexion</button>
+     <button class="btn btn-success btn-sm" onclick="_clearRefAttachments();openModal('modalReflection')">+ Neue Reflexion</button>
     </div>
     <div class="info-box blue">
      <span class="info-box-icon">&#128274;</span>
@@ -1248,6 +1248,12 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <textarea class="form-control" id="blogNextSteps" rows="2" placeholder="Was planen wir f&#252;r n&#228;chste Woche?"></textarea></div>
    <div class="form-group"><label class="form-label">Tags (kommagetrennt)</label>
     <input type="text" class="form-control" id="blogTags" placeholder="z.B. Marketing, Produktion, Marktstand"></div>
+   <div class="form-group">
+    <label class="form-label">&#128206; Anhänge <span style="font-size:11px;color:var(--gray-mid);">(PDF, Bild – max. 500 KB pro Datei)</span></label>
+    <input type="file" id="blogAttachInput" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="handleBlogAttachments(this)">
+    <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('blogAttachInput').click()">&#128206; Datei hinzufügen</button>
+    <div id="blogAttachList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+   </div>
    <div id="blogCustomQuestions" style="margin-bottom:10px;"></div>
    <div class="form-section-title">&#127942; Mitglied der Woche &amp; Reflexionsstatus</div>
    <div id="blogReflectionStatus" style="margin-bottom:10px;"></div>
@@ -1300,6 +1306,12 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <div class="char-counter" id="refImpCount">0 / 300</div></div>
    <div class="form-group"><label class="form-label">Meine Rolle im Team diese Woche</label>
     <textarea class="form-control" id="refRole" rows="2" placeholder="Wie habe ich zum Team beigetragen? Wo k&#246;nnte ich mehr einbringen?"></textarea></div>
+   <div class="form-group">
+    <label class="form-label">&#128206; Anhänge <span style="font-size:11px;color:var(--gray-mid);">(PDF, Bild – max. 500 KB pro Datei)</span></label>
+    <input type="file" id="refAttachInput" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="handleRefAttachments(this)">
+    <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('refAttachInput').click()">&#128206; Datei hinzufügen</button>
+    <div id="refAttachList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+   </div>
    <div id="refCustomQuestions" style="margin-bottom:10px;"></div>
    <div class="form-section-title">&#127942; Abstimmung: Mitglied der Woche</div>
    <div class="info-box gold"><span class="info-box-icon">&#127942;</span>Wen nominierst du als Mitglied der Woche? Dein CEO kann das Ergebnis &#252;berstimmen; bei Stimmengleichheit z&#228;hlt die Stimme des CEO doppelt.</div>
@@ -1906,7 +1918,7 @@ function ensureDefaultSetupCodes(){
 // ════════════════════════════════════════════════════════════════════
 let state = {
   currentUser: null,
-  prevUser: null,       // v0.8.4: holds prior user during impersonation
+  prevUser: null,       // v0.8.5: holds prior user during impersonation
   managingGameId: null, // superadmin managing a specific game
   lang: 'de',
   currentPage: 'dashboard',
@@ -2416,7 +2428,7 @@ function setLoginLang(lang){
   document.getElementById('langBtnDE').classList.toggle('active',lang==='de');
   document.getElementById('langBtnEN').classList.toggle('active',lang==='en');
   if(lang==='en'){
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.8.4)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflection <span style="font-size:10px;color:#999;">(v0.8.5)</span>';
     document.getElementById('lt_noCode').textContent='No code yet?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Register now \u2192';
     document.getElementById('lt_pwdFor').textContent='Password for:';
@@ -2426,7 +2438,7 @@ function setLoginLang(lang){
     document.getElementById('lt_back').textContent='Back';
     document.getElementById('lt_skipPwd').innerHTML='\u26a0\ufe0f Skip (insecure)';
   } else {
-    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.8.4)</span>';
+    document.getElementById('lt_sub').innerHTML='Tracker \u00b7 Management \u00b7 Reflexion <span style="font-size:10px;color:#999;">(v0.8.5)</span>';
     document.getElementById('lt_noCode').textContent='Noch kein Code?';
     document.getElementById('lt_regBtn').innerHTML='\ud83d\udc64 Jetzt registrieren \u2192';
     document.getElementById('lt_pwdFor').textContent='Passwort f\u00fcr:';
@@ -3829,10 +3841,10 @@ function openAdminKassenbuch(teamId){
 function renderMyBlogs(team){
   const me=getMyMember();
   const isCeo=me&&me.role==='CEO';
-  // v0.8.4: all statuses (incl. drafts) visible to all team members
+  // v0.8.5: all statuses (incl. drafts) visible to all team members
   const myBlogs=BLOGS.filter(b=>b.teamId===team.id);
   const el=document.getElementById('myBlogList');
-  // v0.8.4: button visible to all; label differs by role; submit gated in submitBlog()
+  // v0.8.5: button visible to all; label differs by role; submit gated in submitBlog()
   const submitBtn=document.getElementById('btnSubmitBlog');
   if(submitBtn){
     submitBtn.disabled=team.weekStatus==='submitted';
@@ -3850,7 +3862,7 @@ function renderMyBlogs(team){
         b.nextSteps?`<div style="margin-top:8px;background:#F0FFF4;border-radius:6px;padding:8px 12px;"><span style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;">▶️ Nächste Schritte</span><div style="font-size:13px;margin-top:3px;">${b.nextSteps}</div></div>`:'',
         hasBody?`<div style="margin-top:8px;"><span style="font-size:10px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;">Aktivitäten</span><div style="font-size:13px;margin-top:3px;color:var(--gray-dark);white-space:pre-wrap;">${b.body}</div></div>`:''
       ].filter(Boolean).join('');
-      // v0.8.4: adminFeedback always visible (not inside collapsible)
+      // v0.8.5: adminFeedback always visible (not inside collapsible)
       const feedbackHtml=b.adminFeedback?`<div style="margin-top:10px;background:#EFF6FF;border:1.5px solid #93C5FD;border-radius:6px;padding:8px 12px;"><div style="font-size:10px;font-weight:700;color:#1D4ED8;text-transform:uppercase;margin-bottom:3px;">💬 Feedback vom Betreuer</div><div style="font-size:13px;color:#1E3A8A;white-space:pre-wrap;">${b.adminFeedback}</div></div>`:'';
       return `<div class="card" style="margin-bottom:12px;">
         <div class="card-body" style="padding:12px 16px;">
@@ -3862,6 +3874,7 @@ function renderMyBlogs(team){
           ${feedbackHtml}
           ${sections?`<div id="${uid}" style="display:none;">${sections}</div>
           <button class="btn btn-outline btn-xs" style="margin-top:8px;" onclick="const d=document.getElementById('${uid}');const open=d.style.display==='block';d.style.display=open?'none':'block';this.textContent=open?'📖 Volltext lesen':'🔼 Einklappen';">📖 Volltext lesen</button>`:''}
+          ${b.attachments&&b.attachments.length?_renderAttachmentLinks(b.attachments):''}
           ${b.status==='draft'?'<button class="btn btn-outline btn-xs" style="margin-top:6px;" onclick="openBlogModal(\''+b.id+'\')">✏️ Weiterschreiben</button>':''}
         </div>
       </div>`;
@@ -4260,13 +4273,16 @@ function openDraftForEdit(blogId){
     if(document.getElementById('blogChallenges')) document.getElementById('blogChallenges').value=b.challenges||'';
     if(document.getElementById('blogNextSteps')) document.getElementById('blogNextSteps').value=b.nextSteps||'';
     if(document.getElementById('blogTags')) document.getElementById('blogTags').value=(b.tags||[]).join(', ');
+    // Restore existing attachments so they're not lost on re-save
+    window._blogAttachments=[...(b.attachments||[])];
+    _renderAttachBadges(window._blogAttachments,'blogAttachList','_blogAttachments');
     updateBlogReflectionStatus();
   },100);
 }
-// v0.8.4: unified blog modal opener for all team members
+// v0.8.5: unified blog modal opener for all team members
 function openBlogModal(blogId){
   if(blogId) openDraftForEdit(blogId);
-  else openModal('modalBlog');
+  else { _clearBlogAttachments(); openModal('modalBlog'); } // v0.8.5: clear stale attachments on fresh open
   setTimeout(function(){
     const me=getMyMember();
     const isCeo=me&&me.role==='CEO';
@@ -4300,26 +4316,24 @@ async function submitFeedback(){
     date: new Date().toISOString(),
     adminEmail: CONFIG.ADMIN_EMAIL,
   };
-  FEEDBACKS.push({id:'f'+Date.now(),...payload});
+  const fbEntry={id:'f'+Date.now(),...payload};
+  FEEDBACKS.push(fbEntry);
+  saveData(); // v0.8.5: persist to Firebase so feedback survives reload
   document.getElementById('feedbackForm').style.display='none';
-  // Optimistic UI – show success immediately
   showToast('📤 Feedback gesendet – danke!');
-  // Reset form
   ['fbSubject','fbMessage','fbPage','fbSteps'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  // Send to Google Sheets / email if endpoint is configured
+  // Send to Google Sheets + email via Apps Script
   if(CONFIG.FEEDBACK_ENDPOINT){
     try{
-      // no-cors: fire-and-forget (Apps Script doesn't need CORS for this)
       fetch(CONFIG.FEEDBACK_ENDPOINT,{
         method:'POST',
-        mode:'no-cors',
+        mode:'no-cors', // fire-and-forget – Apps Script receives it
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify(payload)
-      });
-    }catch(e){console.warn('Feedback-Endpoint nicht erreichbar:',e);}
-  } else {
-    console.info('ℹ️ CONFIG.FEEDBACK_ENDPOINT nicht gesetzt – Feedback nur lokal gespeichert.');
+      }).catch(()=>{}); // ignore opaque-response error in no-cors
+    }catch(e){console.warn('[Feedback] Endpoint nicht erreichbar:',e);}
   }
+  if(typeof logActivity==='function') logActivity('feedback','Feedback: '+payload.type+' – '+payload.subject);
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -4559,6 +4573,7 @@ function renderApprovalQueue(){
         ${b.challenges?`<div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.5px;">⚠️ Herausforderungen</label><div style="padding:8px;background:var(--bg-light);border-radius:6px;font-size:13px;">${b.challenges}</div></div>`:''}
         ${b.nextSteps?`<div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.5px;">▶️ Nächste Schritte</label><div style="padding:8px;background:var(--bg-light);border-radius:6px;font-size:13px;">${b.nextSteps}</div></div>`:''}
         ${b.adminFeedback?`<div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:.5px;">💬 Admin-Feedback</label><div style="padding:8px;background:#EFF6FF;border-radius:6px;font-size:13px;">${b.adminFeedback}</div></div>`:''}
+        ${b.attachments&&b.attachments.length?`<div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.5px;">📎 Anhänge</label>${_renderAttachmentLinks(b.attachments)}</div>`:''}
       </div>
       ${reflStatusHtml}
       <div style="padding:8px 12px;background:var(--gray-lt);border-top:1px solid var(--border);">
@@ -4615,9 +4630,9 @@ function renderReflectionsAdmin(){
   if(wfVal!=='all') allRefs=allRefs.filter(r=>r.week==wfVal);
   if(allRefs.length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><h3>Keine Reflexionen</h3></div>';return;}
   // Build missing reflections overview
-  const weeks_r=[...new Set(allRefs.map(r=>r.week))].sort((a,b)=>a-b);
+  const weeks_r=[...new Set(allRefs.map(r=>r.week))].sort((a,b)=>b-a);
   filteredTeams.forEach(t=>{if(!weeks_r.includes(t.currentWeek))weeks_r.push(t.currentWeek);});
-  weeks_r.sort((a,b)=>a-b);
+  weeks_r.sort((a,b)=>b-a); // v0.8.5: newest week first
   const missingHtml=`<div class="card" style="margin-bottom:16px;">
   <div class="card-header"><h3>📋 Reflexions-Status</h3></div>
   <div class="card-body" style="padding:12px;">
@@ -4906,6 +4921,32 @@ function renderTeamAwardPanel(){
         <span class="tag tag-green" style="margin-left:auto;">🏅 Ausgezeichnet</span>
       </div>`;}).join('')}</div>
     </div>`:''}
+    <!-- v0.8.5: MVP Gewinner-Historie nach Wochen -->
+    ${(()=>{
+      const allWeeks=[...new Set([...awards.map(a=>a.week),...gameTeams.flatMap(t=>(t.mvps||[]).map(m=>m.week))])].sort((a,b)=>b-a);
+      if(!allWeeks.length) return '';
+      const rows=allWeeks.map(w=>{
+        const award=awards.find(a=>a.week===w);
+        const gdwTeam=award?TEAMS.find(t=>t.id===award.teamId):null;
+        const allMvpsThisWeek=gameTeams.flatMap(t=>(t.mvps||[]).filter(m=>m.week===w).map(m=>({...m,team:t})));
+        const mvpRows=allMvpsThisWeek.map(m=>{const mem=MEMBERS.find(x=>x.id===m.memberId);return mem?`${m.team.logo} <strong>${mem.name}</strong> <span style="font-size:11px;color:var(--gray-mid);">(${mem.role||'MVP'}${m.reason?', '+m.reason:''})</span>`:''}).filter(Boolean).join('<br>');
+        return `<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 10px;font-weight:700;white-space:nowrap;">Woche ${w}</td>
+          <td style="padding:8px 10px;">${gdwTeam?`<span style="font-size:20px;">${gdwTeam.logo}</span> <strong>${gdwTeam.name}</strong>${award.reason?' <span style=\'font-size:11px;color:var(--gray-mid);\'> · '+award.reason+'</span>':''}`:'-'}</td>
+          <td style="padding:8px 10px;font-size:13px;">${mvpRows||'-'}</td>
+        </tr>`;
+      }).join('');
+      return `<div class="card" style="margin-top:16px;">
+        <div class="card-header"><h3>📋 Gewinner-Übersicht nach Woche</h3></div>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:var(--gray-lt);">
+            <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray-mid);font-weight:700;text-transform:uppercase;">Woche</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray-mid);font-weight:700;text-transform:uppercase;">🏅 Gruppe der Woche</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray-mid);font-weight:700;text-transform:uppercase;">🏆 MVP Mitglieder</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div></div>`;
+    })()}
   `;
   // Render bar chart
   setTimeout(()=>{
@@ -5478,7 +5519,8 @@ function renderKonzept(){
           ['v0.8.3','🐛 6 Fixes &amp; Features: (1) Doppelte Vornamen in Status-Badges: Nachname-Initial zur Unterscheidung (z.B. "Florian K." vs. "Florian M."); (2) Reflexionen-Badge: Pill-Form statt Kreis (passt jetzt "19/20"), Zähllogik pro-Team statt globalem Min; (3) Superadmin: neuer Tab "Alle Wochenberichte" mit Volltext, Spiel-Filter, CSV- und PDF-Export; (4) Superadmin Reflexionen: Volltextanzeige ohne Kürzung; (5) Berichte-Tab: Abgabe-Status-Grid pro Woche mit klickbaren Team-Badges; (6) Firebase-Sync-Bugfix: _fbWriting=true sofort bei saveData() gesetzt – verhindert Race Condition bei Blog-Freigabe'],
           ['v0.8.2.2','🛠️ 2 Verbesserungen: (1) Team-Verwaltung: Aktive Teams werden jetzt oben angezeigt, freie Slots darunter – und nach Abschluss von KW1 werden leere Slots automatisch ausgeblendet; (2) Gruppe der Woche: Wochenauswahl-Dropdown ermöglicht nachträgliche Bewertung vergangener Wochen (Woche auswählen → Scoring + Auszeichnung für beliebige Woche)'],
           ['v0.8.3','✨ 3 Features &amp; Bugfixes: (1) Berichte-Tab: Volltext-Anzeige aller Wochenberichte mit Aufklapp-Funktion, CEO-Button nur für CEO sichtbar; (2) Berichte-Tab: Neue Sektion „Meine Reflexionen" mit allen eigenen vergangenen Reflexionen (nur für den jeweiligen User einsehbar); (3) ROI-Berechnung nutzt jetzt das tatsächliche Startkapital statt hartkodierter 5€; (4) Bugfix: mergeDuplicateMember überträgt E-Mail und Passwort-Hash auf kept-Member – behebt Login-Probleme nach Duplikat-Zusammenführung'],
-          ['v0.8.4','🔍 3 Features &amp; 5 Bugfixes: (1) Wochenberichte vollständig für alle Teammitglieder sichtbar inkl. Admin-Feedback (blauer Kasten); (2) Bericht bearbeitbar für alle Mitglieder – Einreichen weiterhin nur CEO; (3) Admin-Vorschau als User (Impersonation): neuer Tab mit Mitglieder-Auswahl, blauer Vorschau-Banner, Schreibschutz während Vorschau; (4) Fix: b.challenge→b.challenges (Herausforderungen wurden nie angezeigt); (5) Fix: openDraftForEdit befüllt jetzt alle Felder (Highlight, Herausforderungen, Nächste Schritte); (6) Fix: isCeo-Logik in openBlogModal korrigiert; (7) Fix: gameId-Vererbung bei Impersonation; (8) Vollständiger Code-Audit: 8 Bugs gefunden und behoben', true],
+          ['v0.8.4','🔍 3 Features &amp; 5 Bugfixes: (1) Wochenberichte vollständig für alle Teammitglieder sichtbar inkl. Admin-Feedback (blauer Kasten); (2) Bericht bearbeitbar für alle Mitglieder – Einreichen weiterhin nur CEO; (3) Admin-Vorschau als User (Impersonation): neuer Tab mit Mitglieder-Auswahl, blauer Vorschau-Banner, Schreibschutz während Vorschau; (4) Fix: b.challenge→b.challenges; (5) Fix: openDraftForEdit befüllt alle Felder; (6) Fix: isCeo-Logik; (7) Fix: gameId-Vererbung; (8) Code-Audit'],
+          ['v0.8.5','🚀 4 Features &amp; 4 Bugfixes: (1) Feedback-Persistenz: saveData() nach FEEDBACKS.push() – Einträge gehen nicht mehr verloren; (2) E-Mail-Versand: Apps Script sendet jetzt auch an game.adminEmail; (3) Dateianhänge (PDF/Bild bis 500KB) für Wochenberichte und Reflexionen; (4) Admin-Ranking: Gewinner-Übersicht aller Wochen mit GdW-Team und MVP-Mitgliedern; (5) Reflexionen-Admin: neueste Woche oben; (6) Fix: Anhänge gehen beim Bearbeiten von Entwürfen nicht verloren; (7) Fix: Reflexions-Anhänge beim Bearbeiten korrekt wiederhergestellt; (8) Admin-Bericht-Restore-Tool im Berichte-Tab', true],
         ].map(([v,d,current])=>`<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg-mid);${current?'background:var(--blue-xlt);border-radius:6px;padding-left:6px;':''}">
           <div style="display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;">
             <span style="background:var(--blue-dark);color:white;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;">${v}</span>
@@ -5711,6 +5753,38 @@ function handleReceiptUpload(e){
   };
   reader.readAsDataURL(file);
 }
+// ── v0.8.5: Attachment helpers ──────────────────────────────────────
+window._blogAttachments=[];
+window._refAttachments=[];
+function _readFileAsBase64(file){
+  return new Promise((res,rej)=>{
+    if(file.size>512*1024){showToast('⚠️ '+file.name+' ist zu groß (max 500 KB)','error');rej('too large');return;}
+    const r=new FileReader();
+    r.onload=()=>res({name:file.name,type:file.type,size:file.size,data:r.result});
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+function _renderAttachBadges(list,containerId,storeKey){
+  const el=document.getElementById(containerId);if(!el)return;
+  el.innerHTML=list.map((a,i)=>`<span style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:20px;padding:2px 10px;font-size:12px;display:flex;align-items:center;gap:5px;">📎 ${a.name} <button onclick="window.${storeKey}.splice(${i},1);_renderAttachBadges(window.${storeKey},'${containerId}','${storeKey}')" style="background:none;border:none;cursor:pointer;color:#DC2626;font-weight:700;padding:0 2px;">✕</button></span>`).join('');
+}
+async function handleBlogAttachments(inp){
+  for(const f of inp.files){try{const a=await _readFileAsBase64(f);window._blogAttachments.push(a);}catch(e){}}
+  _renderAttachBadges(window._blogAttachments,'blogAttachList','_blogAttachments');
+  inp.value='';
+}
+async function handleRefAttachments(inp){
+  for(const f of inp.files){try{const a=await _readFileAsBase64(f);window._refAttachments.push(a);}catch(e){}}
+  _renderAttachBadges(window._refAttachments,'refAttachList','_refAttachments');
+  inp.value='';
+}
+function _clearBlogAttachments(){window._blogAttachments=[];const el=document.getElementById('blogAttachList');if(el)el.innerHTML='';}
+function _clearRefAttachments(){window._refAttachments=[];const el=document.getElementById('refAttachList');if(el)el.innerHTML='';}
+function _renderAttachmentLinks(attachments){
+  if(!attachments||!attachments.length)return'';
+  return`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">${attachments.map(a=>`<a href="${a.data}" download="${a.name}" style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:20px;padding:3px 10px;font-size:12px;color:#1D4ED8;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📎 ${a.name}</a>`).join('')}</div>`;
+}
 function submitBooking(){
   if(state.currentUser?._impersonating){showToast('⛔ Schreiben nicht möglich im Vorschau-Modus','error');return;}
   const desc=document.getElementById('bDesc').value.trim();
@@ -5776,7 +5850,9 @@ function submitBlog(){
     nextSteps:document.getElementById('blogNextSteps').value||'',
     mood:avgMood,
     tags:document.getElementById('blogTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+    attachments:[...(window._blogAttachments||[])],
     status:'pending',date:new Date().toISOString().split('T')[0]};
+  _clearBlogAttachments();
   BLOGS.push(blog);team.weekStatus='submitted';
   logEvent('blog_submit',{week:team.currentWeek,title,teamId:team.id});
   saveData();
@@ -5799,7 +5875,9 @@ function saveBlogDraft(){
   ].filter(Boolean).join(' | ');
   BLOGS.push({id:'blog-draft-'+Date.now(),teamId:team.id,week:w,title,body,
     tags:(document.getElementById('blogTags')?.value||'').split(',').map(t=>t.trim()).filter(Boolean),
+    attachments:[...(window._blogAttachments||[])],
     status:'draft',createdAt:new Date().toISOString(),mood:null});
+  _clearBlogAttachments();
   saveData();
   closeModal('modalBlog');
   showToast('📄 Entwurf gespeichert');
@@ -5829,7 +5907,9 @@ function submitReflection(){
     existing.experience=exp;existing.liked=liked;existing.improved=imp;
     existing.role=document.getElementById('refRole').value;
     existing.mvpVote=mvpVote||null;
+    existing.attachments=[...(window._refAttachments||[])]; // v0.8.5
     existing.updatedAt=new Date().toISOString().split('T')[0];
+    _clearRefAttachments();
     logEvent('reflection_update',{week,teamId:m.teamId});
     saveData();closeModal('modalReflection');showToast('✏️ Reflexion aktualisiert!');
   } else {
@@ -5838,7 +5918,9 @@ function submitReflection(){
       role:document.getElementById('refRole').value,
       mvpVote:mvpVote||null,
       customAnswers:collectCustomAnswers('refCustomQuestions'),
+      attachments:[...(window._refAttachments||[])],
       date:new Date().toISOString().split('T')[0]});
+    _clearRefAttachments();
     logEvent('reflection_submit',{week,teamId:m.teamId,role:document.getElementById('refRole').value||''});
     saveData();closeModal('modalReflection');showToast('💾 Reflexion gespeichert!');
   }
@@ -5860,6 +5942,9 @@ function editReflection(id){
   if(g('refWeek'))       g('refWeek').value='Woche '+r.week;
   // Set mood
   state.selectedMood=r.mood||3;
+  // v0.8.5: restore existing attachments so they're not lost on re-save
+  window._refAttachments=[...(r.attachments||[])];
+  _renderAttachBadges(window._refAttachments,'refAttachList','_refAttachments');
   setTimeout(()=>document.querySelectorAll('.mood-btn').forEach(b=>{
     b.classList.toggle('selected',parseInt(b.dataset.val)===state.selectedMood);
   }),50);
@@ -6638,7 +6723,7 @@ function returnToSuperAdminFromImpersonation(){
     showToast('Zurueck als Superadmin','success');
   }
 }
-// v0.8.4: Member impersonation for admin
+// v0.8.5: Member impersonation for admin
 function renderUserViewPanel(){
   const sel=document.getElementById('impersonateSelect');
   if(!sel) return;
@@ -7830,7 +7915,7 @@ function exportBlogsCSV(){
   _downloadCSV(header+'\n'+rows,'venturelab_berichte_'+new Date().toISOString().split('T')[0]+'.csv');
   showToast('&#128229; '+blogs.length+' Berichte exportiert','success');
 }
-// v0.8.4: Admin blog creation / restore tool
+// v0.8.5: Admin blog creation / restore tool
 function openAdminCreateBlog(){
   const u=state.currentUser;
   const effectiveGameId=state.managingGameId||u?.gameId;
