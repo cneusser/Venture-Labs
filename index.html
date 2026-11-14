@@ -474,7 +474,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div id="loginMode">
    <div class="login-logo">&#x1F680;</div>
    <h2 class="login-title">VentureLab</h2>
-   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.94)</span></p>
+   <p class="login-sub" id="lt_sub">Tracker &#183; Management &#183; Reflexion <span style="font-size:10px;color:#999;">(v0.93)</span></p>
 
    <!-- ── MODE SELECT ──────────────────────────────────── -->
    <div id="loginModeSelect" style="margin-top:4px;">
@@ -662,7 +662,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
 <a href="changelog.html" target="_blank" rel="noopener"
    class="version-footer" id="versionFooter"
    style="text-decoration:none;cursor:pointer;display:block;"
-   title="Versionshistorie öffnen">v0.94 &#128196;</a>
+   title="Versionshistorie öffnen">v0.93 &#128196;</a>
 
 <!-- APP -->
 <div id="appShell">
@@ -874,6 +874,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
      <button class="admin-tab active" onclick="switchAdminTab('approval')">&#128203; Blog-Freigabe <span class="notif-dot" id="approvalCount">0</span></button>
      <button class="admin-tab" onclick="switchAdminTab('weeks')">&#128197; Wochen-Status</button>
      <button class="admin-tab" onclick="switchAdminTab('berichte-admin')">&#128214; Berichte</button>
+     <button class="admin-tab" onclick="switchAdminTab('analytics');renderAnalyticsDashboard('analyticsDashboard')">&#128202; Analytics</button>
      <button class="admin-tab" onclick="switchAdminTab('reflections-admin')">&#128172; Reflexionen <span class="notif-dot" id="reflectionCount" style="background:var(--green);">0</span></button>
      <button class="admin-tab" onclick="switchAdminTab('teams-admin')">&#128101; Teams</button>
      <button class="admin-tab" onclick="switchAdminTab('transactions-admin')">&#128179; Buchungen</button>
@@ -896,6 +897,13 @@ textarea.form-control{resize:vertical;min-height:70px;}
      <div id="customQuestionsAdminWrap"></div>
      <div class="info-box blue"><span class="info-box-icon">&#128161;</span>Jedes Team durchl&#228;uft die Wochen unabh&#228;ngig voneinander. Nach Freigabe des Wochenberichts wird das Team automatisch in die n&#228;chste Woche versetzt.</div>
      <div class="data-table-wrap"><div id="weeksAdminTable"></div></div>
+    </div>
+    <div class="admin-panel" id="adminPanel-analytics">
+     <div class="section-header" style="flex-wrap:wrap;gap:8px;">
+      <div class="section-title admin-title">&#128202; Analytics-Dashboard</div>
+      <button class="btn btn-outline btn-sm" onclick="exportAnalyticsPDF(state.managingGameId||state.currentUser?.gameId)">&#128196; PDF-Export</button>
+     </div>
+     <div id="analyticsDashboard"></div>
     </div>
     <div class="admin-panel" id="adminPanel-berichte-admin">
      <div class="section-header" style="flex-wrap:wrap;gap:8px;">
@@ -994,6 +1002,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
        </div>
      </div>
      <div class="stat-grid" id="superStats"></div>
+     <div id="backupVersionsPanel"></div>
      <div class="two-col">
       <div><div class="section-header"><div class="section-title super-title">&#127942; Global-Ranking</div></div><div class="leaderboard" id="superLeaderboard"></div></div>
       <div><div class="section-header"><div class="section-title super-title">&#128202; Aktivit&#228;t</div></div><div class="card"><div class="card-body"><div class="chart-wrap"><canvas id="superGameChart"></canvas></div></div></div></div>
@@ -1386,6 +1395,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
 <script src="modules/weekly-questions.js"></script>
 <script src="modules/reminders.js"></script>
 <script src="modules/reports.js"></script>
+<script src="modules/analytics.js"></script>
 <script src="modules/guest-admin.js"></script>
 <script src="modules/bmc.js"></script>
 <script src="core/backup.js"></script>
