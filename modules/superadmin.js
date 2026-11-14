@@ -32,6 +32,7 @@ function renderSuperPage(){
       ${game.status==='closed'
         ? '<span class="tag" style="background:#fee2e2;color:#c00;padding:4px 8px;">🔒 Abgeschlossen</span>'
         : `<button class="btn btn-secondary btn-sm" onclick="closeGame('${game.id}')" style="background:var(--orange)!important;color:white!important;">🔒 Abschließen</button>`}
+      <button class="btn btn-outline btn-sm" onclick="toggleGameArchive('${game.id}')" title="${game.archived?'Aus Archiv holen':'Spiel archivieren'}">${game.archived?'📤 De-archivieren':'📦 Archivieren'}</button>
       <button class="btn btn-danger btn-sm" onclick="deleteGame('${game.id}')" style="margin-left:auto;">🗑️ Löschen</button>
     </div>
   </div>`).join('');
@@ -54,6 +55,29 @@ function renderSuperPage(){
       ${r.improved?`<div style="font-size:11px;color:var(--orange);">💡 ${r.improved}</div>`:''}
     </div></div>`;}).join('');
 }
+// ── Game Archiving (v0.94) ────────────────────────────────────────────────
+function toggleGameArchive(gameId){
+  const game=GAMES.find(g=>g.id===gameId);if(!game) return;
+  const willArchive=!game.archived;
+  if(willArchive){
+    if(!confirm(`Spiel "${game.name}" archivieren?\n\nArchivierte Spiele werden in der Übersicht ausgeblendet und als inaktiv markiert. Daten bleiben vollständig erhalten.`)) return;
+    game.archived=true;
+    game.archivedAt=new Date().toISOString();
+    if(game.status==='active') game.status='closed';
+    logEvent('game_archived',{gameId,name:game.name});
+    showToast('📦 Spiel "'+game.name+'" archiviert','success');
+  } else {
+    game.archived=false;
+    delete game.archivedAt;
+    logEvent('game_unarchived',{gameId,name:game.name});
+    showToast('📤 Spiel "'+game.name+'" aus dem Archiv geholt','info');
+  }
+  saveData();
+  renderSuperPage();
+}
+function getArchivedGames(){ return GAMES.filter(g=>g.archived); }
+function getActiveGames(){ return GAMES.filter(g=>!g.archived); }
+
 function switchSuperTab(tabId){
   document.querySelectorAll('#page-superadmin .admin-tab').forEach(t=>t.classList.remove('active'));
   event.currentTarget.classList.add('active');

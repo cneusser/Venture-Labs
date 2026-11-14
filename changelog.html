@@ -69,13 +69,17 @@
     <div class="version-header">
       <span class="version-badge current">v0.94</span>
       <span class="current-pill">AKTUELL</span>
-      <span class="version-title">&#128027; Bugfix: Magic-Link-Login blieb h&#228;ngen</span>
+      <span class="version-title">🚀 WiSe 2026/27-Vorbereitung: Analytics-Dashboard, Team-PDF, Backup-Versionierung &amp; mehr</span>
     </div>
     <div class="version-body">
       <ul>
-        <li>Nach Klick auf den Magic Link blieb der Ladescreen dauerhaft bei &#8222;Best&#228;tige E-Mail-Link&#8230;&#8220; stehen &#8211; Login kam nie an</li>
-        <li>Ursache: der <code>onAuthStateChanged</code>-Listener wurde im Magic-Link-Pfad nicht registriert (bereits seit v0.92 latent). Nach erfolgreichem <code>signInWithEmailLink</code> wird der Login-Flow jetzt direkt angesto&#223;en</li>
-        <li>Betrifft nur den E-Mail-Link-Login; Zugangscode- und Testmodus-Login waren nie betroffen</li>
+        <li><strong>🟢 Analytics-Dashboard</strong> (<code>modules/analytics.js</code>): Neues Dozenten-Dashboard mit Stimmungsbarometer, Reflexions-Compliance-Chart, Team-Velocity-Linien, Tiefenanalyse-Tabelle und Scorecard — PDF-Export per Knopfdruck</li>
+        <li><strong>🟢 Team-Semester-PDF</strong> (<code>modules/reports.js</code>): <code>exportTeamSemesterPDF(teamId)</code> erzeugt einen strukturierten Semesterbericht pro Team mit allen Reflexionen, Wochenberichten und Buchungen (Druck-/PDF-optimiert)</li>
+        <li><strong>🟢 Backup-Versionierung</strong> (<code>core/backup.js</code>): Hält automatisch die letzten 5 Backup-Snapshots in <code>localStorage</code> (<code>5euro_backupversions</code>); jedes manuelle Download-Backup und jedes Auto-Backup erzeugt einen Versionseintrag; Wiederherstellen einzelner Versionen direkt aus dem Superadmin-Panel</li>
+        <li><strong>🟡 Spiel-Archivierung</strong> (<code>modules/superadmin.js</code>): Spiele können mit einem Klick archiviert werden (<code>archived: true</code>); Daten bleiben vollständig erhalten, Spiel wird aus aktiver Ansicht ausgeblendet; jederzeit de-archivierbar</li>
+        <li><strong>🟡 WiSe 2026/27 Reflexionsprompts</strong> (<code>modules/weekly-questions.js</code>): 11 vorformulierte Zusatzfragen für Wochen 1–6 (Kolb-orientiert, Pivot-Fokus); Import via Button im Admin-Panel; Duplikate werden automatisch übersprungen</li>
+        <li><strong>🟡 Automatische Erinnerungen</strong> (bereits in v0.93 vorhanden, jetzt verifiziert aktiv): <code>checkAutoReminders()</code> läuft 3 s nach Login für admin/superadmin; Freitag = Reflexions-Reminder, Samstag = Blog/Buchungs-Reminder</li>
+        <li><strong>🔴 Firebase Security Rules v2 + WiSe-Setup-Guide</strong>: Deployment-Anleitung und Testprotokoll für Magic-Link-Flow in <code>WISE_2026_SETUP_GUIDE.md</code></li>
       </ul>
     </div>
   </div>

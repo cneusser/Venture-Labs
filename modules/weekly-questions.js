@@ -1,6 +1,47 @@
 // ════════════════════════════════════════════════════════════════════
 //  FEATURE (a): CUSTOM WEEKLY QUESTIONS
+//  v0.94: WiSe 2026/27 — Default-Zusatzfragen per importDefaultQuestions()
 // ════════════════════════════════════════════════════════════════════
+
+// Default-Fragenset WiSe 2026/27 (Dozent kann per Admin-Panel anpassen)
+const DEFAULT_WISE_QUESTIONS = [
+  // Woche 1 – Kickoff & Orientierung
+  { week:1, target:'reflection', text:'Was hat dich bei der Teamgründung überrascht – positiv oder negativ?' },
+  { week:1, target:'blog',       text:'Wie habt ihr eure erste große Entscheidung als Team getroffen?' },
+  // Woche 2 – Erster Marktkontakt
+  { week:2, target:'reflection', text:'Hast du heute etwas riskiert, das sich (nicht) gelohnt hat? Was würdest du anders machen?' },
+  { week:2, target:'blog',       text:'Welche Annahme über eure Kunden hat sich als falsch herausgestellt?' },
+  // Woche 3 – Pivot-Check
+  { week:3, target:'both',       text:'Braucht ihr einen Pivot? Begründe anhand konkreter Daten oder Kundenfeedback.' },
+  // Woche 4 – Team-Dynamik
+  { week:4, target:'reflection', text:'Wie hat sich deine Rolle im Team verändert? Bist du damit zufrieden?' },
+  { week:4, target:'blog',       text:'Was würdet ihr einem anderen Team in dieser Phase empfehlen?' },
+  // Woche 5 – Skalierung & Nachhaltigkeit
+  { week:5, target:'reflection', text:'Was hast du diese Woche konkret gelernt, das du sofort in der Praxis einsetzen kannst?' },
+  { week:5, target:'blog',       text:'Wie skalierbar ist euer Geschäftsmodell – was wäre nötig, um 10× zu wachsen?' },
+  // Woche 6 – Abschluss & Transfer
+  { week:6, target:'reflection', text:'Was nimmst du aus diesem Semester mit in dein zukünftiges Berufsleben?' },
+  { week:6, target:'blog',       text:'Was würdet ihr beim nächsten Mal anders machen – und warum?' },
+];
+
+function importDefaultQuestions(gameId){
+  const game=GAMES.find(g=>g.id===gameId);if(!game) return;
+  if(!game.customQuestions) game.customQuestions=[];
+  let added=0;
+  DEFAULT_WISE_QUESTIONS.forEach(q=>{
+    // Avoid duplicates (same week+target+text prefix)
+    const exists=game.customQuestions.some(cq=>cq.week===q.week&&cq.target===q.target&&cq.text.substring(0,30)===q.text.substring(0,30));
+    if(!exists){
+      game.customQuestions.push({id:'cq-wise'+Date.now()+'-'+Math.random().toString(36).substr(2,4), ...q});
+      added++;
+    }
+  });
+  saveData();
+  renderCustomQuestionsAdmin();
+  showToast('✅ '+added+' WiSe 2026/27-Fragen importiert','success');
+  logEvent('default_questions_import',{gameId,added});
+}
+
 function getGameCustomQuestions(gameId){
   const g=GAMES.find(x=>x.id===gameId);
   if(!g) return [];
@@ -20,7 +61,10 @@ function renderCustomQuestionsAdmin(){
     <div class="card" style="margin-top:18px;margin-bottom:16px;">
       <div class="card-header"><h3 style="font-size:13px;">&#128221; Zusatzfragen pro Woche</h3></div>
       <div class="card-body">
-        <div class="info-box blue" style="margin-bottom:12px;"><span class="info-box-icon">&#128161;</span>Zusatzfragen erscheinen in den Reflexions- bzw. Berichtsformularen der jeweiligen Woche zus&#228;tzlich zu den Standard-Fragen.</div>
+        <div class="info-box blue" style="margin-bottom:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <span><span class="info-box-icon">&#128161;</span>Zusatzfragen erscheinen in den Reflexions- bzw. Berichtsformularen der jeweiligen Woche zus&#228;tzlich zu den Standard-Fragen.</span>
+          <button class="btn btn-outline btn-xs" onclick="importDefaultQuestions('${effectiveGameId}')" title="WiSe 2026/27 Standardfragen importieren" style="white-space:nowrap;">&#128229; WiSe 2026/27 Fragen</button>
+        </div>
         <div class="form-row" style="align-items:flex-end;gap:8px;flex-wrap:wrap;">
           <div class="form-group" style="min-width:180px;flex:2"><label class="form-label">Frage</label>
             <input class="form-control" id="cqText" placeholder="z.B. Wie war die Kundenkommunikation?"></div>

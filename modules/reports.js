@@ -307,6 +307,132 @@ function exportReflectionsPDF(){
   if(w){w.document.write(html);w.document.close();}
   else{showToast('Bitte Popup-Blocker deaktivieren','error');}
 }
+// ════════════════════════════════════════════════════════════════════
+//  ITEM 8 (v0.94): Semester-PDF-Export pro Team
+// ════════════════════════════════════════════════════════════════════
+function exportTeamSemesterPDF(teamId){
+  const team=TEAMS.find(t=>t.id===teamId);
+  if(!team){showToast('Team nicht gefunden','error');return;}
+  const game=GAMES.find(g=>g.id===team.gameId);
+  const members=MEMBERS.filter(m=>m.teamId===teamId);
+  const blogs=BLOGS.filter(b=>b.teamId===teamId).sort((a,b)=>a.week-b.week);
+  const refs=REFLECTIONS.filter(r=>r.teamId===teamId).sort((a,b)=>a.week-b.week||(a.memberId>b.memberId?1:-1));
+  const txs=TRANSACTIONS.filter(tx=>tx.teamId===teamId).sort((a,b)=>a.date>b.date?1:-1);
+  const moodEmoji=['','😩','😟','😐','😊','🚀'];
+
+  // ── KPIs ─────────────────────────────────────────────────────────
+  const totalRev=txs.filter(tx=>tx.type==='income').reduce((s,tx)=>s+(tx.amount||0),0);
+  const totalExp=txs.filter(tx=>tx.type==='expense').reduce((s,tx)=>s+(tx.amount||0),0);
+  const profit=totalRev-totalExp;
+  const avgMood=refs.filter(r=>r.mood).length?+(refs.reduce((s,r)=>s+(r.mood||0),0)/refs.filter(r=>r.mood).length).toFixed(1):0;
+  const compRate=members.length*(team.currentWeek||1)>0?Math.round(refs.length/(members.length*(team.currentWeek||1))*100):0;
+
+  // ── Blog sections ─────────────────────────────────────────────────
+  const blogHtml=blogs.length===0?'<p style="color:#888;">Keine Wochenberichte vorhanden.</p>':
+    blogs.map(b=>`
+    <div style="page-break-inside:avoid;border:1px solid #ddd;border-radius:6px;padding:14px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <strong>Woche ${b.week} · ${b.date||''}</strong>
+        <span style="font-size:12px;color:#555;">${moodEmoji[b.mood]||''} ${b.mood}/5 · ${b.status==='approved'?'✅ Freigegeben':'⏳ Ausstehend'}</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;">${b.title||'—'}</div>
+      ${b.highlight?`<div style="background:#fef3c7;border-left:3px solid #f59e0b;padding:6px 10px;border-radius:4px;font-size:12px;font-weight:600;margin-bottom:8px;">⭐ ${b.highlight}</div>`:''}
+      <div style="font-size:12px;color:#333;white-space:pre-wrap;background:#f9fafb;padding:10px;border-radius:4px;margin-bottom:8px;">${(b.body||'—').replace(/</g,'&lt;')}</div>
+      ${b.challenges?`<p style="font-size:12px;color:#c2410c;">⚠️ <strong>Herausforderungen:</strong> ${b.challenges}</p>`:''}
+      ${b.nextSteps?`<p style="font-size:12px;color:#1d4ed8;">▶️ <strong>Nächste Schritte:</strong> ${b.nextSteps}</p>`:''}
+      ${b.adminFeedback?`<div style="background:#f0fdf4;border-left:3px solid #22c55e;padding:6px 10px;border-radius:4px;font-size:12px;">💬 <strong>Dozenten-Feedback:</strong> ${b.adminFeedback}</div>`:''}
+    </div>`).join('');
+
+  // ── Reflections by member ─────────────────────────────────────────
+  const refHtml=refs.length===0?'<p style="color:#888;">Keine Reflexionen vorhanden.</p>':
+    refs.map(r=>{
+      const m=MEMBERS.find(x=>x.id===r.memberId);
+      return `<div style="page-break-inside:avoid;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <strong>${m?.name||'—'}</strong> <span style="color:#555;font-size:11px;">(${m?.role||'—'}) · Woche ${r.week}${r.date?' · '+r.date:''}</span>
+          <span style="font-size:12px;">${moodEmoji[r.mood]||''} ${r.mood}/5</span>
+        </div>
+        ${r.experience?`<p style="font-size:12px;margin-bottom:4px;"><strong>Erfahrungen:</strong> ${r.experience}</p>`:''}
+        ${r.liked?`<p style="font-size:12px;color:#16a34a;margin-bottom:4px;">👍 Was war gut: ${r.liked}</p>`:''}
+        ${r.improved?`<p style="font-size:12px;color:#d97706;margin-bottom:4px;">💡 Verbesserungen: ${r.improved}</p>`:''}
+        ${r.role?`<p style="font-size:12px;margin-bottom:4px;"><strong>Eigene Rolle:</strong> ${r.role}</p>`:''}
+      </div>`;
+    }).join('');
+
+  // ── Transactions table ────────────────────────────────────────────
+  const txHtml=txs.length===0?'<p style="color:#888;">Keine Buchungen vorhanden.</p>':
+    `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="background:#1A2C5A;color:white;">
+        <th style="padding:7px 10px;text-align:left;">Datum</th>
+        <th style="padding:7px 10px;text-align:left;">Beschreibung</th>
+        <th style="padding:7px 10px;text-align:left;">Kategorie</th>
+        <th style="padding:7px 10px;text-align:right;">Betrag</th>
+      </tr></thead>
+      <tbody>${txs.map((tx,i)=>`<tr style="background:${i%2===0?'#fff':'#f9fafb'};">
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${tx.date||''}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${tx.desc||''}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${tx.cat||''}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:right;color:${tx.type==='income'?'#15803d':'#b91c1c'};font-weight:600;">${tx.type==='income'?'+':'-'}${(tx.amount||0).toFixed(2)} €</td>
+      </tr>`).join('')}
+      <tr style="background:#f1f5f9;font-weight:700;">
+        <td colspan="3" style="padding:8px 10px;">Ergebnis</td>
+        <td style="padding:8px 10px;text-align:right;color:${profit>=0?'#15803d':'#b91c1c'};">${profit>=0?'+':''}${profit.toFixed(2)} €</td>
+      </tr></tbody>
+    </table>`;
+
+  // ── Assemble full HTML ────────────────────────────────────────────
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Semesterbericht – ${team.logo||''} ${team.name}</title>
+  <style>
+    body{font-family:Arial,sans-serif;max-width:860px;margin:30px auto;padding:0 24px;font-size:13px;color:#1a1a2e;line-height:1.6;}
+    h1{font-size:22px;margin-bottom:4px;}h2{font-size:12px;color:#555;font-weight:normal;margin-bottom:24px;}
+    h3{font-size:15px;font-weight:700;border-bottom:2px solid #1A2C5A;padding-bottom:6px;margin:28px 0 14px;}
+    .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:28px;}
+    .kpi{background:#f1f5f9;border-radius:8px;padding:10px;text-align:center;}
+    .kpi-val{font-size:20px;font-weight:800;color:#1A2C5A;}.kpi-lbl{font-size:10px;color:#64748b;}
+    .member-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+    .member-chip{background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;}
+    @media print{.no-print{display:none;}body{margin:10px;}}
+  </style></head><body>
+  <button class="no-print" onclick="window.print()" style="background:#1A2C5A;color:white;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;margin-bottom:20px;font-size:14px;">🖨️ Drucken / PDF speichern</button>
+
+  <h1>${team.logo||'📋'} ${team.name} — Semesterbericht</h1>
+  <h2>${game?.name||''} · ${new Date().toLocaleDateString('de-DE')} · ${members.length} Mitglieder · ${team.currentWeek||1} Wochen</h2>
+
+  <!-- Team members -->
+  <div class="member-row">
+    ${members.map(m=>`<span class="member-chip">${m.name} (${m.role})</span>`).join('')}
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val">${refs.length}</div><div class="kpi-lbl">Reflexionen</div></div>
+    <div class="kpi"><div class="kpi-val">${compRate}%</div><div class="kpi-lbl">Compliance</div></div>
+    <div class="kpi"><div class="kpi-val">${avgMood}/5</div><div class="kpi-lbl">Ø Stimmung</div></div>
+    <div class="kpi"><div class="kpi-val">${blogs.filter(b=>b.status==='approved').length}</div><div class="kpi-lbl">Berichte ✅</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:${profit>=0?'#15803d':'#b91c1c'};">${profit>=0?'+':''}${profit.toFixed(2)} €</div><div class="kpi-lbl">Ergebnis</div></div>
+  </div>
+
+  <!-- Wochenberichte -->
+  <h3>📋 Wochenberichte (${blogs.length})</h3>
+  ${blogHtml}
+
+  <!-- Reflexionen -->
+  <h3>📝 Reflexionen (${refs.length})</h3>
+  ${refHtml}
+
+  <!-- Finanzen -->
+  <h3>💳 Buchungen (${txs.length})</h3>
+  ${txHtml}
+
+  </body></html>`;
+
+  const w=window.open('','_blank');
+  if(w){w.document.write(html);w.document.close();}
+  else showToast('Bitte Popup-Blocker deaktivieren','error');
+  logEvent('team_semester_pdf',{teamId,teamName:team.name});
+}
+
 function exportTransactionsCSV(){
   const u=state.currentUser;
   const effectiveGameId=state.managingGameId||u?.gameId;
